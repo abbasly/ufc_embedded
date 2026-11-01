@@ -4,7 +4,7 @@ import { ErrorBoundary } from "react-error-boundary";
 import { useSearchParams } from "react-router-dom";
 
 import { useStyleMap } from "../../data/client";
-import type { Fighter } from "../../data/types";
+import type { Fighter, LayoutId, StyleMapData } from "../../data/types";
 import { ChampionsStrip } from "./ChampionsStrip";
 import { FighterPanel } from "./FighterPanel";
 import { type ColorBy, type Dims, SHOW_OPTIONS, type Show, WEIGHT_CLASSES, colorOfGroup, groupOf, legend } from "./model";
@@ -13,6 +13,7 @@ import { Scene } from "./Scene";
 export default function StyleMapPage() {
   const { data, error, isPending } = useStyleMap();
   const [params, setParams] = useSearchParams();
+  const [layout, setLayout] = useState<LayoutId>("axes");
   const [dims, setDims] = useState<Dims>(3);
   const [colorBy, setColorBy] = useState<ColorBy>("style");
   const [show, setShow] = useState<Show>("all");
@@ -62,6 +63,15 @@ export default function StyleMapPage() {
             value={weightClasses}
             onChange={setWeightClasses}
           />
+          <div>
+            <Text size="sm" fw={500} mb={4}>Layout</Text>
+            <SegmentedControl
+              fullWidth
+              value={layout}
+              onChange={(v) => setLayout(v as LayoutId)}
+              data={data.layouts.map((l) => ({ value: l.id, label: l.label }))}
+            />
+          </div>
           <Group grow>
             <div>
               <Text size="sm" fw={500} mb={4}>Colour by</Text>
@@ -82,14 +92,7 @@ export default function StyleMapPage() {
               />
             </div>
           </Group>
-          <div>
-            <Text size="sm" fw={500} mb={4}>Axes</Text>
-            {data.axes.slice(0, dims).map((a) => (
-              <Text key={a.label} size="xs" c="dimmed">
-                <b>{a.label}</b>: {a.low} → {a.high} ({Math.round(a.explained_variance * 100)}%)
-              </Text>
-            ))}
-          </div>
+          <LayoutInfo data={data} layout={layout} dims={dims} />
         </Stack>
       </Grid.Col>
 
@@ -105,6 +108,7 @@ export default function StyleMapPage() {
           >
           <Scene
             data={data}
+            layout={layout}
             dims={dims}
             colorOf={(f) => colorOfGroup(groupOf(f, data, colorBy), colorBy)}
             label={(f) => groupOf(f, data, colorBy)}
@@ -133,5 +137,37 @@ export default function StyleMapPage() {
         <FighterPanel data={data} fighter={selected} onSelect={select} />
       </Grid.Col>
     </Grid>
+  );
+}
+
+/** What the current layout's axes mean, and how faithfully it keeps similar fighters together. */
+function LayoutInfo({ data, layout, dims }: { data: StyleMapData; layout: LayoutId; dims: Dims }) {
+  const meta = data.layouts.find((l) => l.id === layout);
+  if (!meta) return null;
+  const labelOf = (key: string) => data.features.find((f) => f.key === key)?.label ?? key;
+  const kept = Math.round(meta.quality[String(dims) as "2" | "3"].knn_kept * 100);
+
+  return (
+    <Stack gap={4}>
+      <Text size="xs" c="dimmed">
+        {meta.description}
+      </Text>
+      {meta.interpretable &&
+        data.axes.slice(0, dims).map((a) => (
+          <Text key={a.label} size="xs" c="dimmed">
+            <b>{a.label}</b>: {a.low} → {a.high}
+            <br />
+            <Text span size="xs" c="dimmed" fs="italic">
+              from{" "}
+              {Object.entries(a.weights)
+                .map(([k, w]) => `${w < 0 ? "less " : ""}${labelOf(k).toLowerCase()}${Math.abs(w) > 1 ? ` (×${Math.abs(w)})` : ""}`)
+                .join(", ")}
+            </Text>
+          </Text>
+        ))}
+      <Text size="xs" c="dimmed">
+        Keeps {kept}% of each fighter's 10 most similar fighters (by all 8 stats) nearby in this view.
+      </Text>
+    </Stack>
   );
 }

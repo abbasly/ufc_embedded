@@ -67,8 +67,15 @@ export function AboutPage() {
               Use 8 UFCStats career rates: strikes landed/absorbed, accuracy and defence, takedowns,
               takedown accuracy and defence, submission attempts.
             </List.Item>
-            <List.Item>Log-transform the skewed rates and standardise everything.</List.Item>
-            <List.Item>PCA to 3D for the map, k-means for style groups, nearest neighbours for similar fighters.</List.Item>
+            <List.Item>
+              Shrink noisy stats toward the average for fighters with little cage time, then
+              standardise.
+            </List.Item>
+            <List.Item>
+              Two layouts: readable Grappling / Striking / Defence axes, and a t-SNE similarity view
+              that keeps look-alikes together.
+            </List.Item>
+            <List.Item>K-means for style groups, nearest neighbours for similar fighters.</List.Item>
           </List>
         </Stack>
 

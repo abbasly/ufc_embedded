@@ -2,17 +2,18 @@
 // Points are plain meshes; photos and labels are HTML pinned to 3D positions.
 
 import { Html, Line, OrbitControls } from "@react-three/drei";
-import { Canvas } from "@react-three/fiber";
-import { useMemo, useState } from "react";
+import { Canvas, useThree } from "@react-three/fiber";
+import { useEffect, useMemo, useState } from "react";
 import { MOUSE, SphereGeometry } from "three";
 
-import type { Fighter, StyleMapData } from "../../data/types";
-import { type Dims, GOLD } from "./model";
+import type { Fighter, LayoutId, StyleMapData } from "../../data/types";
+import { type Dims, GOLD, positionOf } from "./model";
 
 type Vec3 = [number, number, number];
 
 interface Props {
   data: StyleMapData;
+  layout: LayoutId;
   dims: Dims;
   colorOf: (f: Fighter) => string;
   label: (f: Fighter) => string;
@@ -22,35 +23,33 @@ interface Props {
 }
 
 const RADIUS = 0.06;
+const CAMERA: Record<Dims, Vec3> = { 3: [7, 5, 9], 2: [0, 0, 13] };
 const HIT_SCALE = 2.5;
 const noRaycast = () => null;
 const AXIS_LENGTH = 4.5;
 const LABEL_Z = [100, 0]; // keep HTML labels below the app's own overlays
 
-const position = (f: Fighter, dims: Dims): Vec3 => [
-  f.coords[0] ?? 0,
-  f.coords[1] ?? 0,
-  dims === 3 ? (f.coords[2] ?? 0) : 0,
-];
-
-export function Scene({ data, dims, colorOf, label, isShown, selectedId, onSelect }: Props) {
+export function Scene({ data, layout, dims, colorOf, label, isShown, selectedId, onSelect }: Props) {
   const [hovered, setHovered] = useState<Fighter | null>(null);
   const geometry = useMemo(() => new SphereGeometry(RADIUS, 12, 12), []);
 
   const byId = useMemo(() => new Map(data.fighters.map((f) => [f.id, f])), [data]);
   const selected = selectedId ? byId.get(selectedId) : undefined;
   const neighbourIds = new Set(selected?.neighbours.map((n) => n.id));
+  const position = (f: Fighter): Vec3 => positionOf(f, layout, dims);
+  const interpretable = data.layouts.find((l) => l.id === layout)?.interpretable ?? false;
 
   return (
-    // Remount on 2D/3D switch so the camera resets.
-    <Canvas key={dims} camera={{ position: dims === 3 ? [7, 5, 9] : [0, 0, 11], fov: 45 }}>
+    <Canvas camera={{ position: CAMERA[dims], fov: 45 }}>
+      <CameraReset resetKey={`${layout}-${dims}`} dims={dims} />
       <OrbitControls
         makeDefault
         enableDamping
         enableRotate={dims === 3}
         mouseButtons={dims === 3 ? undefined : { LEFT: MOUSE.PAN, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.PAN }}
       />
-      <Axes data={data} dims={dims} />
+      {/* Hidden rather than unmounted: unmounting drei <Html> here trips a React DOM error. */}
+      <Axes data={data} dims={dims} hidden={!interpretable} />
 
       {data.fighters.map((f) => {
         const isSelected = f.id === selectedId;
@@ -58,7 +57,7 @@ export function Scene({ data, dims, colorOf, label, isShown, selectedId, onSelec
         const shown = isShown(f) || isSelected || isNeighbour;
         const scale = isSelected ? 2.6 : isNeighbour || f.champion ? 1.7 : 1;
         return (
-          <group key={f.id} position={position(f, dims)} scale={scale}>
+          <group key={f.id} position={position(f)} scale={scale}>
             <mesh geometry={geometry} raycast={noRaycast}>
               <meshBasicMaterial
                 color={shown ? colorOf(f) : "#666"}
@@ -99,7 +98,7 @@ export function Scene({ data, dims, colorOf, label, isShown, selectedId, onSelec
             f && (
               <Line
                 key={n.id}
-                points={[position(selected, dims), position(f, dims)]}
+                points={[position(selected), position(f)]}
                 color="white"
                 transparent
                 opacity={0.35}
@@ -112,19 +111,19 @@ export function Scene({ data, dims, colorOf, label, isShown, selectedId, onSelec
       {data.fighters
         .filter((f) => f.champion && f.id !== selectedId && isShown(f))
         .map((f) => (
-          <Html key={f.id} position={position(f, dims)} zIndexRange={LABEL_Z}>
+          <Html key={f.id} position={position(f)} zIndexRange={LABEL_Z}>
             <ChampionLabel fighter={f} onClick={() => onSelect(f.id)} />
           </Html>
         ))}
 
       {selected && (
-        <Html position={position(selected, dims)} zIndexRange={LABEL_Z}>
+        <Html position={position(selected)} zIndexRange={LABEL_Z}>
           <ChampionLabel fighter={selected} onClick={() => undefined} selected />
         </Html>
       )}
 
       {hovered && hovered.id !== selectedId && !hovered.champion && (
-        <Html position={position(hovered, dims)} zIndexRange={LABEL_Z} style={{ pointerEvents: "none" }}>
+        <Html position={position(hovered)} zIndexRange={LABEL_Z} style={{ pointerEvents: "none" }}>
           <div style={tooltipStyle}>
             <b>{hovered.name}</b>
             <br />
@@ -134,6 +133,19 @@ export function Scene({ data, dims, colorOf, label, isShown, selectedId, onSelec
       )}
     </Canvas>
   );
+}
+
+/** Put the camera back to its default view whenever the layout or 2D/3D changes. */
+function CameraReset({ resetKey, dims }: { resetKey: string; dims: Dims }) {
+  const { camera, controls } = useThree();
+  useEffect(() => {
+    camera.position.set(...CAMERA[dims]);
+    camera.lookAt(0, 0, 0);
+    const orbit = controls as unknown as { target?: { set: (x: number, y: number, z: number) => void }; update?: () => void } | null;
+    orbit?.target?.set(0, 0, 0);
+    orbit?.update?.();
+  }, [resetKey, dims, camera, controls]);
+  return null;
 }
 
 function ChampionLabel({ fighter, onClick, selected }: { fighter: Fighter; onClick: () => void; selected?: boolean }) {
@@ -169,7 +181,8 @@ function ChampionLabel({ fighter, onClick, selected }: { fighter: Fighter; onCli
   );
 }
 
-function Axes({ data, dims }: { data: StyleMapData; dims: Dims }) {
+function Axes({ data, dims, hidden }: { data: StyleMapData; dims: Dims; hidden: boolean }) {
+  const labelStyle = { ...axisLabelStyle, display: hidden ? "none" : "block" };
   const dirs: Vec3[] = [
     [1, 0, 0],
     [0, 1, 0],
@@ -181,12 +194,12 @@ function Axes({ data, dims }: { data: StyleMapData; dims: Dims }) {
         const d = dirs[i]!;
         const end = (s: number): Vec3 => [d[0] * s * AXIS_LENGTH, d[1] * s * AXIS_LENGTH, d[2] * s * AXIS_LENGTH];
         return (
-          <group key={axis.label}>
+          <group key={axis.label} visible={!hidden}>
             <Line points={[end(-1), end(1)]} color="#444" lineWidth={1} />
-            <Html position={end(1.08)} center zIndexRange={LABEL_Z} style={axisLabelStyle}>
+            <Html position={end(1.08)} center zIndexRange={LABEL_Z} style={labelStyle}>
               {axis.high} →
             </Html>
-            <Html position={end(-1.08)} center zIndexRange={LABEL_Z} style={axisLabelStyle}>
+            <Html position={end(-1.08)} center zIndexRange={LABEL_Z} style={labelStyle}>
               ← {axis.low}
             </Html>
           </group>

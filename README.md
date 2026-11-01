@@ -18,9 +18,20 @@ checked against betting odds) and, as a stretch, a browser **shadowboxing coach*
 
 1. Take fighters active in the last 3 years with at least 3 UFC fights.
 2. Use 8 UFCStats career rates (strikes landed/absorbed, accuracy, defence, takedowns,
-   takedown accuracy/defence, submission attempts); log-transform the skewed rates and standardise.
-3. PCA to 3D for the map, k-means for style groups, nearest neighbours for similar fighters.
-4. Current champions and their (freely licensed) photos come from Wikipedia.
+   takedown accuracy/defence, submission attempts).
+3. **Shrink** noisy stats toward the average, more for fighters with little cage time or few
+   attempts (a 100% takedown accuracy from 1 attempt shouldn't count), then log-transform the
+   skewed rates and standardise.
+4. Two layouts:
+   - **Style axes:** hand-defined Grappling, Striking and Defence scores (weighted stat averages),
+     readable by construction. PCA/varimax axes were tried first, but the data's strongest
+     pattern is "accuracy", which made them hard to name.
+   - **Similarity:** t-SNE, which keeps far more true neighbours together but has meaningless axes.
+
+   Each layout reports how many of every fighter's 10 nearest neighbours (in the full 8-stat
+   space) it keeps: about 25% for style axes vs 52% for t-SNE in 3D.
+5. k-means for style groups, nearest neighbours in the full stat space for "most similar".
+6. Current champions and their (freely licensed) photos come from Wikipedia.
 
 ## Architecture
 
@@ -31,7 +42,7 @@ that only reads them. No server needed, so it hosts for free on GitHub Pages.
 flowchart LR
     subgraph py["Python pipeline (src/ufc_embedded)"]
         raw[("Kaggle CSVs<br/>data/raw")] --> data["data.py<br/>load + active fighters"]
-        data --> sm["style_map.py<br/>scale, PCA, k-means, kNN"]
+        data --> sm["style_map.py<br/>shrink, style axes, t-SNE, k-means, kNN"]
         wiki(["Wikipedia API"]) --> champs["champions.py<br/>current champs + photos"]
         data --> mma["mma_math.py<br/>win graph + cycles"]
         sm --> export["export.py"]

@@ -1,7 +1,7 @@
 // TypeScript mirror of the JSON written by `ufc_embedded.export` (Python).
 // Keep in sync with SCHEMA_VERSION there.
 
-export const STYLE_MAP_SCHEMA_VERSION = 3;
+export const STYLE_MAP_SCHEMA_VERSION = 4;
 
 export interface Feature {
   key: string;
@@ -13,8 +13,22 @@ export interface Axis {
   label: string;
   low: string;
   high: string;
-  explained_variance: number;
-  loadings: Record<string, number>;
+  weights: Record<string, number>; // feature key -> weight in this axis score
+}
+
+export type LayoutId = "axes" | "similarity";
+
+export interface LayoutQuality {
+  trustworthiness: number;
+  knn_kept: number; // share of each fighter's true 10 nearest neighbours kept
+}
+
+export interface Layout {
+  id: LayoutId;
+  label: string;
+  description: string;
+  interpretable: boolean; // false: axes carry no meaning, only closeness does
+  quality: Record<"2" | "3", LayoutQuality>;
 }
 
 export interface Cluster {
@@ -45,7 +59,8 @@ export interface Fighter {
   rank: number | null; // division rank going into their last fight
   champion: string | null; // division name if current champion
   image: Photo | null;
-  coords: number[]; // one value per axis
+  coords: Record<LayoutId, number[]>; // 3D position per layout
+  coords_2d: Record<LayoutId, number[]>;
   stats: Record<string, number>;
   percentiles: Record<string, number>; // 0..1 within the map population
   neighbours: Neighbour[];
@@ -72,6 +87,7 @@ export interface StyleMapData {
   champions: Champion[];
   features: Feature[];
   axes: Axis[];
+  layouts: Layout[];
   clusters: Cluster[];
   fighters: Fighter[];
 }

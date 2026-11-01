@@ -1,6 +1,6 @@
 // Pure, UI-framework-free helpers: colours, groups and the "Show" filter.
 
-import type { Fighter, StyleMapData } from "../../data/types";
+import type { Fighter, LayoutId, StyleMapData } from "../../data/types";
 
 export const GOLD = "#f5c518";
 
@@ -12,6 +12,12 @@ export function ordinal(n: number): string {
 
 export type ColorBy = "style" | "weight_class";
 export type Dims = 2 | 3;
+
+/** A fighter's position in the chosen layout; 2D gets z = 0. */
+export function positionOf(f: Fighter, layout: LayoutId, dims: Dims): [number, number, number] {
+  const c = dims === 3 ? f.coords[layout] : f.coords_2d[layout];
+  return [c[0] ?? 0, c[1] ?? 0, dims === 3 ? (c[2] ?? 0) : 0];
+}
 
 export const STYLE_COLORS: Record<string, string> = {
   "Pure strikers": "#ff6b4a",
