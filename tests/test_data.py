@@ -1,6 +1,11 @@
 import pandas as pd
 
-from ufc_embedded.data import active_fighters, fighter_appearances, fighter_summary
+from ufc_embedded.data import (
+    active_fighters,
+    canonicalize_names,
+    fighter_appearances,
+    fighter_summary,
+)
 
 
 def make_fights() -> pd.DataFrame:
@@ -36,3 +41,14 @@ def test_summary_counts_and_latest_weight_class() -> None:
 def test_active_uses_cutoff_relative_to_latest_fight() -> None:
     active = active_fighters(make_fights(), years=3)
     assert set(active.index) == {"A", "C"}  # B last fought in 2015
+
+
+def test_canonicalize_merges_spelling_variants_to_most_common() -> None:
+    fights = pd.DataFrame(
+        {
+            "R_fighter": ["Kai Kara-France", "Kai Kara-France", "X"],
+            "B_fighter": ["Y", "Z", "Kai Kara France"],
+        }
+    )
+    out = canonicalize_names(fights)
+    assert set(out["R_fighter"]) | set(out["B_fighter"]) == {"Kai Kara-France", "X", "Y", "Z"}

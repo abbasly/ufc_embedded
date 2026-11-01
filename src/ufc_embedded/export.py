@@ -8,8 +8,6 @@ Run with ``uv run python -m ufc_embedded.export``.
 """
 
 import json
-import re
-import unicodedata
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -23,7 +21,9 @@ from ufc_embedded.data import (
     active_fighters,
     load_fighter_stats,
     load_fights,
+    slugify,
 )
+from ufc_embedded.mma_math import mma_math_payload, win_edges
 from ufc_embedded.style_map import STYLE_FEATURES, StyleMap, build_feature_table, fit_style_map
 
 SCHEMA_VERSION = 3
@@ -80,11 +80,6 @@ def name_clusters(table: pd.DataFrame, labels: Any) -> dict[int, str]:
         remaining = remaining.drop(index=c)
     names[int(remaining.index[0])] = "Low-volume all-rounders"
     return names
-
-
-def slugify(name: str) -> str:
-    ascii_name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
-    return re.sub(r"[^a-z0-9]+", "-", ascii_name.lower()).strip("-")
 
 
 def records(df: pd.DataFrame) -> dict[str, dict[str, Any]]:
@@ -210,6 +205,15 @@ def main() -> None:
     for c in payload["champions"]:
         if c["fighter_id"] is None:
             print(f"warning: {c['division']} champion {c['name']} is not on the map")
+
+    edges = win_edges(fights)
+    names = set(edges["winner"]) | set(edges["loser"])
+    ids = {n: slugify(n) for n in names}
+    if len(set(ids.values())) != len(ids):
+        raise ValueError("fighter slugs are not unique")
+    mma = mma_math_payload(edges, ids, champions)
+    write_json(mma, WEB_DATA_DIR / "mma_math.json")
+    print(f"wrote {len(mma['cycles'])} MMA math cycles (giant loop: {mma['giant_loop_size']})")
 
 
 if __name__ == "__main__":

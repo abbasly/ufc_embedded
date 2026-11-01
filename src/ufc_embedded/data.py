@@ -1,5 +1,7 @@
 """Loading raw Kaggle data and deriving per-fighter activity."""
 
+import re
+import unicodedata
 from pathlib import Path
 
 import pandas as pd
@@ -18,9 +20,27 @@ FIGHTER_STATS_SNAPSHOT = pd.Timestamp("2024-02-17")
 CATCH_WEIGHT = "Catch Weight"
 
 
+def slugify(name: str) -> str:
+    """URL-safe id that also merges spelling variants ("Kai Kara-France" / "Kai Kara France")."""
+    ascii_name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9]+", "-", ascii_name.lower()).strip("-")
+
+
+def canonicalize_names(fights: pd.DataFrame) -> pd.DataFrame:
+    """Use one spelling per fighter: the most common variant among names with the same slug."""
+    counts = pd.concat([fights["R_fighter"], fights["B_fighter"]]).value_counts()
+    best: dict[str, str] = {}
+    for name in counts.index:  # most common first, so the first spelling per slug wins
+        best.setdefault(slugify(str(name)), str(name))
+    canonical = {str(name): best[slugify(str(name))] for name in counts.index}
+    return fights.assign(
+        R_fighter=fights["R_fighter"].map(canonical), B_fighter=fights["B_fighter"].map(canonical)
+    )
+
+
 def load_fights(path: Path = FIGHTS_CSV) -> pd.DataFrame:
-    """One row per fight, Red vs Blue corner."""
-    return pd.read_csv(path, parse_dates=["date"])
+    """One row per fight, Red vs Blue corner, with fighter names canonicalised."""
+    return canonicalize_names(pd.read_csv(path, parse_dates=["date"]))
 
 
 def load_upcoming(path: Path = UPCOMING_CSV) -> pd.DataFrame:

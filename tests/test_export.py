@@ -2,7 +2,8 @@ import numpy as np
 import pandas as pd
 
 from ufc_embedded.champions import Champion, Photo
-from ufc_embedded.export import SCHEMA_VERSION, slugify, style_map_payload
+from ufc_embedded.data import slugify
+from ufc_embedded.export import SCHEMA_VERSION, style_map_payload
 from ufc_embedded.style_map import STYLE_FEATURES, fit_style_map
 
 

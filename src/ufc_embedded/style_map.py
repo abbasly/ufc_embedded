@@ -9,6 +9,8 @@ from sklearn.decomposition import PCA
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import StandardScaler
 
+from ufc_embedded.data import slugify
+
 RATE_FEATURES = [
     "significant_strikes_landed_per_minute",
     "significant_strikes_absorbed_per_minute",
@@ -33,8 +35,15 @@ def build_feature_table(
     disambiguate), all-zero stat rows (UFCStats writes 0 for "no data"), and
     fighters with fewer than ``min_fights`` UFC fights when the stats were taken.
     """
-    unique_stats = stats[~stats["name"].duplicated(keep=False)].set_index("name")
-    table = active.join(unique_stats[STYLE_FEATURES], how="inner")
+    # Match on slugs so spelling differences between the two datasets don't drop fighters.
+    slugs = stats["name"].map(slugify)
+    unique = ~slugs.duplicated(keep=False)
+    unique_stats = stats[unique].set_index(slugs[unique])
+    table = (
+        active.assign(slug=active.index.map(slugify))
+        .join(unique_stats[STYLE_FEATURES], on="slug", how="inner")
+        .drop(columns="slug")
+    )
     table = table[~(table[STYLE_FEATURES] == 0).all(axis=1)]
     return table[table["n_fights_as_of"] >= min_fights]
 
