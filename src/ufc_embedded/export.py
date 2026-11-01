@@ -16,7 +16,7 @@ from typing import Any
 
 import pandas as pd
 
-from ufc_embedded.champions import CHAMPIONS, CHAMPIONS_AS_OF, champion_images
+from ufc_embedded.champions import Champion, current_champions
 from ufc_embedded.data import (
     FIGHTER_STATS_SNAPSHOT,
     PROJECT_ROOT,
@@ -26,7 +26,7 @@ from ufc_embedded.data import (
 )
 from ufc_embedded.style_map import STYLE_FEATURES, StyleMap, build_feature_table, fit_style_map
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 WEB_DATA_DIR = PROJECT_ROOT / "web" / "public" / "data"
 
 ACTIVE_YEARS = 3
@@ -96,15 +96,16 @@ def style_map_payload(
     table: pd.DataFrame,
     sm: StyleMap,
     fights_until: pd.Timestamp,
-    champions: dict[str, str] | None = None,
-    images: dict[str, dict[str, str]] | None = None,
+    champions: list[Champion] | None = None,
+    champions_as_of: str | None = None,
 ) -> dict[str, Any]:
-    """``champions`` maps division -> fighter name; ``images`` maps name -> photo info."""
-    belt_of = {name: division for division, name in (champions or {}).items()}
-    images = images or {}
+    """Build the JSON payload; ``champions`` are matched to fighters by slugified name."""
+    champions = champions or []
+    champ_by_id = {slugify(c["name"]): c for c in champions}
     cluster_names = name_clusters(table, sm.labels)
     ids = {str(name): slugify(str(name)) for name in table.index}
-    if len(set(ids.values())) != len(ids):
+    id_set = set(ids.values())
+    if len(id_set) != len(ids):
         raise ValueError("fighter slugs are not unique")
 
     rows = records(table)
@@ -121,8 +122,9 @@ def style_map_payload(
             "last_fight": row["last_fight"].date().isoformat(),
             "n_fights": int(row["n_fights"]),
             "cluster": cluster_of[name],
-            "champion": belt_of.get(name),
-            "image": images.get(name),
+            "rank": None if pd.isna(row["rank"]) else int(row["rank"]),
+            "champion": champ_by_id[ids[name]]["division"] if ids[name] in champ_by_id else None,
+            "image": champ_by_id[ids[name]]["image"] if ids[name] in champ_by_id else None,
             "coords": [round(float(v), 3) for v in sm.coords[i]],
             "stats": {f: round(float(row[f]), 2) for f in STYLE_FEATURES},
             "percentiles": {f: round(float(pct[name][f]), 3) for f in STYLE_FEATURES},
@@ -166,8 +168,19 @@ def style_map_payload(
             "stats_snapshot": FIGHTER_STATS_SNAPSHOT.date().isoformat(),
             "active_years": ACTIVE_YEARS,
             "min_fights": MIN_FIGHTS,
-            "champions_as_of": CHAMPIONS_AS_OF,
         },
+        "champions_as_of": champions_as_of,
+        # All current champions, including ones without enough data to be on the map.
+        "champions": [
+            {
+                "division": c["division"],
+                "name": c["name"],
+                "since": c["since"],
+                "image": c["image"],
+                "fighter_id": slugify(c["name"]) if slugify(c["name"]) in id_set else None,
+            }
+            for c in champions
+        ],
         "features": [
             {"key": f, "label": FEATURE_INFO[f][0], "unit": FEATURE_INFO[f][1]}
             for f in STYLE_FEATURES
@@ -190,12 +203,13 @@ def main() -> None:
     )
     sm = fit_style_map(table, n_clusters=N_CLUSTERS, n_components=3)
     out = WEB_DATA_DIR / "style_map.json"
-    payload = style_map_payload(table, sm, fights["date"].max(), CHAMPIONS, champion_images())
+    champions, fetched = current_champions()
+    payload = style_map_payload(table, sm, fights["date"].max(), champions, fetched)
     write_json(payload, out)
-    print(f"wrote {len(table)} fighters to {out}")
-    for division, name in CHAMPIONS.items():
-        if name not in table.index:
-            print(f"warning: {division} champion {name} is not on the map")
+    print(f"wrote {len(table)} fighters to {out} (champions fetched {fetched})")
+    for c in payload["champions"]:
+        if c["fighter_id"] is None:
+            print(f"warning: {c['division']} champion {c['name']} is not on the map")
 
 
 if __name__ == "__main__":

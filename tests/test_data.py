@@ -10,6 +10,8 @@ def make_fights() -> pd.DataFrame:
             "R_fighter": ["A", "A", "C"],
             "B_fighter": ["B", "C", "A"],
             "weight_class": ["Lightweight", "Lightweight", "Welterweight"],
+            "R_match_weightclass_rank": [None, 5.0, None],
+            "B_match_weightclass_rank": [None, None, 3.0],
         }
     )
 
@@ -17,7 +19,7 @@ def make_fights() -> pd.DataFrame:
 def test_appearances_has_one_row_per_fighter_per_fight() -> None:
     app = fighter_appearances(make_fights())
     assert len(app) == 6
-    assert set(app.columns) == {"name", "date", "weight_class"}
+    assert set(app.columns) == {"name", "date", "weight_class", "rank"}
 
 
 def test_summary_counts_and_latest_weight_class() -> None:
@@ -27,6 +29,8 @@ def test_summary_counts_and_latest_weight_class() -> None:
     assert summary.loc["C", "n_fights_as_of"] == 1
     assert summary.loc["A", "weight_class"] == "Welterweight"
     assert summary.loc["A", "last_fight"] == pd.Timestamp("2026-03-01")
+    assert summary.loc["A", "rank"] == 3.0  # rank going into the last fight
+    assert summary["rank"].isna()["C"]  # never ranked
 
 
 def test_active_uses_cutoff_relative_to_latest_fight() -> None:

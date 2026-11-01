@@ -35,16 +35,21 @@ def load_fighter_stats(path: Path = FIGHTER_STATS_CSV) -> pd.DataFrame:
 def fighter_appearances(fights: pd.DataFrame) -> pd.DataFrame:
     """Stack Red and Blue corners so each row is one fighter in one fight."""
     cols = ["date", "weight_class"]
-    red = fights[["R_fighter", *cols]].rename(columns={"R_fighter": "name"})
-    blue = fights[["B_fighter", *cols]].rename(columns={"B_fighter": "name"})
+    red = fights[["R_fighter", "R_match_weightclass_rank", *cols]].rename(
+        columns={"R_fighter": "name", "R_match_weightclass_rank": "rank"}
+    )
+    blue = fights[["B_fighter", "B_match_weightclass_rank", *cols]].rename(
+        columns={"B_fighter": "name", "B_match_weightclass_rank": "rank"}
+    )
     return pd.concat([red, blue], ignore_index=True).sort_values("date", kind="stable")
 
 
 def fighter_summary(
     fights: pd.DataFrame, as_of: pd.Timestamp = FIGHTER_STATS_SNAPSHOT
 ) -> pd.DataFrame:
-    """Per-fighter last fight, fight counts and most recent weight class.
+    """Per-fighter last fight, fight counts, most recent weight class and rank.
 
+    ``rank`` is the division ranking going into the fighter's last fight (NaN if unranked).
     ``weight_class`` ignores catch weight bouts unless a fighter only has those.
     ``n_fights_as_of`` counts fights on or before ``as_of``, which is what the
     career stats in the fighter stats file are based on.
@@ -57,6 +62,7 @@ def fighter_summary(
     )
     divisional = app[app["weight_class"] != CATCH_WEIGHT].groupby("name")["weight_class"].last()
     summary["weight_class"] = divisional.reindex(summary.index).fillna(summary["weight_class"])
+    summary["rank"] = app.groupby("name").tail(1).set_index("name")["rank"].reindex(summary.index)
     summary["n_fights_as_of"] = (
         app[app["date"] <= as_of].groupby("name").size().reindex(summary.index, fill_value=0)
     )

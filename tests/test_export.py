@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+from ufc_embedded.champions import Champion, Photo
 from ufc_embedded.export import SCHEMA_VERSION, slugify, style_map_payload
 from ufc_embedded.style_map import STYLE_FEATURES, fit_style_map
 
@@ -15,6 +16,7 @@ def make_table(n: int = 40) -> pd.DataFrame:
     table["weight_class"] = "Lightweight"
     table["last_fight"] = pd.Timestamp("2025-01-01")
     table["n_fights"] = 5
+    table["rank"] = [float(i) if i < 15 else float("nan") for i in range(n)]
     return table
 
 
@@ -26,14 +28,24 @@ def test_slugify_strips_accents_and_punctuation() -> None:
 def test_payload_matches_contract() -> None:
     table = make_table()
     sm = fit_style_map(table, n_clusters=5, n_components=3)
-    image = {"url": "https://example.org/a.jpg", "credit_url": "https://example.org/a"}
-    payload = style_map_payload(
-        table,
-        sm,
-        pd.Timestamp("2026-03-28"),
-        champions={"Lightweight": "Fighter 1", "Heavyweight": "Not On Map"},
-        images={"Fighter 1": image},
-    )
+    image: Photo = {"url": "https://example.org/a.jpg", "credit_url": "https://example.org/a"}
+    champions: list[Champion] = [
+        {
+            "division": "Lightweight",
+            "name": "Fighter 1",
+            "since": "",
+            "wiki_page": "",
+            "image": image,
+        },
+        {
+            "division": "Heavyweight",
+            "name": "Not On Map",
+            "since": "",
+            "wiki_page": "",
+            "image": None,
+        },
+    ]
+    payload = style_map_payload(table, sm, pd.Timestamp("2026-03-28"), champions, "2026-11-01")
 
     assert payload["schema_version"] == SCHEMA_VERSION
     assert len(payload["axes"]) == 3
@@ -57,3 +69,5 @@ def test_payload_matches_contract() -> None:
     assert [(f["name"], f["champion"], f["image"]) for f in champs] == [
         ("Fighter 1", "Lightweight", image)
     ]
+    assert [c["fighter_id"] for c in payload["champions"]] == ["fighter-1", None]
+    assert fighter["rank"] is None or isinstance(fighter["rank"], int)
