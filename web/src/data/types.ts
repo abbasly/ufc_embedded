@@ -75,3 +75,28 @@ export interface StyleMapData {
   clusters: Cluster[];
   fighters: Fighter[];
 }
+
+// ---- MMA math (written by ufc_embedded.mma_math) ----
+
+export const MMA_MATH_SCHEMA_VERSION = 1;
+
+export interface MmaFighter {
+  id: string; // same slug as the style map, when the fighter is on it
+  name: string;
+  wins: number;
+  losses: number;
+  champion: string | null;
+  image: Photo | null;
+}
+
+// Compact row: [winner, loser, date, method, round, title, winnerOdds, weightClass]
+export type FightRow = [number, number, string, string, number | null, boolean, number | null, string];
+
+export interface MmaMathData {
+  schema_version: number;
+  fights_until: string;
+  giant_loop_size: number;
+  fighters: MmaFighter[];
+  fights: FightRow[];
+  cycles: number[][]; // fight indices; each fight's loser is the next fight's winner
+}

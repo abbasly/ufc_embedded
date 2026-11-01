@@ -1,6 +1,7 @@
 import { Anchor, Avatar, Badge, CloseButton, Group, Progress, Stack, Text, Title, UnstyledButton } from "@mantine/core";
 
 import type { Fighter, StyleMapData } from "../../data/types";
+import { ordinal } from "./model";
 
 interface Props {
   data: StyleMapData;
@@ -51,7 +52,7 @@ export function FighterPanel({ data, fighter, onSelect }: Props) {
             <Group justify="space-between">
               <Text size="xs">{feat.label}</Text>
               <Text size="xs" c="dimmed">
-                {fighter.stats[feat.key]} {feat.unit === "%" ? "%" : ""} · {Math.round(pct)}th
+                {fighter.stats[feat.key]} {feat.unit === "%" ? "%" : ""} · {ordinal(Math.round(pct))}
               </Text>
             </Group>
             <Progress value={pct} size="sm" />

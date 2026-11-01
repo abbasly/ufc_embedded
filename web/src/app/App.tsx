@@ -6,9 +6,11 @@ import { AboutPage } from "../pages/AboutPage";
 
 // Each product is its own lazily loaded feature, so heavy deps (Plotly) only load where used.
 const StyleMapPage = lazy(() => import("../features/style-map/StyleMapPage"));
+const MmaMathPage = lazy(() => import("../features/mma-math/MmaMathPage"));
 
 const NAV = [
   { to: "/", label: "Style Map" },
+  { to: "/mma-math", label: "MMA Math" },
   { to: "/about", label: "About" },
 ];
 
@@ -41,6 +43,7 @@ export function App() {
         <Suspense fallback={<Center h="60vh"><Loader /></Center>}>
           <Routes>
             <Route path="/" element={<StyleMapPage />} />
+            <Route path="/mma-math" element={<MmaMathPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/style-map" element={<Navigate to="/" replace />} />
             <Route path="*" element={<Text>Page not found.</Text>} />

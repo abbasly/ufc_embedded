@@ -9,6 +9,12 @@ const PRODUCTS = [
     text: "Every active UFC fighter embedded in 3D from their career stats. Similar styles sit close together; click a fighter to see who fights most like them.",
   },
   {
+    title: "MMA Math",
+    status: "Live",
+    to: "/mma-math",
+    text: "Loops of fighters who beat each other in a circle, plus a calculator that \"proves\" anyone beats anyone.",
+  },
+  {
     title: "Fight Predictor",
     status: "Planned",
     text: "Bayesian skill ratings that evolve over time, predicting win probability and method with honest uncertainty, checked against the betting market.",
@@ -37,7 +43,7 @@ export function AboutPage() {
           </Group>
         </Stack>
 
-        <SimpleGrid cols={{ base: 1, sm: 3 }}>
+        <SimpleGrid cols={{ base: 1, sm: 2 }}>
           {PRODUCTS.map((p) => (
             <Card key={p.title} withBorder padding="lg">
               <Group justify="space-between" mb="xs">

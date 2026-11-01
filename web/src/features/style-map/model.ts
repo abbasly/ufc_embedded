@@ -4,6 +4,12 @@ import type { Fighter, StyleMapData } from "../../data/types";
 
 export const GOLD = "#f5c518";
 
+/** 1 -> "1st", 92 -> "92nd", 13 -> "13th". */
+export function ordinal(n: number): string {
+  const suffix = n % 100 >= 11 && n % 100 <= 13 ? "th" : (["th", "st", "nd", "rd"][n % 10] ?? "th");
+  return `${n}${suffix}`;
+}
+
 export type ColorBy = "style" | "weight_class";
 export type Dims = 2 | 3;
 
