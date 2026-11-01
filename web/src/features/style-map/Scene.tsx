@@ -22,6 +22,8 @@ interface Props {
 }
 
 const RADIUS = 0.06;
+const HIT_SCALE = 2.5;
+const noRaycast = () => null;
 const AXIS_LENGTH = 4.5;
 const LABEL_Z = [100, 0]; // keep HTML labels below the app's own overlays
 
@@ -56,32 +58,37 @@ export function Scene({ data, dims, colorOf, label, isShown, selectedId, onSelec
         const shown = isShown(f) || isSelected || isNeighbour;
         const scale = isSelected ? 2.6 : isNeighbour || f.champion ? 1.7 : 1;
         return (
-          <mesh
-            key={f.id}
-            geometry={geometry}
-            position={position(f, dims)}
-            scale={scale}
-            raycast={shown ? undefined : () => null}
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelect(f.id);
-            }}
-            onPointerOver={(e) => {
-              e.stopPropagation();
-              setHovered(f);
-              document.body.style.cursor = "pointer";
-            }}
-            onPointerOut={() => {
-              setHovered(null);
-              document.body.style.cursor = "";
-            }}
-          >
-            <meshBasicMaterial
-              color={shown ? colorOf(f) : "#666"}
-              transparent
-              opacity={shown ? 0.9 : 0.1}
-            />
-          </mesh>
+          <group key={f.id} position={position(f, dims)} scale={scale}>
+            <mesh geometry={geometry} raycast={noRaycast}>
+              <meshBasicMaterial
+                color={shown ? colorOf(f) : "#666"}
+                transparent
+                opacity={shown ? 0.9 : 0.1}
+              />
+            </mesh>
+            {/* Invisible, larger sphere so small dots are easy to hover and click. */}
+            {shown && (
+              <mesh
+                geometry={geometry}
+                scale={HIT_SCALE}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelect(f.id);
+                }}
+                onPointerOver={(e) => {
+                  e.stopPropagation();
+                  setHovered(f);
+                  document.body.style.cursor = "pointer";
+                }}
+                onPointerOut={() => {
+                  setHovered(null);
+                  document.body.style.cursor = "";
+                }}
+              >
+                <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+              </mesh>
+            )}
+          </group>
         );
       })}
 
