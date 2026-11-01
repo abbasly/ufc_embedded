@@ -8,6 +8,9 @@ A personal ML engineering project: turn fight statistics into interactive, explo
 The first product is the **Style Map**, a 3D embedding of ~500 active fighters where similar
 styles sit close together. Click a fighter to see their profile and the fighters most like them.
 
+**MMA Math** finds loops of fighters who beat each other in a circle (A beat B, B beat C, C beat A)
+and "proves" any fighter beats any other with a chain of wins. Hover anyone to see their style profile.
+
 Planned next: a probabilistic **fight predictor** (Bayesian skill ratings with uncertainty,
 checked against betting odds) and, as a stretch, a browser **shadowboxing coach**.
 
@@ -30,11 +33,13 @@ flowchart LR
         raw[("Kaggle CSVs<br/>data/raw")] --> data["data.py<br/>load + active fighters"]
         data --> sm["style_map.py<br/>scale, PCA, k-means, kNN"]
         wiki(["Wikipedia API"]) --> champs["champions.py<br/>current champs + photos"]
+        data --> mma["mma_math.py<br/>win graph + cycles"]
         sm --> export["export.py"]
         champs --> export
+        mma --> export
     end
 
-    export --> json[/"web/public/data/style_map.json<br/>(versioned data contract)"/]
+    export --> json[/"web/public/data/*.json<br/>(versioned data contracts)"/]
 
     subgraph web["Web app (web/)"]
         client["data/client.ts<br/>only place that fetches"] --> feat["features/style-map<br/>React + three.js"]
@@ -52,18 +57,19 @@ flowchart LR
 
 ## Stack
 
-Python 3.12 with uv, pandas, scikit-learn; ruff, mypy (strict), pytest.
-Web: Vite, React, TypeScript, Mantine, react-three-fiber/drei, TanStack Query.
+Python 3.12 with uv, pandas, scikit-learn, networkx; ruff, mypy (strict), pytest.
+Web: Vite, React, TypeScript, Mantine, react-three-fiber/drei, TanStack Query; vitest.
 
 ## Running it
 
 ```bash
 uv sync                                  # Python deps
-uv run python -m ufc_embedded.export     # rebuild web/public/data/style_map.json
-uv run pytest                            # tests
+uv run python -m ufc_embedded.export     # rebuild web/public/data/*.json
+uv run pytest                            # Python tests
 
 cd web && npm install
 npm run dev                              # http://localhost:5173
+npm test                                 # web tests
 ```
 
 Raw data isn't committed. Download the Kaggle datasets
