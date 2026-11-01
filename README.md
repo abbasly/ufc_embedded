@@ -41,7 +41,7 @@ that only reads them. No server needed, so it hosts for free on GitHub Pages.
 ```mermaid
 flowchart LR
     subgraph py["Python pipeline (src/ufc_embedded)"]
-        raw[("Kaggle CSVs<br/>data/raw")] --> data["data.py<br/>load + active fighters"]
+        raw[("Kaggle CSVs (UFCStats)<br/>data/raw")] --> data["data.py<br/>fights, profiles, rankings"]
         data --> sm["style_map.py<br/>shrink, style axes, t-SNE, k-means, kNN"]
         wiki(["Wikipedia API"]) --> champs["champions.py + wikipedia.py<br/>current champs, photos"]
         data --> mma["mma_math.py<br/>win graph + cycles"]
@@ -84,16 +84,30 @@ npm run dev                              # http://localhost:5173
 npm test                                 # web tests
 ```
 
-Raw data isn't committed. Download the Kaggle datasets
-[`mdabbert/ultimate-ufc-dataset`](https://www.kaggle.com/datasets/mdabbert/ultimate-ufc-dataset) and
-[`asaniczka/ufc-fighters-statistics`](https://www.kaggle.com/datasets/asaniczka/ufc-fighters-statistics)
-into `data/raw/<dataset-name>/`. To refresh champions or photos, delete `data/processed/champions.json` or `fighter_photos.json`.
+Raw data isn't committed. Download these regularly updated Kaggle datasets into
+`data/raw/<dataset-name>/` (no account needed for public datasets):
+
+| Dataset | Used for |
+|---|---|
+| [`scarekrow/ufc-data`](https://www.kaggle.com/datasets/scarekrow/ufc-data) | Every UFC fight (UFCStats), fighter records and career stats |
+| [`valihameed/ufc-stats`](https://www.kaggle.com/datasets/valihameed/ufc-stats) | Betting odds (for MMA math upsets) |
+| [`jerzyszocik/ufc-rankings-history`](https://www.kaggle.com/datasets/jerzyszocik/ufc-rankings-history) | Official rankings and current champions |
+
+```bash
+for ds in scarekrow/ufc-data valihameed/ufc-stats jerzyszocik/ufc-rankings-history; do
+  n=$(basename $ds); mkdir -p data/raw/$n
+  curl -sSL "https://www.kaggle.com/api/v1/datasets/download/$ds" -o /tmp/$n.zip && unzip -oq /tmp/$n.zip -d data/raw/$n
+done
+```
+
+Fighter photos are cached in `data/processed/fighter_photos.json`; delete it to refresh.
 
 ## Limitations
 
-- Career stats are a Feb 2024 snapshot, so later debuts are missing (e.g. Kayla Harrison).
 - Career averages hide style changes over time; fighters with few fights are noisy.
-- Different fighters with the same name (e.g. two Bruno Silvas) are merged into one in the fight data.
-- Next: my own UFCStats scraper with strike targets and positions.
+- Only the 8 career rates are used so far. The fight data also has per-round strikes by target
+  (head/body/leg) and position (distance/clinch/ground) and control time: the next step for a
+  richer embedding.
+- Rankings and champions are matched to fighters by name, so namesakes could be confused.
 
 Unofficial fan project, not affiliated with the UFC.

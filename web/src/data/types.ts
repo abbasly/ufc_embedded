@@ -1,7 +1,7 @@
 // TypeScript mirror of the JSON written by `ufc_embedded.export` (Python).
 // Keep in sync with SCHEMA_VERSION there.
 
-export const STYLE_MAP_SCHEMA_VERSION = 4;
+export const STYLE_MAP_SCHEMA_VERSION = 5;
 
 export interface Feature {
   key: string;
@@ -49,14 +49,22 @@ export interface Photo {
   credit_url: string; // licence / attribution page
 }
 
+/** Professional MMA record (all promotions), from UFCStats. */
+export interface FightRecord {
+  wins: number;
+  losses: number;
+  draws: number;
+}
+
 export interface Fighter {
   id: string;
   name: string;
   weight_class: string;
   last_fight: string; // ISO date
-  n_fights: number;
+  n_fights: number; // UFC fights
+  record: FightRecord;
   cluster: number;
-  rank: number | null; // division rank going into their last fight
+  rank: number | null; // current official divisional rank (0 = champion)
   champion: string | null; // division name if current champion
   image: Photo | null;
   coords: Record<LayoutId, number[]>; // 3D position per layout
@@ -69,7 +77,6 @@ export interface Fighter {
 export interface Champion {
   division: string;
   name: string;
-  since: string;
   image: Photo | null;
   fighter_id: string | null; // null if not on the map (not enough data)
 }
@@ -79,7 +86,6 @@ export interface StyleMapData {
   generated_at: string;
   source: {
     fights_until: string;
-    stats_snapshot: string;
     active_years: number;
     min_fights: number;
   };
@@ -94,13 +100,12 @@ export interface StyleMapData {
 
 // ---- MMA math (written by ufc_embedded.mma_math) ----
 
-export const MMA_MATH_SCHEMA_VERSION = 1;
+export const MMA_MATH_SCHEMA_VERSION = 2;
 
 export interface MmaFighter {
   id: string; // same slug as the style map, when the fighter is on it
   name: string;
-  wins: number;
-  losses: number;
+  record: FightRecord;
   champion: string | null;
   image: Photo | null;
 }

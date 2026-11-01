@@ -82,9 +82,9 @@ export function AboutPage() {
         <Stack gap="xs">
           <Title order={3}>Data and caveats</Title>
           <Text size="sm" c="dimmed">
-            Fight results from the Ultimate UFC Dataset (Kaggle), fighter stats from a UFCStats snapshot
-            (Feb 2024). Career averages hide style changes over time, and fighters with few fights are
-            noisy. Next up: my own UFCStats scraper with strike targets and positions.
+            Fights, records and career stats from UFCStats and official rankings, via regularly updated
+            Kaggle datasets. Career averages hide style changes over time, and fighters with few fights
+            are noisy. Next up: per-round stats (strike targets and positions) for a richer map.
           </Text>
           <Text size="xs" c="dimmed">
             Fighter photos from Wikimedia Commons / Wikipedia under free licences (credited on each

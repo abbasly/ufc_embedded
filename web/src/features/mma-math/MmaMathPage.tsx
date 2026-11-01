@@ -56,7 +56,7 @@ export default function MmaMathPage() {
 
   const randomPair = () => {
     // Pick two experienced fighters where MMA math works in both directions.
-    const pool = data.fighters.flatMap((f, i) => (f.wins + f.losses >= 8 ? [i] : []));
+    const pool = data.fighters.flatMap((f, i) => (f.record.wins + f.record.losses >= 12 ? [i] : []));
     for (let tries = 0; tries < 200; tries++) {
       const x = pool[Math.floor(Math.random() * pool.length)]!;
       const y = pool[Math.floor(Math.random() * pool.length)]!;
@@ -77,7 +77,7 @@ export default function MmaMathPage() {
           <Text c="dimmed">
             "A beat B and B beat C, so A beats C." Every fan has heard it. Here are the loops that
             break it: fighters who beat each other in a circle. {data.giant_loop_size.toLocaleString()}{" "}
-            UFC fighters since 2010 form one giant loop, so within it you can "prove" anyone beats
+            UFC fighters since 1994 form one giant loop, so within it you can "prove" anyone beats
             anyone.
           </Text>
         </Stack>
