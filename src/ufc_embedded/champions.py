@@ -1,91 +1,139 @@
-"""Current UFC champions and their (freely licensed) photos.
+"""Current UFC champions and their (freely licensed) photos, from Wikipedia.
 
-The champions are curated by hand: the dataset's ``title_bout`` flag also marks
-Road to UFC finals and interim title fights, so the latest "title fight" winner
-per division is often wrong.
+The fight dataset can't tell us this: its ``title_bout`` flag also marks Road to
+UFC finals and interim fights, and it lags behind real events. So we read the
+"Current champions" tables of Wikipedia's "List of UFC champions" instead.
+Results are cached on disk so exports work offline; pass ``refresh=True`` to update.
 """
 
 import json
-from pathlib import Path
-from typing import Any
+import re
+from datetime import date
+from typing import Any, TypedDict
 from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
 
 from ufc_embedded.data import PROCESSED_DIR
 
-# Undisputed champions at the end of the fight data (no interim belts).
-CHAMPIONS_AS_OF = "2026-03-28"
-CHAMPIONS = {
-    "Flyweight": "Joshua Van",
-    "Bantamweight": "Petr Yan",
-    "Featherweight": "Alexander Volkanovski",
-    "Lightweight": "Ilia Topuria",
-    "Welterweight": "Islam Makhachev",
-    "Middleweight": "Khamzat Chimaev",
-    "Light Heavyweight": "Alex Pereira",
-    "Heavyweight": "Tom Aspinall",
-    "Women's Strawweight": "Mackenzie Dern",
-    "Women's Flyweight": "Valentina Shevchenko",
-    "Women's Bantamweight": "Kayla Harrison",
-}
-
 WIKI_API = "https://en.wikipedia.org/w/api.php"
 USER_AGENT = "ufc-embedded/0.1 (personal project)"
-IMAGE_CACHE = PROCESSED_DIR / "wiki_images.json"
+CHAMPIONS_PAGE = "List_of_UFC_champions"
+CACHE = PROCESSED_DIR / "champions.json"
 
 
-def fetch_wiki_images(names: list[str], thumb_px: int = 240) -> dict[str, dict[str, str]]:
-    """Lead image of each fighter's English Wikipedia page, free licences only.
+class Photo(TypedDict):
+    url: str
+    credit_url: str
 
-    Pages whose description doesn't mention MMA are skipped, to avoid photos of
-    a namesake.
-    """
-    params = {
-        "action": "query",
-        "format": "json",
-        "redirects": 1,
-        "prop": "pageimages|description",
-        "piprop": "thumbnail|name",
-        "pithumbsize": thumb_px,
-        "pilicense": "free",
-        "titles": "|".join(names),
-    }
-    req = Request(f"{WIKI_API}?{urlencode(params)}", headers={"User-Agent": USER_AGENT})
+
+class Champion(TypedDict):
+    division: str
+    name: str
+    since: str
+    wiki_page: str
+    image: Photo | None
+
+
+def _wiki_get(params: dict[str, Any]) -> dict[str, Any]:
+    req = Request(
+        f"{WIKI_API}?{urlencode({'format': 'json', **params})}", headers={"User-Agent": USER_AGENT}
+    )
     with urlopen(req, timeout=30) as res:
-        query: dict[str, Any] = json.load(res)["query"]
+        result: dict[str, Any] = json.load(res)
+    return result
 
-    # Map page titles back to the names we asked for.
-    title_of = {n: n for n in names}
+
+# A table row in the wikitext looks like:
+#   ! ...| [[#Heavyweight Championship|Heavyweight]]
+#   | {{flagicon|FRA}} [[Ciryl Gane]]            (or [[Page (fighter)|Display name]])
+#   | Sep 14, 2026
+_ROW = re.compile(
+    r"^!.*\|\s*\[\[[^|\]]*\|(?P<division>[^\]]+)\]\]\s*\n"
+    r"\|.*?\[\[(?P<page>[^|\]]+)(?:\|(?P<name>[^\]]+))?\]\]\s*\n"
+    r"\|\s*(?P<since>[^\n]+)",
+    re.MULTILINE,
+)
+
+
+def parse_champions(wikitext: str) -> list[tuple[str, str, str, str]]:
+    """(division, name, since, wiki page) for each row of the current champions tables."""
+    men, _, women = wikitext.partition("===Women===")
+    rows = []
+    for prefix, text in [("", men), ("Women's ", women)]:
+        for m in _ROW.finditer(text):
+            page = m["page"].strip()
+            rows.append(
+                (
+                    prefix + m["division"].strip(),
+                    (m["name"] or page).strip(),
+                    m["since"].strip(),
+                    page,
+                )
+            )
+    return rows
+
+
+def fetch_wiki_images(pages: list[str], thumb_px: int = 240) -> dict[str, Photo]:
+    """Lead image per Wikipedia page, free licences only (``pilicense=free``)."""
+    query = _wiki_get(
+        {
+            "action": "query",
+            "redirects": 1,
+            "prop": "pageimages",
+            "piprop": "thumbnail|name",
+            "pithumbsize": thumb_px,
+            "pilicense": "free",
+            "titles": "|".join(pages),
+        }
+    )["query"]
+
+    # Map the page titles we asked for to the titles Wikipedia answered with.
+    title_of = {p: p for p in pages}
     for step in query.get("normalized", []) + query.get("redirects", []):
-        for name, title in title_of.items():
+        for asked, title in title_of.items():
             if title == step["from"]:
-                title_of[name] = step["to"]
+                title_of[asked] = step["to"]
 
-    pages = {p["title"]: p for p in query["pages"].values()}
-    images = {}
-    for name, title in title_of.items():
-        page = pages.get(title, {})
-        if "thumbnail" in page and "mixed martial artist" in page.get("description", ""):
+    by_title = {p["title"]: p for p in query["pages"].values()}
+    images: dict[str, Photo] = {}
+    for asked, title in title_of.items():
+        page = by_title.get(title, {})
+        if "thumbnail" in page:
             url = page["thumbnail"]["source"]
             # Free files live on Commons, except some uploaded to English Wikipedia directly.
             host = "en.wikipedia.org" if "/wikipedia/en/" in url else "commons.wikimedia.org"
-            images[name] = {
+            images[asked] = {
                 "url": url,
                 "credit_url": f"https://{host}/wiki/File:{quote(page['pageimage'])}",
             }
     return images
 
 
-def champion_images(cache: Path = IMAGE_CACHE, refresh: bool = False) -> dict[str, dict[str, str]]:
-    """Champion photos, cached on disk so exports don't hit Wikipedia every time."""
-    names = sorted(CHAMPIONS.values())
-    if cache.exists() and not refresh:
-        cached = json.loads(cache.read_text())
-        images: dict[str, dict[str, str]] = cached["images"]
-        if set(names) <= set(images) | set(cached["missing"]):
-            return {n: images[n] for n in names if n in images}
-    images = fetch_wiki_images(names)
-    cache.parent.mkdir(parents=True, exist_ok=True)
-    missing = [n for n in names if n not in images]
-    cache.write_text(json.dumps({"images": images, "missing": missing}, indent=1))
-    return images
+def fetch_current_champions() -> list[Champion]:
+    sections = _wiki_get({"action": "parse", "page": CHAMPIONS_PAGE, "prop": "sections"})
+    index = next(
+        s["index"] for s in sections["parse"]["sections"] if s["line"] == "Current champions"
+    )
+    wikitext = _wiki_get(
+        {"action": "parse", "page": CHAMPIONS_PAGE, "prop": "wikitext", "section": index}
+    )["parse"]["wikitext"]["*"]
+
+    rows = parse_champions(wikitext)
+    if not rows:
+        raise ValueError("no champions parsed; the Wikipedia table format probably changed")
+    images = fetch_wiki_images([page for *_, page in rows])
+    return [
+        {"division": d, "name": n, "since": s, "wiki_page": p, "image": images.get(p)}
+        for d, n, s, p in rows
+    ]
+
+
+def current_champions(refresh: bool = False) -> tuple[list[Champion], str]:
+    """Current champions and the date they were fetched, using the on-disk cache if present."""
+    if CACHE.exists() and not refresh:
+        cached = json.loads(CACHE.read_text())
+        return cached["champions"], cached["fetched"]
+    champions, fetched = fetch_current_champions(), date.today().isoformat()
+    CACHE.parent.mkdir(parents=True, exist_ok=True)
+    CACHE.write_text(json.dumps({"fetched": fetched, "champions": champions}, indent=1))
+    return champions, fetched
