@@ -17,6 +17,7 @@ def make_table(n: int = 40) -> pd.DataFrame:
     table["weight_class"] = "Lightweight"
     table["last_fight"] = pd.Timestamp("2025-01-01")
     table["n_fights"] = 5
+    table["minutes_as_of"] = 60.0
     table["rank"] = [float(i) if i < 15 else float("nan") for i in range(n)]
     return table
 
@@ -28,7 +29,7 @@ def test_slugify_strips_accents_and_punctuation() -> None:
 
 def test_payload_matches_contract() -> None:
     table = make_table()
-    sm = fit_style_map(table, n_clusters=5, n_components=3)
+    sm = fit_style_map(table, n_clusters=5)
     image: Photo = {"url": "https://example.org/a.jpg", "credit_url": "https://example.org/a"}
     champions: list[Champion] = [
         {
@@ -61,7 +62,10 @@ def test_payload_matches_contract() -> None:
     )
     ids = {f["id"] for f in payload["fighters"]}
     fighter = payload["fighters"][0]
-    assert len(fighter["coords"]) == 3
+    assert {k: len(v) for k, v in fighter["coords"].items()} == {"axes": 3, "similarity": 3}
+    assert {k: len(v) for k, v in fighter["coords_2d"].items()} == {"axes": 2, "similarity": 2}
+    assert [la["id"] for la in payload["layouts"]] == ["axes", "similarity"]
+    assert all(0 <= q["knn_kept"] <= 1 for la in payload["layouts"] for q in la["quality"].values())
     assert set(fighter["stats"]) == set(STYLE_FEATURES)
     assert all(0 < p <= 1 for p in fighter["percentiles"].values())
     assert all(n["id"] in ids and n["id"] != fighter["id"] for n in fighter["neighbours"])

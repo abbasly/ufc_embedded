@@ -54,7 +54,7 @@ def load_fighter_stats(path: Path = FIGHTER_STATS_CSV) -> pd.DataFrame:
 
 def fighter_appearances(fights: pd.DataFrame) -> pd.DataFrame:
     """Stack Red and Blue corners so each row is one fighter in one fight."""
-    cols = ["date", "weight_class"]
+    cols = ["date", "weight_class", "total_fight_time_secs"]
     red = fights[["R_fighter", "R_match_weightclass_rank", *cols]].rename(
         columns={"R_fighter": "name", "R_match_weightclass_rank": "rank"}
     )
@@ -70,6 +70,7 @@ def fighter_summary(
     """Per-fighter last fight, fight counts, most recent weight class and rank.
 
     ``rank`` is the division ranking going into the fighter's last fight (NaN if unranked).
+    ``minutes_as_of`` is total UFC cage time up to ``as_of``, the evidence behind their stats.
     ``weight_class`` ignores catch weight bouts unless a fighter only has those.
     ``n_fights_as_of`` counts fights on or before ``as_of``, which is what the
     career stats in the fighter stats file are based on.
@@ -83,8 +84,10 @@ def fighter_summary(
     divisional = app[app["weight_class"] != CATCH_WEIGHT].groupby("name")["weight_class"].last()
     summary["weight_class"] = divisional.reindex(summary.index).fillna(summary["weight_class"])
     summary["rank"] = app.groupby("name").tail(1).set_index("name")["rank"].reindex(summary.index)
-    summary["n_fights_as_of"] = (
-        app[app["date"] <= as_of].groupby("name").size().reindex(summary.index, fill_value=0)
+    before = app[app["date"] <= as_of].groupby("name")
+    summary["n_fights_as_of"] = before.size().reindex(summary.index, fill_value=0)
+    summary["minutes_as_of"] = (
+        before["total_fight_time_secs"].sum().reindex(summary.index, fill_value=0) / 60
     )
     return summary
 

@@ -24,9 +24,15 @@ from ufc_embedded.data import (
     slugify,
 )
 from ufc_embedded.mma_math import mma_math_payload, win_edges
-from ufc_embedded.style_map import STYLE_FEATURES, StyleMap, build_feature_table, fit_style_map
+from ufc_embedded.style_map import (
+    AXIS_WEIGHTS,
+    STYLE_FEATURES,
+    StyleMap,
+    build_feature_table,
+    fit_style_map,
+)
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 WEB_DATA_DIR = PROJECT_ROOT / "web" / "public" / "data"
 
 ACTIVE_YEARS = 3
@@ -46,10 +52,26 @@ FEATURE_INFO: dict[str, tuple[str, str]] = {
 }
 
 # Interpretations of the (sign-anchored) PCA axes; see style_map.AXIS_ANCHORS.
+# Display text for style_map.AXIS_WEIGHTS, in the same order.
 AXES = [
-    {"label": "Grappling", "low": "Striking exchanges", "high": "Wrestling & grappling"},
+    {"label": "Grappling", "low": "Stays standing", "high": "Wrestling & submissions"},
+    {"label": "Striking", "low": "Low output", "high": "High volume & accuracy"},
     {"label": "Defence", "low": "Hittable", "high": "Hard to hit / take down"},
-    {"label": "Pace", "low": "Careful", "high": "High-output brawler"},
+]
+
+LAYOUTS = [
+    {
+        "id": "axes",
+        "label": "Style axes",
+        "description": "Readable axes: grappling, striking and defence scores from the stats.",
+        "interpretable": True,
+    },
+    {
+        "id": "similarity",
+        "label": "Similarity",
+        "description": "t-SNE: keeps similar fighters together, but the axes have no meaning.",
+        "interpretable": False,
+    },
 ]
 
 STYLE_DESCRIPTIONS = {
@@ -120,7 +142,14 @@ def style_map_payload(
             "rank": None if pd.isna(row["rank"]) else int(row["rank"]),
             "champion": champ_by_id[ids[name]]["division"] if ids[name] in champ_by_id else None,
             "image": champ_by_id[ids[name]]["image"] if ids[name] in champ_by_id else None,
-            "coords": [round(float(v), 3) for v in sm.coords[i]],
+            "coords": {
+                "axes": [round(float(v), 3) for v in sm.axes.coords3[i]],
+                "similarity": [round(float(v), 3) for v in sm.similarity.coords3[i]],
+            },
+            "coords_2d": {
+                "axes": [round(float(v), 3) for v in sm.axes.coords2[i]],
+                "similarity": [round(float(v), 3) for v in sm.similarity.coords2[i]],
+            },
             "stats": {f: round(float(row[f]), 2) for f in STYLE_FEATURES},
             "percentiles": {f: round(float(pct[name][f]), 3) for f in STYLE_FEATURES},
             "neighbours": [
@@ -144,15 +173,21 @@ def style_map_payload(
     ]
 
     axes = [
+        {**meta, "weights": AXIS_WEIGHTS[key]} for key, meta in zip(AXIS_WEIGHTS, AXES, strict=True)
+    ]
+    layouts = [
         {
-            **AXES[i],
-            "explained_variance": round(float(sm.pca.explained_variance_ratio_[i]), 3),
-            "loadings": {
-                f: round(float(v), 3)
-                for f, v in zip(STYLE_FEATURES, sm.pca.components_[i], strict=True)
+            **meta,
+            # How well each layout keeps every fighter's 10 true nearest neighbours.
+            "quality": {
+                str(d): {
+                    "trustworthiness": round(layout.trustworthiness[d], 3),
+                    "knn_kept": round(layout.knn_kept[d], 3),
+                }
+                for d in (3, 2)
             },
         }
-        for i in range(sm.coords.shape[1])
+        for meta, layout in zip(LAYOUTS, [sm.axes, sm.similarity], strict=True)
     ]
 
     return {
@@ -181,6 +216,7 @@ def style_map_payload(
             for f in STYLE_FEATURES
         ],
         "axes": axes,
+        "layouts": layouts,
         "clusters": clusters,
         "fighters": fighters,
     }
@@ -196,7 +232,7 @@ def main() -> None:
     table = build_feature_table(
         load_fighter_stats(), active_fighters(fights, ACTIVE_YEARS), MIN_FIGHTS
     )
-    sm = fit_style_map(table, n_clusters=N_CLUSTERS, n_components=3)
+    sm = fit_style_map(table, n_clusters=N_CLUSTERS)
     out = WEB_DATA_DIR / "style_map.json"
     champions, fetched = current_champions()
     payload = style_map_payload(table, sm, fights["date"].max(), champions, fetched)
