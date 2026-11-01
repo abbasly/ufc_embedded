@@ -1,4 +1,5 @@
 import { Alert, Box, Center, Grid, Group, Loader, MultiSelect, Paper, SegmentedControl, Select, Stack, Switch, Text, UnstyledButton } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import { useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { useSearchParams } from "react-router-dom";
@@ -20,6 +21,7 @@ export default function StyleMapPage() {
   const [weightClasses, setWeightClasses] = useState<string[]>([]);
   const [hiddenGroups, setHiddenGroups] = useState<string[]>([]); // toggled via the legend
   const [highlightChampions, setHighlightChampions] = useState(true);
+  const narrow = useMediaQuery("(max-width: 480px)");
 
   // Selected fighter lives in the URL (?fighter=islam-makhachev) so it can be shared.
   const selectedId = params.get("fighter");
@@ -40,7 +42,7 @@ export default function StyleMapPage() {
 
   return (
     <Grid gap="md">
-      <Grid.Col span={{ base: 12, md: 3 }}>
+      <Grid.Col span={{ base: 12, md: 3 }} order={{ base: 2, md: 1 }}>
         <Stack gap="md">
           <ChampionsStrip data={data} selectedId={selectedId} onSelect={select} />
           <Switch
@@ -61,6 +63,7 @@ export default function StyleMapPage() {
           <div>
             <Text size="sm" fw={500} mb={4}>Show</Text>
             <SegmentedControl
+              size={narrow ? "xs" : "sm"}
               fullWidth
               value={show}
               onChange={(v) => setShow(v as Show)}
@@ -78,6 +81,7 @@ export default function StyleMapPage() {
           <div>
             <Text size="sm" fw={500} mb={4}>Layout</Text>
             <SegmentedControl
+              size={narrow ? "xs" : "sm"}
               fullWidth
               value={layout}
               onChange={(v) => setLayout(v as LayoutId)}
@@ -88,6 +92,7 @@ export default function StyleMapPage() {
             <div>
               <Text size="sm" fw={500} mb={4}>Colour by</Text>
               <SegmentedControl
+              size={narrow ? "xs" : "sm"}
                 fullWidth
                 value={colorBy}
                 onChange={(v) => {
@@ -100,6 +105,7 @@ export default function StyleMapPage() {
             <div>
               <Text size="sm" fw={500} mb={4}>View</Text>
               <SegmentedControl
+              size={narrow ? "xs" : "sm"}
                 fullWidth
                 value={String(dims)}
                 onChange={(v) => setDims(Number(v) as Dims)}
@@ -111,8 +117,8 @@ export default function StyleMapPage() {
         </Stack>
       </Grid.Col>
 
-      <Grid.Col span={{ base: 12, md: 6 }}>
-        <Paper withBorder pos="relative" h={{ base: 480, md: "calc(100vh - 110px)" }} style={{ overflow: "hidden" }}>
+      <Grid.Col span={{ base: 12, md: 6 }} order={{ base: 1, md: 2 }}>
+        <Paper withBorder pos="relative" h={{ base: "65vh", md: "calc(100vh - 110px)" }} style={{ overflow: "hidden" }}>
           <ErrorBoundary
             fallback={
               <Center h="100%">
@@ -147,12 +153,12 @@ export default function StyleMapPage() {
             })}
           </Group>
           <Text pos="absolute" bottom={8} left={10} size="xs" c="dimmed" style={{ pointerEvents: "none" }}>
-            {shownCount} of {data.fighters.length} fighters · {dims === 3 ? "drag to rotate, " : "drag to pan, "}scroll to zoom
+            {shownCount} of {data.fighters.length} fighters · {dims === 3 ? "drag to rotate, " : "drag to pan, "}{narrow ? "pinch" : "scroll"} to zoom
           </Text>
         </Paper>
       </Grid.Col>
 
-      <Grid.Col span={{ base: 12, md: 3 }}>
+      <Grid.Col span={{ base: 12, md: 3 }} order={3}>
         <FighterPanel data={data} fighter={selected} onSelect={select} />
       </Grid.Col>
     </Grid>

@@ -1,10 +1,10 @@
-import { Anchor, AppShell, Center, Group, Loader, NavLink, Text, Title } from "@mantine/core";
+import { Anchor, AppShell, Button, Center, Group, Loader, Text, Title } from "@mantine/core";
 import { Suspense, lazy } from "react";
 import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import { AboutPage } from "../pages/AboutPage";
 
-// Each product is its own lazily loaded feature, so heavy deps (Plotly) only load where used.
+// Each product is its own lazily loaded feature, so heavy deps (three.js) only load where used.
 const StyleMapPage = lazy(() => import("../features/style-map/StyleMapPage"));
 const MmaMathPage = lazy(() => import("../features/mma-math/MmaMathPage"));
 
@@ -18,22 +18,27 @@ export function App() {
   const { pathname } = useLocation();
 
   return (
-    <AppShell header={{ height: 56 }} padding="md">
+    <AppShell header={{ height: 56 }} padding={{ base: "xs", sm: "md" }}>
       <AppShell.Header>
-        <Group h="100%" px="md" justify="space-between">
+        <Group h="100%" px={{ base: "xs", sm: "md" }} justify="space-between" wrap="nowrap">
           <Anchor component={Link} to="/" c="inherit" underline="never">
-            <Title order={4}>UFC Embedded</Title>
+            <Title order={4} fz={{ base: "md", sm: "lg" }} style={{ whiteSpace: "nowrap" }}>
+              UFC Embedded
+            </Title>
           </Anchor>
-          <Group gap={4}>
+          <Group gap={2} wrap="nowrap">
             {NAV.map((item) => (
-              <NavLink
+              <Button
                 key={item.to}
                 component={Link}
                 to={item.to}
-                label={item.label}
-                active={pathname === item.to}
-                w="auto"
-              />
+                variant={pathname === item.to ? "filled" : "subtle"}
+                color={pathname === item.to ? "red" : "gray"}
+                size="compact-sm"
+                px={{ base: 6, sm: "sm" }}
+              >
+                {item.label}
+              </Button>
             ))}
           </Group>
         </Group>
