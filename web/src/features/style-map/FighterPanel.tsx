@@ -109,7 +109,8 @@ function StyleOverview({ data }: { data: StyleMapData }) {
       <Title order={4}>Styles</Title>
       <Text size="sm" c="dimmed">
         Click any fighter on the map, or search for one, to see their profile and closest matches.
-        Drag to rotate, scroll to zoom. Use "Show" to focus on champions or ranked fighters.
+        Drag to rotate, scroll to zoom. Click a style in the legend to hide it, or use "Show" to focus
+        on champions or ranked fighters.
       </Text>
       {data.clusters.map((c) => (
         <div key={c.id}>

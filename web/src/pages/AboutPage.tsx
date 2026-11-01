@@ -87,7 +87,7 @@ export function AboutPage() {
             noisy. Next up: my own UFCStats scraper with strike targets and positions.
           </Text>
           <Text size="xs" c="dimmed">
-            Champion photos from Wikimedia Commons / Wikipedia under free licences (credited on each
+            Fighter photos from Wikimedia Commons / Wikipedia under free licences (credited on each
             fighter). Unofficial fan project, not affiliated with the UFC.
           </Text>
         </Stack>

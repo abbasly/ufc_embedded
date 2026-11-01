@@ -18,18 +18,19 @@ interface Props {
   colorOf: (f: Fighter) => string;
   label: (f: Fighter) => string;
   isShown: (f: Fighter) => boolean;
+  highlightChampions: boolean;
   selectedId: string | null;
   onSelect: (id: string) => void;
 }
 
 const RADIUS = 0.06;
-const CAMERA: Record<Dims, Vec3> = { 3: [7, 5, 9], 2: [0, 0, 13] };
+const CAMERA: Record<Dims, Vec3> = { 3: [8, 6, 10.5], 2: [0, 0, 13] };
 const HIT_SCALE = 2.5;
 const noRaycast = () => null;
 const AXIS_LENGTH = 4.5;
 const LABEL_Z = [100, 0]; // keep HTML labels below the app's own overlays
 
-export function Scene({ data, layout, dims, colorOf, label, isShown, selectedId, onSelect }: Props) {
+export function Scene({ data, layout, dims, colorOf, label, isShown, highlightChampions, selectedId, onSelect }: Props) {
   const [hovered, setHovered] = useState<Fighter | null>(null);
   const geometry = useMemo(() => new SphereGeometry(RADIUS, 12, 12), []);
 
@@ -55,7 +56,7 @@ export function Scene({ data, layout, dims, colorOf, label, isShown, selectedId,
         const isSelected = f.id === selectedId;
         const isNeighbour = neighbourIds.has(f.id);
         const shown = isShown(f) || isSelected || isNeighbour;
-        const scale = isSelected ? 2.6 : isNeighbour || f.champion ? 1.7 : 1;
+        const scale = isSelected ? 2.6 : isNeighbour || (f.champion && highlightChampions) ? 1.7 : 1;
         return (
           <group key={f.id} position={position(f)} scale={scale}>
             <mesh geometry={geometry} raycast={noRaycast}>
@@ -108,13 +109,17 @@ export function Scene({ data, layout, dims, colorOf, label, isShown, selectedId,
           );
         })}
 
+      {/* Always mounted, hidden with CSS: unmounting drei <Html> trips a React DOM error. */}
       {data.fighters
-        .filter((f) => f.champion && f.id !== selectedId && isShown(f))
-        .map((f) => (
-          <Html key={f.id} position={position(f)} zIndexRange={LABEL_Z}>
-            <ChampionLabel fighter={f} onClick={() => onSelect(f.id)} />
-          </Html>
-        ))}
+        .filter((f) => f.champion)
+        .map((f) => {
+          const visible = highlightChampions && f.id !== selectedId && isShown(f);
+          return (
+            <Html key={f.id} position={position(f)} zIndexRange={LABEL_Z} style={{ display: visible ? "block" : "none" }}>
+              <ChampionLabel fighter={f} onClick={() => onSelect(f.id)} compact />
+            </Html>
+          );
+        })}
 
       {selected && (
         <Html position={position(selected)} zIndexRange={LABEL_Z}>
@@ -122,12 +127,18 @@ export function Scene({ data, layout, dims, colorOf, label, isShown, selectedId,
         </Html>
       )}
 
-      {hovered && hovered.id !== selectedId && !hovered.champion && (
+      {hovered && hovered.id !== selectedId && (
         <Html position={position(hovered)} zIndexRange={LABEL_Z} style={{ pointerEvents: "none" }}>
           <div style={tooltipStyle}>
-            <b>{hovered.name}</b>
-            <br />
-            {label(hovered)}
+            {hovered.image && <img src={hovered.image.url} alt="" style={tooltipPhotoStyle} />}
+            <div>
+              <b>
+                {hovered.champion && "🏆 "}
+                {hovered.name}
+              </b>
+              <br />
+              {label(hovered)}
+            </div>
           </div>
         </Html>
       )}
@@ -148,11 +159,20 @@ function CameraReset({ resetKey, dims }: { resetKey: string; dims: Dims }) {
   return null;
 }
 
-function ChampionLabel({ fighter, onClick, selected }: { fighter: Fighter; onClick: () => void; selected?: boolean }) {
+interface LabelProps {
+  fighter: Fighter;
+  onClick: () => void;
+  selected?: boolean;
+  compact?: boolean; // small photo + last name, for always-on champion labels
+}
+
+function ChampionLabel({ fighter, onClick, selected, compact }: LabelProps) {
   const color = fighter.champion ? GOLD : "white";
+  const photo = compact ? 16 : 22;
   return (
     <button
       onClick={onClick}
+      title={fighter.name}
       style={{
         display: "flex",
         alignItems: "center",
@@ -161,9 +181,9 @@ function ChampionLabel({ fighter, onClick, selected }: { fighter: Fighter; onCli
         background: "rgba(20,20,20,0.75)",
         border: `1px solid ${selected ? "white" : color}`,
         borderRadius: 999,
-        padding: fighter.image ? "1px 8px 1px 1px" : "2px 8px",
+        padding: fighter.image ? "1px 6px 1px 1px" : "1px 6px",
         color,
-        fontSize: 11,
+        fontSize: compact ? 10 : 11,
         whiteSpace: "nowrap",
         cursor: "pointer",
       }}
@@ -172,11 +192,11 @@ function ChampionLabel({ fighter, onClick, selected }: { fighter: Fighter; onCli
         <img
           src={fighter.image.url}
           alt=""
-          style={{ width: 22, height: 22, borderRadius: "50%", objectFit: "cover", objectPosition: "top" }}
+          style={{ width: photo, height: photo, borderRadius: "50%", objectFit: "cover", objectPosition: "top" }}
         />
       )}
       {fighter.champion ? "🏆 " : ""}
-      {fighter.name}
+      {compact ? fighter.name.split(" ").at(-1) : fighter.name}
     </button>
   );
 }
@@ -211,7 +231,18 @@ function Axes({ data, dims, hidden }: { data: StyleMapData; dims: Dims; hidden: 
 
 const axisLabelStyle = { color: "#888", fontSize: 11, whiteSpace: "nowrap", pointerEvents: "none" } as const;
 
+const tooltipPhotoStyle = {
+  width: 40,
+  height: 40,
+  borderRadius: "50%",
+  objectFit: "cover",
+  objectPosition: "top",
+} as const;
+
 const tooltipStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
   transform: "translate(-50%, -120%)",
   background: "rgba(20,20,20,0.9)",
   border: "1px solid #444",

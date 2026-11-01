@@ -31,7 +31,7 @@ checked against betting odds) and, as a stretch, a browser **shadowboxing coach*
    Each layout reports how many of every fighter's 10 nearest neighbours (in the full 8-stat
    space) it keeps: about 25% for style axes vs 52% for t-SNE in 3D.
 5. k-means for style groups, nearest neighbours in the full stat space for "most similar".
-6. Current champions and their (freely licensed) photos come from Wikipedia.
+6. Current champions and fighter photos (free licences only, ~40% of fighters) come from Wikipedia.
 
 ## Architecture
 
@@ -43,7 +43,7 @@ flowchart LR
     subgraph py["Python pipeline (src/ufc_embedded)"]
         raw[("Kaggle CSVs<br/>data/raw")] --> data["data.py<br/>load + active fighters"]
         data --> sm["style_map.py<br/>shrink, style axes, t-SNE, k-means, kNN"]
-        wiki(["Wikipedia API"]) --> champs["champions.py<br/>current champs + photos"]
+        wiki(["Wikipedia API"]) --> champs["champions.py + wikipedia.py<br/>current champs, photos"]
         data --> mma["mma_math.py<br/>win graph + cycles"]
         sm --> export["export.py"]
         champs --> export
@@ -87,7 +87,7 @@ npm test                                 # web tests
 Raw data isn't committed. Download the Kaggle datasets
 [`mdabbert/ultimate-ufc-dataset`](https://www.kaggle.com/datasets/mdabbert/ultimate-ufc-dataset) and
 [`asaniczka/ufc-fighters-statistics`](https://www.kaggle.com/datasets/asaniczka/ufc-fighters-statistics)
-into `data/raw/<dataset-name>/`. To refresh champions, delete `data/processed/champions.json`.
+into `data/raw/<dataset-name>/`. To refresh champions or photos, delete `data/processed/champions.json` or `fighter_photos.json`.
 
 ## Limitations
 

@@ -1,4 +1,4 @@
-import { Alert, Box, Center, Grid, Group, Loader, MultiSelect, Paper, SegmentedControl, Select, Stack, Text } from "@mantine/core";
+import { Alert, Box, Center, Grid, Group, Loader, MultiSelect, Paper, SegmentedControl, Select, Stack, Switch, Text, UnstyledButton } from "@mantine/core";
 import { useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { useSearchParams } from "react-router-dom";
@@ -18,6 +18,8 @@ export default function StyleMapPage() {
   const [colorBy, setColorBy] = useState<ColorBy>("style");
   const [show, setShow] = useState<Show>("all");
   const [weightClasses, setWeightClasses] = useState<string[]>([]);
+  const [hiddenGroups, setHiddenGroups] = useState<string[]>([]); // toggled via the legend
+  const [highlightChampions, setHighlightChampions] = useState(true);
 
   // Selected fighter lives in the URL (?fighter=islam-makhachev) so it can be shared.
   const selectedId = params.get("fighter");
@@ -29,7 +31,11 @@ export default function StyleMapPage() {
   const selected = data.fighters.find((f) => f.id === selectedId) ?? null;
   const present = new Set(data.fighters.map((f) => f.weight_class));
   const isShown = (f: Fighter) =>
-    SHOW_OPTIONS[show].test(f) && (weightClasses.length === 0 || weightClasses.includes(f.weight_class));
+    SHOW_OPTIONS[show].test(f) &&
+    (weightClasses.length === 0 || weightClasses.includes(f.weight_class)) &&
+    !hiddenGroups.includes(groupOf(f, data, colorBy));
+  const toggleGroup = (g: string) =>
+    setHiddenGroups(hiddenGroups.includes(g) ? hiddenGroups.filter((x) => x !== g) : [...hiddenGroups, g]);
   const shownCount = data.fighters.filter(isShown).length;
 
   return (
@@ -37,6 +43,12 @@ export default function StyleMapPage() {
       <Grid.Col span={{ base: 12, md: 3 }}>
         <Stack gap="md">
           <ChampionsStrip data={data} selectedId={selectedId} onSelect={select} />
+          <Switch
+            label="Highlight champions on the map"
+            checked={highlightChampions}
+            onChange={(e) => setHighlightChampions(e.currentTarget.checked)}
+            size="sm"
+          />
           <Select
             label="Find a fighter"
             placeholder="Type a name"
@@ -78,7 +90,10 @@ export default function StyleMapPage() {
               <SegmentedControl
                 fullWidth
                 value={colorBy}
-                onChange={(v) => setColorBy(v as ColorBy)}
+                onChange={(v) => {
+                  setColorBy(v as ColorBy);
+                  setHiddenGroups([]); // legend groups differ per colouring
+                }}
                 data={[{ value: "style", label: "Style" }, { value: "weight_class", label: "Weight" }]}
               />
             </div>
@@ -113,20 +128,24 @@ export default function StyleMapPage() {
             colorOf={(f) => colorOfGroup(groupOf(f, data, colorBy), colorBy)}
             label={(f) => groupOf(f, data, colorBy)}
             isShown={isShown}
+            highlightChampions={highlightChampions}
             selectedId={selectedId}
             onSelect={select}
           />
           </ErrorBoundary>
-          <Box pos="absolute" top={8} left={10} style={{ pointerEvents: "none" }}>
-            <Group gap="sm">
-              {legend(data, colorBy).map((g) => (
-                <Group key={g.name} gap={4}>
-                  <Box w={8} h={8} bg={g.color} style={{ borderRadius: "50%" }} />
-                  <Text size="xs" c="dimmed">{g.name}</Text>
-                </Group>
-              ))}
-            </Group>
-          </Box>
+          <Group pos="absolute" top={8} left={10} right={10} gap="sm">
+            {legend(data, colorBy).map((g) => {
+              const off = hiddenGroups.includes(g.name);
+              return (
+                <UnstyledButton key={g.name} onClick={() => toggleGroup(g.name)} title={off ? "Show" : "Hide"} style={{ opacity: off ? 0.35 : 1 }}>
+                  <Group gap={4}>
+                    <Box w={8} h={8} bg={g.color} style={{ borderRadius: "50%" }} />
+                    <Text size="xs" c="dimmed" td={off ? "line-through" : undefined}>{g.name}</Text>
+                  </Group>
+                </UnstyledButton>
+              );
+            })}
+          </Group>
           <Text pos="absolute" bottom={8} left={10} size="xs" c="dimmed" style={{ pointerEvents: "none" }}>
             {shownCount} of {data.fighters.length} fighters · {dims === 3 ? "drag to rotate, " : "drag to pan, "}scroll to zoom
           </Text>
