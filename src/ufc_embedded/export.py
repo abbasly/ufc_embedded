@@ -14,14 +14,18 @@ from typing import Any
 
 import pandas as pd
 
-from ufc_embedded.champions import Champion, current_champions
+from ufc_embedded.champions import Champion, current_champions, current_ranks
 from ufc_embedded.data import (
-    FIGHTER_STATS_SNAPSHOT,
     PROJECT_ROOT,
     active_fighters,
-    load_fighter_stats,
+    attach_odds,
+    fighter_summary,
     load_fights,
-    slugify,
+    load_odds,
+    load_profiles,
+    load_rankings,
+    load_raw,
+    public_ids,
 )
 from ufc_embedded.mma_math import mma_math_payload, win_edges
 from ufc_embedded.style_map import (
@@ -33,7 +37,7 @@ from ufc_embedded.style_map import (
 )
 from ufc_embedded.wikipedia import Photo, fighter_photos
 
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 WEB_DATA_DIR = PROJECT_ROOT / "web" / "public" / "data"
 
 ACTIVE_YEARS = 3
@@ -52,7 +56,6 @@ FEATURE_INFO: dict[str, tuple[str, str]] = {
     "takedown_defense": ("Takedown defence", "%"),
 }
 
-# Interpretations of the (sign-anchored) PCA axes; see style_map.AXIS_ANCHORS.
 # Display text for style_map.AXIS_WEIGHTS, in the same order.
 AXES = [
     {"label": "Grappling", "low": "Stays standing", "high": "Wrestling & submissions"},
@@ -113,23 +116,21 @@ def records(df: pd.DataFrame) -> dict[str, dict[str, Any]]:
 def style_map_payload(
     table: pd.DataFrame,
     sm: StyleMap,
+    ids: dict[str, str],
     fights_until: pd.Timestamp,
     champions: list[Champion] | None = None,
-    champions_as_of: str | None = None,
+    ranks: dict[str, int] | None = None,
+    rankings_date: str | None = None,
     photos: dict[str, Photo] | None = None,
 ) -> dict[str, Any]:
-    """Build the JSON payload; ``champions`` are matched to fighters by slugified name.
+    """Build the JSON payload.
 
-    ``photos`` maps fighter name -> photo; a champion's own photo takes precedence.
+    ``table`` is indexed by UFCStats fighter id; ``ids`` maps those to public URL ids.
+    ``ranks`` and ``photos`` are keyed by fighter id too.
     """
-    champions = champions or []
-    photos = photos or {}
-    champ_by_id = {slugify(c["name"]): c for c in champions}
+    champions, ranks, photos = champions or [], ranks or {}, photos or {}
+    belt = {c["fighter"]: c["division"] for c in champions if c["fighter"]}
     cluster_names = name_clusters(table, sm.labels)
-    ids = {str(name): slugify(str(name)) for name in table.index}
-    id_set = set(ids.values())
-    if len(id_set) != len(ids):
-        raise ValueError("fighter slugs are not unique")
 
     rows = records(table)
     pct = records(table[STYLE_FEATURES].rank(pct=True))
@@ -139,16 +140,16 @@ def style_map_payload(
 
     fighters = [
         {
-            "id": ids[name],
-            "name": name,
+            "id": ids[fid],
+            "name": row["name"],
             "weight_class": row["weight_class"],
             "last_fight": row["last_fight"].date().isoformat(),
             "n_fights": int(row["n_fights"]),
-            "cluster": cluster_of[name],
-            "rank": None if pd.isna(row["rank"]) else int(row["rank"]),
-            "champion": champ_by_id[ids[name]]["division"] if ids[name] in champ_by_id else None,
-            "image": (champ_by_id[ids[name]]["image"] if ids[name] in champ_by_id else None)
-            or photos.get(name),
+            "record": {k: int(row[k]) for k in ("wins", "losses", "draws")},
+            "cluster": cluster_of[fid],
+            "rank": ranks.get(fid),
+            "champion": belt.get(fid),
+            "image": photos.get(fid),
             "coords": {
                 "axes": [round(float(v), 3) for v in sm.axes.coords3[i]],
                 "similarity": [round(float(v), 3) for v in sm.similarity.coords3[i]],
@@ -158,13 +159,13 @@ def style_map_payload(
                 "similarity": [round(float(v), 3) for v in sm.similarity.coords2[i]],
             },
             "stats": {f: round(float(row[f]), 2) for f in STYLE_FEATURES},
-            "percentiles": {f: round(float(pct[name][f]), 3) for f in STYLE_FEATURES},
+            "percentiles": {f: round(float(pct[fid][f]), 3) for f in STYLE_FEATURES},
             "neighbours": [
                 {"id": ids[str(n)], "distance": round(float(d), 3)}
-                for n, d in neighbours[name].items()
+                for n, d in neighbours[fid].items()
             ],
         }
-        for i, (name, row) in enumerate(rows.items())
+        for i, (fid, row) in enumerate(rows.items())
     ]
 
     medians = records(table[STYLE_FEATURES].groupby(labels).median())
@@ -197,24 +198,23 @@ def style_map_payload(
         for meta, layout in zip(LAYOUTS, [sm.axes, sm.similarity], strict=True)
     ]
 
+    on_map = set(table.index)
     return {
         "schema_version": SCHEMA_VERSION,
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "source": {
             "fights_until": fights_until.date().isoformat(),
-            "stats_snapshot": FIGHTER_STATS_SNAPSHOT.date().isoformat(),
             "active_years": ACTIVE_YEARS,
             "min_fights": MIN_FIGHTS,
         },
-        "champions_as_of": champions_as_of,
+        "champions_as_of": rankings_date,
         # All current champions, including ones without enough data to be on the map.
         "champions": [
             {
                 "division": c["division"],
                 "name": c["name"],
-                "since": c["since"],
-                "image": c["image"],
-                "fighter_id": slugify(c["name"]) if slugify(c["name"]) in id_set else None,
+                "image": photos.get(fid) if (fid := c["fighter"]) else None,
+                "fighter_id": ids[fid] if fid and fid in on_map else None,
             }
             for c in champions
         ],
@@ -234,28 +234,45 @@ def write_json(payload: dict[str, Any], path: Path) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
 
 
+def photos_by_id(
+    profiles: pd.DataFrame, fighter_ids: list[str], search: bool = False
+) -> dict[str, Photo]:
+    """Wikipedia photos per fighter id; skipped for namesakes, since we can't tell whose it is."""
+    names = profiles.loc[fighter_ids, "name"].astype(str)
+    unique = names[~profiles["name"].duplicated(keep=False).loc[fighter_ids]]
+    by_name = fighter_photos(sorted(set(unique)), search=search)
+    return {str(i): by_name[n] for i, n in unique.items() if n in by_name}
+
+
 def main() -> None:
-    fights = load_fights()
-    table = build_feature_table(
-        load_fighter_stats(), active_fighters(fights, ACTIVE_YEARS), MIN_FIGHTS
-    )
+    raw = load_raw()
+    fights = attach_odds(load_fights(raw), load_odds())
+    profiles = load_profiles(raw)
+    summary = fighter_summary(fights)
+    ids = public_ids(profiles, summary)
+    rankings, rankings_date = load_rankings()
+    champions = current_champions(rankings, profiles)
+    ranks = current_ranks(rankings, profiles)
+
+    table = build_feature_table(profiles, active_fighters(fights, ACTIVE_YEARS), MIN_FIGHTS)
     sm = fit_style_map(table, n_clusters=N_CLUSTERS)
+    champ_ids = [c["fighter"] for c in champions if c["fighter"]]
+    photos = photos_by_id(profiles, sorted(set(table.index) | set(champ_ids)), search=True)
+    payload = style_map_payload(
+        table, sm, ids, fights["date"].max(), champions, ranks, rankings_date, photos
+    )
     out = WEB_DATA_DIR / "style_map.json"
-    champions, fetched = current_champions()
-    photos = fighter_photos([str(n) for n in table.index])
-    payload = style_map_payload(table, sm, fights["date"].max(), champions, fetched, photos)
     write_json(payload, out)
-    print(f"wrote {len(table)} fighters to {out} (champions fetched {fetched})")
+    print(
+        f"wrote {len(table)} fighters to {out} (fights until {payload['source']['fights_until']})"
+    )
     for c in payload["champions"]:
         if c["fighter_id"] is None:
             print(f"warning: {c['division']} champion {c['name']} is not on the map")
 
     edges = win_edges(fights)
-    names = set(edges["winner"]) | set(edges["loser"])
-    ids = {n: slugify(n) for n in names}
-    if len(set(ids.values())) != len(ids):
-        raise ValueError("fighter slugs are not unique")
-    mma = mma_math_payload(edges, ids, champions, fighter_photos(sorted(names)))
+    in_graph = sorted(set(edges["winner"]) | set(edges["loser"]))
+    mma = mma_math_payload(edges, profiles, ids, champions, photos_by_id(profiles, in_graph))
     write_json(mma, WEB_DATA_DIR / "mma_math.json")
     print(f"wrote {len(mma['cycles'])} MMA math cycles (giant loop: {mma['giant_loop_size']})")
 

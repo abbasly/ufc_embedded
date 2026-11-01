@@ -9,8 +9,6 @@ from sklearn.manifold import TSNE, trustworthiness
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import StandardScaler
 
-from ufc_embedded.data import slugify
-
 RATE_FEATURES = [
     "significant_strikes_landed_per_minute",
     "significant_strikes_absorbed_per_minute",
@@ -27,25 +25,16 @@ STYLE_FEATURES = RATE_FEATURES + PCT_FEATURES
 
 
 def build_feature_table(
-    stats: pd.DataFrame, active: pd.DataFrame, min_fights: int = 3
+    profiles: pd.DataFrame, active: pd.DataFrame, min_fights: int = 3
 ) -> pd.DataFrame:
     """Join career stats onto active fighters and drop rows we can't trust.
 
-    Drops: names that appear more than once in ``stats`` (different people, can't
-    disambiguate), all-zero stat rows (UFCStats writes 0 for "no data"), and
-    fighters with fewer than ``min_fights`` UFC fights when the stats were taken.
+    Drops all-zero or missing stat rows (UFCStats writes 0 for "no data") and
+    fighters with fewer than ``min_fights`` UFC fights.
     """
-    # Match on slugs so spelling differences between the two datasets don't drop fighters.
-    slugs = stats["name"].map(slugify)
-    unique = ~slugs.duplicated(keep=False)
-    unique_stats = stats[unique].set_index(slugs[unique])
-    table = (
-        active.assign(slug=active.index.map(slugify))
-        .join(unique_stats[STYLE_FEATURES], on="slug", how="inner")
-        .drop(columns="slug")
-    )
+    table = active.join(profiles, how="inner").dropna(subset=STYLE_FEATURES)
     table = table[~(table[STYLE_FEATURES] == 0).all(axis=1)]
-    return table[table["n_fights_as_of"] >= min_fights]
+    return table[table["n_fights"] >= min_fights]
 
 
 PRIOR_MINUTES = 30.0  # shrinkage strength for per-minute rates (about three fights)
@@ -65,7 +54,7 @@ def shrink(table: pd.DataFrame) -> pd.DataFrame:
     (landed / accuracy), approximate since the data has no raw counts.
     """
     s = table[STYLE_FEATURES].astype(float)
-    minutes = table["minutes_as_of"].clip(lower=1)
+    minutes = table["minutes"].clip(lower=1)
     out = s.copy()
     for f in RATE_FEATURES:
         out[f] = _pull(s[f], minutes, PRIOR_MINUTES)

@@ -20,20 +20,20 @@ TOP_PER_LENGTH = 40
 
 
 def win_edges(fights: pd.DataFrame) -> pd.DataFrame:
-    """One row per decisive fight (no draws / no contests), oldest first."""
-    decisive = fights[fights["Winner"].isin(["Red", "Blue"])]
-    red_won = decisive["Winner"] == "Red"
+    """One row per decisive fight (no draws / no contests), oldest first; fighters are ids."""
+    decisive = fights[fights["winner"].notna()]
+    f1_won = decisive["winner"] == decisive["f1"]
     edges = pd.DataFrame(
         {
-            "winner": decisive["R_fighter"].where(red_won, decisive["B_fighter"]),
-            "loser": decisive["B_fighter"].where(red_won, decisive["R_fighter"]),
+            "winner": decisive["winner"],
+            "loser": decisive["f2"].where(f1_won, decisive["f1"]),
             "date": decisive["date"],
-            "method": decisive["finish"].fillna("?"),
-            "round": decisive["finish_round"],
-            "title": decisive["title_bout"].astype(bool),
+            "method": decisive["method"].fillna("?"),
+            "round": decisive["round"],
+            "title": decisive["title"].astype(bool),
             "weight_class": decisive["weight_class"],
             # American odds of the winner; positive means they were the underdog.
-            "winner_odds": decisive["R_odds"].where(red_won, decisive["B_odds"]),
+            "winner_odds": decisive["f1_odds"].where(f1_won, decisive["f2_odds"]),
         }
     )
     return edges.sort_values("date", kind="stable").reset_index(drop=True)
@@ -95,42 +95,48 @@ def optional_int(v: Any) -> int | None:
 
 def mma_math_payload(
     edges: pd.DataFrame,
+    profiles: pd.DataFrame,
     ids: dict[str, str],
     champions: list[Champion] | None = None,
     photos: dict[str, Photo] | None = None,
 ) -> dict[str, Any]:
-    """JSON for the MMA math page. ``ids`` maps fighter name -> slug (shared with the style map)."""
+    """JSON for the MMA math page.
+
+    ``edges`` and ``profiles`` use UFCStats fighter ids; ``ids`` maps them to the public
+    ids shared with the style map. ``photos`` is keyed by fighter id.
+    """
     champions = champions or []
     photos = photos or {}
     graph = win_graph(edges)
-    fame_of = fame(edges, [c["name"] for c in champions])
+    fame_of = fame(edges, [c["fighter"] for c in champions if c["fighter"]])
     cycles = rank_cycles(find_cycles(graph), fame_of)
 
-    names = sorted(set(edges["winner"]) | set(edges["loser"]))
-    index = {n: i for i, n in enumerate(names)}
+    fighter_ids = sorted(set(edges["winner"]) | set(edges["loser"]))
+    index = {f: i for i, f in enumerate(fighter_ids)}
     giant = max(nx.strongly_connected_components(graph), key=len)
-    belt = {c["name"]: c for c in champions}
-    wins = edges["winner"].value_counts()
-    losses = edges["loser"].value_counts()
+    belt = {c["fighter"]: c["division"] for c in champions if c["fighter"]}
+    record: dict[str, dict[str, int]] = {
+        str(f): {str(k): int(v) for k, v in r.items()}
+        for f, r in profiles[["wins", "losses", "draws"]].fillna(0).to_dict("index").items()
+    }
 
     rows: list[dict[str, Any]] = [
         {str(k): v for k, v in r.items()} for r in edges.to_dict("records")
     ]
 
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "fights_until": rows[-1]["date"].date().isoformat(),
         "giant_loop_size": len(giant),
         "fighters": [
             {
-                "id": ids[n],
-                "name": n,
-                "wins": int(wins.get(n, 0)),
-                "losses": int(losses.get(n, 0)),
-                "champion": belt[n]["division"] if n in belt else None,
-                "image": (belt[n]["image"] if n in belt else None) or photos.get(n),
+                "id": ids[f],
+                "name": str(profiles.at[f, "name"]),
+                "record": record[f],
+                "champion": belt.get(f),
+                "image": photos.get(f),
             }
-            for n in names
+            for f in fighter_ids
         ],
         # Compact rows: [winner, loser, date, method, round, title, winner_odds, weight_class]
         "fights": [

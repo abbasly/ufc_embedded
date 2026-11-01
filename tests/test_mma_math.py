@@ -13,26 +13,32 @@ from ufc_embedded.mma_math import (
 def make_fights() -> pd.DataFrame:
     # A > B > C > A is a cycle; D only beats A once; one draw is ignored.
     rows = [
-        ("2020-01-01", "A", "B", "Red"),
-        ("2021-01-01", "B", "C", "Red"),
-        ("2022-01-01", "A", "C", "Blue"),  # C beats A
-        ("2023-01-01", "D", "A", "Red"),
-        ("2024-01-01", "A", "D", "Draw"),
+        ("2020-01-01", "A", "B", "A"),
+        ("2021-01-01", "B", "C", "B"),
+        ("2022-01-01", "A", "C", "C"),  # C beats A
+        ("2023-01-01", "D", "A", "D"),
+        ("2024-01-01", "A", "D", None),
     ]
     return pd.DataFrame(
         {
             "date": pd.to_datetime([r[0] for r in rows]),
-            "R_fighter": [r[1] for r in rows],
-            "B_fighter": [r[2] for r in rows],
-            "Winner": [r[3] for r in rows],
-            "finish": ["KO/TKO", "SUB", "U-DEC", "KO/TKO", "U-DEC"],
-            "finish_round": [1, 2, 3, 1, 3],
-            "title_bout": [False, False, True, False, False],
+            "f1": [r[1] for r in rows],
+            "f2": [r[2] for r in rows],
+            "winner": [r[3] for r in rows],
+            "method": ["KO/TKO", "SUB", "U-DEC", "KO/TKO", "M-DEC"],
+            "round": [1, 2, 3, 1, 3],
+            "title": [False, False, True, False, False],
             "weight_class": ["Lightweight"] * 5,
-            "R_odds": [-200, 150, -300, 120, 100],
-            "B_odds": [170, -180, 250, -140, -120],
+            "f1_odds": [-200, 150, -300, 120, 100],
+            "f2_odds": [170, -180, 250, -140, -120],
         }
     )
+
+
+PROFILES = pd.DataFrame(
+    {"name": list("ABCD"), "wins": [5, 4, 3, 2], "losses": [1, 1, 1, 1], "draws": [0, 0, 0, 1]},
+    index=list("ABCD"),
+)
 
 
 def test_win_edges_drops_draws_and_picks_winner_side() -> None:
@@ -57,7 +63,8 @@ def test_finds_the_cycle_and_rotates_to_most_famous() -> None:
 
 def test_payload_cycle_is_a_chain_of_fights() -> None:
     edges = win_edges(make_fights())
-    payload = mma_math_payload(edges, {n: n.lower() for n in "ABCD"})
+    payload = mma_math_payload(edges, PROFILES, {n: n.lower() for n in "ABCD"})
+    assert payload["fighters"][3]["record"] == {"wins": 2, "losses": 1, "draws": 1}
     fights = payload["fights"]
     (cycle,) = payload["cycles"]
     for a, b in zip(cycle, cycle[1:] + cycle[:1], strict=True):
