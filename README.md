@@ -55,7 +55,6 @@ flowchart LR
 - **Features are modular:** each product lives in `web/src/features/<name>/` and is lazy-loaded
   by its route.
 - **CI/CD:** every push to `master` runs ruff, mypy, pytest, the web tests and build, then deploys.
-- **Analytics:** anonymous, cookie-free page views via GoatCounter (`VITE_GOATCOUNTER_CODE` in `web/.env`).
 
 ## Stack
 
