@@ -1,7 +1,7 @@
 // TypeScript mirror of the JSON written by `ufc_embedded.export` (Python).
 // Keep in sync with SCHEMA_VERSION there.
 
-export const STYLE_MAP_SCHEMA_VERSION = 2;
+export const STYLE_MAP_SCHEMA_VERSION = 3;
 
 export interface Feature {
   key: string;
@@ -42,12 +42,21 @@ export interface Fighter {
   last_fight: string; // ISO date
   n_fights: number;
   cluster: number;
+  rank: number | null; // division rank going into their last fight
   champion: string | null; // division name if current champion
   image: Photo | null;
   coords: number[]; // one value per axis
   stats: Record<string, number>;
   percentiles: Record<string, number>; // 0..1 within the map population
   neighbours: Neighbour[];
+}
+
+export interface Champion {
+  division: string;
+  name: string;
+  since: string;
+  image: Photo | null;
+  fighter_id: string | null; // null if not on the map (not enough data)
 }
 
 export interface StyleMapData {
@@ -58,8 +67,9 @@ export interface StyleMapData {
     stats_snapshot: string;
     active_years: number;
     min_fights: number;
-    champions_as_of: string;
   };
+  champions_as_of: string | null;
+  champions: Champion[];
   features: Feature[];
   axes: Axis[];
   clusters: Cluster[];

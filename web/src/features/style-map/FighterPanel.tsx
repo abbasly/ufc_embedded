@@ -22,7 +22,8 @@ export function FighterPanel({ data, fighter, onSelect }: Props) {
           <div>
             <Title order={3}>{fighter.name}</Title>
             <Text size="sm" c="dimmed">
-              {fighter.weight_class} · {fighter.n_fights} UFC fights
+              {fighter.weight_class}
+              {fighter.rank !== null && (fighter.rank === 0 ? " · champ at last fight" : ` · #${fighter.rank}`)} · {fighter.n_fights} UFC fights
             </Text>
             <Text size="sm" c="dimmed">
               Last fight {fighter.last_fight}
@@ -107,7 +108,7 @@ function StyleOverview({ data }: { data: StyleMapData }) {
       <Title order={4}>Styles</Title>
       <Text size="sm" c="dimmed">
         Click any fighter on the map, or search for one, to see their profile and closest matches.
-        Drag to rotate, scroll to zoom, click legend entries to hide groups.
+        Drag to rotate, scroll to zoom. Use "Show" to focus on champions or ranked fighters.
       </Text>
       {data.clusters.map((c) => (
         <div key={c.id}>
