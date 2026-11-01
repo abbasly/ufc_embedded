@@ -24,8 +24,8 @@ checked against betting odds) and, as a stretch, a browser **shadowboxing coach*
 
 ## Architecture
 
-The Python side runs offline and writes one JSON file; the website is a separate static app
-that only reads that file. No server needed, so it hosts for free on GitHub Pages.
+The Python side runs offline and writes JSON files; the website is a separate static app
+that only reads them. No server needed, so it hosts for free on GitHub Pages.
 
 ```mermaid
 flowchart LR
@@ -43,6 +43,7 @@ flowchart LR
 
     subgraph web["Web app (web/)"]
         client["data/client.ts<br/>only place that fetches"] --> feat["features/style-map<br/>React + three.js"]
+        client --> mmaui["features/mma-math<br/>chains + loops"]
     end
 
     json --> client
@@ -53,7 +54,8 @@ flowchart LR
   mirrors it. Moving to a real API later only changes `client.ts`.
 - **Features are modular:** each product lives in `web/src/features/<name>/` and is lazy-loaded
   by its route.
-- **CI/CD:** every push to `master` runs ruff, mypy, pytest and the web build, then deploys.
+- **CI/CD:** every push to `master` runs ruff, mypy, pytest, the web tests and build, then deploys.
+- **Analytics:** anonymous, cookie-free page views via GoatCounter (`VITE_GOATCOUNTER_CODE` in `web/.env`).
 
 ## Stack
 
@@ -81,6 +83,7 @@ into `data/raw/<dataset-name>/`. To refresh champions, delete `data/processed/ch
 
 - Career stats are a Feb 2024 snapshot, so later debuts are missing (e.g. Kayla Harrison).
 - Career averages hide style changes over time; fighters with few fights are noisy.
+- Different fighters with the same name (e.g. two Bruno Silvas) are merged into one in the fight data.
 - Next: my own UFCStats scraper with strike targets and positions.
 
 Unofficial fan project, not affiliated with the UFC.
