@@ -101,7 +101,7 @@ export function buildTraces({ data, visible, colorBy, dims, selectedId }: TraceI
   ];
 
   // Champions are always labelled.
-  const champs = shown.filter((f) => f.champion);
+  const champs = shown.filter((f) => f.champion && f.id !== selectedId); // selection labels itself
   traces.push({
     ...points(champs, dims),
     mode: "text+markers",
@@ -131,7 +131,7 @@ export function buildTraces({ data, visible, colorBy, dims, selectedId }: TraceI
       name: "Selected",
       showlegend: false,
       // Label only the selected fighter; neighbours get a ring and a hover label.
-      text: hl.map((f, i) => (i === 0 ? f.name : "")),
+      text: hl.map((f, i) => (i === 0 ? `${f.champion ? "🏆 " : ""}${f.name}` : "")),
       hovertext: hl.map((f) => f.name),
       customdata: hl.map((f) => f.id),
       textposition: "top center",
