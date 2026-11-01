@@ -20,7 +20,8 @@ import { Chain, type Lookup } from "./Chain";
 import { type Fight, shortestChain, toFight, winsByFighter } from "./graph";
 
 const PAGE_SIZE = 12;
-const DEFAULT_PAIR = ["Conor McGregor", "Islam Makhachev"];
+// A flyweight and a heavyweight: the funniest kind of MMA math.
+const DEFAULT_PAIR = ["Alexandre Pantoja", "Ciryl Gane"];
 
 export default function MmaMathPage() {
   const { data, error, isPending } = useMmaMath();
