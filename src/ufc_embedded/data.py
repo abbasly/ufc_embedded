@@ -15,6 +15,8 @@ FIGHTER_STATS_CSV = RAW_DIR / "ufc-fighters-statistics" / "ufc-fighters-statisti
 # The fighter stats file is a snapshot of UFCStats career numbers taken on this date.
 FIGHTER_STATS_SNAPSHOT = pd.Timestamp("2024-02-17")
 
+CATCH_WEIGHT = "Catch Weight"
+
 
 def load_fights(path: Path = FIGHTS_CSV) -> pd.DataFrame:
     """One row per fight, Red vs Blue corner."""
@@ -43,6 +45,7 @@ def fighter_summary(
 ) -> pd.DataFrame:
     """Per-fighter last fight, fight counts and most recent weight class.
 
+    ``weight_class`` ignores catch weight bouts unless a fighter only has those.
     ``n_fights_as_of`` counts fights on or before ``as_of``, which is what the
     career stats in the fighter stats file are based on.
     """
@@ -52,6 +55,8 @@ def fighter_summary(
         n_fights=("date", "size"),
         weight_class=("weight_class", "last"),
     )
+    divisional = app[app["weight_class"] != CATCH_WEIGHT].groupby("name")["weight_class"].last()
+    summary["weight_class"] = divisional.reindex(summary.index).fillna(summary["weight_class"])
     summary["n_fights_as_of"] = (
         app[app["date"] <= as_of].groupby("name").size().reindex(summary.index, fill_value=0)
     )

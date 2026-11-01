@@ -24,7 +24,7 @@ def test_style_map_shapes_and_neighbours() -> None:
     rng = np.random.default_rng(0)
     names = [f"f{i}" for i in range(40)]
     table = make_stats(names, rng).set_index("name")
-    sm = fit_style_map(table, n_clusters=3)
+    sm = fit_style_map(table, n_clusters=3, n_components=2)
     assert sm.coords.shape == (40, 2)
     assert set(sm.labels) == {0, 1, 2}
     nb = sm.neighbours("f0", k=4)

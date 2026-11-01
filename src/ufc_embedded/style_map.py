@@ -51,20 +51,41 @@ def scale_features(table: pd.DataFrame) -> np.ndarray:
 class StyleMap:
     names: pd.Index
     xs: np.ndarray  # scaled features, shape (n, d)
-    coords: np.ndarray  # 2D PCA embedding, shape (n, 2)
+    coords: np.ndarray  # PCA embedding, shape (n, n_components)
     labels: np.ndarray  # k-means cluster per fighter
     pca: PCA
 
     def neighbours(self, name: str, k: int = 5) -> pd.Series:
         """The ``k`` most similar fighters to ``name`` and their distances."""
-        nn = NearestNeighbors(n_neighbors=k + 1).fit(self.xs)
-        dist, idx = nn.kneighbors(self.xs[self.names.get_indexer(pd.Index([name]))])
-        return pd.Series(dist[0, 1:], index=self.names[idx[0, 1:]], name="distance")
+        return self.all_neighbours(k)[name]
+
+    def all_neighbours(self, k: int = 5) -> dict[str, pd.Series]:
+        """Nearest neighbours (in scaled feature space) for every fighter."""
+        dist, idx = NearestNeighbors(n_neighbors=k + 1).fit(self.xs).kneighbors(self.xs)
+        return {
+            name: pd.Series(dist[i, 1:], index=self.names[idx[i, 1:]], name="distance")
+            for i, name in enumerate(self.names)
+        }
 
 
-def fit_style_map(table: pd.DataFrame, n_clusters: int = 5, seed: int = 0) -> StyleMap:
+# PCA axis signs are arbitrary; flip each axis so this feature loads positively,
+# which keeps "right / up / forward" meaning the same thing between runs.
+AXIS_ANCHORS = [
+    "average_takedowns_landed_per_15_minutes",  # PC1: grappling
+    "takedown_defense",  # PC2: defence
+    "significant_strikes_landed_per_minute",  # PC3: pace
+]
+
+
+def fit_style_map(
+    table: pd.DataFrame, n_clusters: int = 5, n_components: int = 3, seed: int = 0
+) -> StyleMap:
     xs = scale_features(table)
-    pca = PCA(n_components=2, random_state=seed)
+    pca = PCA(n_components=n_components, random_state=seed)
     coords = pca.fit_transform(xs)
+    for i, anchor in enumerate(AXIS_ANCHORS[:n_components]):
+        if pca.components_[i, STYLE_FEATURES.index(anchor)] < 0:
+            pca.components_[i] *= -1
+            coords[:, i] *= -1
     labels = KMeans(n_clusters=n_clusters, n_init=10, random_state=seed).fit_predict(xs)
     return StyleMap(names=table.index, xs=xs, coords=coords, labels=labels, pca=pca)
