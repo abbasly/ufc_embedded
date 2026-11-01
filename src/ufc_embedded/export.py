@@ -31,6 +31,7 @@ from ufc_embedded.style_map import (
     build_feature_table,
     fit_style_map,
 )
+from ufc_embedded.wikipedia import Photo, fighter_photos
 
 SCHEMA_VERSION = 4
 WEB_DATA_DIR = PROJECT_ROOT / "web" / "public" / "data"
@@ -115,9 +116,14 @@ def style_map_payload(
     fights_until: pd.Timestamp,
     champions: list[Champion] | None = None,
     champions_as_of: str | None = None,
+    photos: dict[str, Photo] | None = None,
 ) -> dict[str, Any]:
-    """Build the JSON payload; ``champions`` are matched to fighters by slugified name."""
+    """Build the JSON payload; ``champions`` are matched to fighters by slugified name.
+
+    ``photos`` maps fighter name -> photo; a champion's own photo takes precedence.
+    """
     champions = champions or []
+    photos = photos or {}
     champ_by_id = {slugify(c["name"]): c for c in champions}
     cluster_names = name_clusters(table, sm.labels)
     ids = {str(name): slugify(str(name)) for name in table.index}
@@ -141,7 +147,8 @@ def style_map_payload(
             "cluster": cluster_of[name],
             "rank": None if pd.isna(row["rank"]) else int(row["rank"]),
             "champion": champ_by_id[ids[name]]["division"] if ids[name] in champ_by_id else None,
-            "image": champ_by_id[ids[name]]["image"] if ids[name] in champ_by_id else None,
+            "image": (champ_by_id[ids[name]]["image"] if ids[name] in champ_by_id else None)
+            or photos.get(name),
             "coords": {
                 "axes": [round(float(v), 3) for v in sm.axes.coords3[i]],
                 "similarity": [round(float(v), 3) for v in sm.similarity.coords3[i]],
@@ -235,7 +242,8 @@ def main() -> None:
     sm = fit_style_map(table, n_clusters=N_CLUSTERS)
     out = WEB_DATA_DIR / "style_map.json"
     champions, fetched = current_champions()
-    payload = style_map_payload(table, sm, fights["date"].max(), champions, fetched)
+    photos = fighter_photos([str(n) for n in table.index])
+    payload = style_map_payload(table, sm, fights["date"].max(), champions, fetched, photos)
     write_json(payload, out)
     print(f"wrote {len(table)} fighters to {out} (champions fetched {fetched})")
     for c in payload["champions"]:
@@ -247,7 +255,7 @@ def main() -> None:
     ids = {n: slugify(n) for n in names}
     if len(set(ids.values())) != len(ids):
         raise ValueError("fighter slugs are not unique")
-    mma = mma_math_payload(edges, ids, champions)
+    mma = mma_math_payload(edges, ids, champions, fighter_photos(sorted(names)))
     write_json(mma, WEB_DATA_DIR / "mma_math.json")
     print(f"wrote {len(mma['cycles'])} MMA math cycles (giant loop: {mma['giant_loop_size']})")
 

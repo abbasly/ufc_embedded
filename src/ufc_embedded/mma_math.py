@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 
 from ufc_embedded.champions import Champion
+from ufc_embedded.wikipedia import Photo
 
 MIN_CYCLE = 3
 MAX_CYCLE = 5
@@ -96,9 +97,11 @@ def mma_math_payload(
     edges: pd.DataFrame,
     ids: dict[str, str],
     champions: list[Champion] | None = None,
+    photos: dict[str, Photo] | None = None,
 ) -> dict[str, Any]:
     """JSON for the MMA math page. ``ids`` maps fighter name -> slug (shared with the style map)."""
     champions = champions or []
+    photos = photos or {}
     graph = win_graph(edges)
     fame_of = fame(edges, [c["name"] for c in champions])
     cycles = rank_cycles(find_cycles(graph), fame_of)
@@ -125,7 +128,7 @@ def mma_math_payload(
                 "wins": int(wins.get(n, 0)),
                 "losses": int(losses.get(n, 0)),
                 "champion": belt[n]["division"] if n in belt else None,
-                "image": belt[n]["image"] if n in belt else None,
+                "image": (belt[n]["image"] if n in belt else None) or photos.get(n),
             }
             for n in names
         ],

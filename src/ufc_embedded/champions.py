@@ -9,21 +9,13 @@ Results are cached on disk so exports work offline; pass ``refresh=True`` to upd
 import json
 import re
 from datetime import date
-from typing import Any, TypedDict
-from urllib.parse import quote, urlencode
-from urllib.request import Request, urlopen
+from typing import TypedDict
 
 from ufc_embedded.data import PROCESSED_DIR
+from ufc_embedded.wikipedia import Photo, fetch_wiki_images, wiki_get
 
-WIKI_API = "https://en.wikipedia.org/w/api.php"
-USER_AGENT = "ufc-embedded/0.1 (personal project)"
 CHAMPIONS_PAGE = "List_of_UFC_champions"
 CACHE = PROCESSED_DIR / "champions.json"
-
-
-class Photo(TypedDict):
-    url: str
-    credit_url: str
 
 
 class Champion(TypedDict):
@@ -32,15 +24,6 @@ class Champion(TypedDict):
     since: str
     wiki_page: str
     image: Photo | None
-
-
-def _wiki_get(params: dict[str, Any]) -> dict[str, Any]:
-    req = Request(
-        f"{WIKI_API}?{urlencode({'format': 'json', **params})}", headers={"User-Agent": USER_AGENT}
-    )
-    with urlopen(req, timeout=30) as res:
-        result: dict[str, Any] = json.load(res)
-    return result
 
 
 # A table row in the wikitext looks like:
@@ -73,48 +56,12 @@ def parse_champions(wikitext: str) -> list[tuple[str, str, str, str]]:
     return rows
 
 
-def fetch_wiki_images(pages: list[str], thumb_px: int = 240) -> dict[str, Photo]:
-    """Lead image per Wikipedia page, free licences only (``pilicense=free``)."""
-    query = _wiki_get(
-        {
-            "action": "query",
-            "redirects": 1,
-            "prop": "pageimages",
-            "piprop": "thumbnail|name",
-            "pithumbsize": thumb_px,
-            "pilicense": "free",
-            "titles": "|".join(pages),
-        }
-    )["query"]
-
-    # Map the page titles we asked for to the titles Wikipedia answered with.
-    title_of = {p: p for p in pages}
-    for step in query.get("normalized", []) + query.get("redirects", []):
-        for asked, title in title_of.items():
-            if title == step["from"]:
-                title_of[asked] = step["to"]
-
-    by_title = {p["title"]: p for p in query["pages"].values()}
-    images: dict[str, Photo] = {}
-    for asked, title in title_of.items():
-        page = by_title.get(title, {})
-        if "thumbnail" in page:
-            url = page["thumbnail"]["source"]
-            # Free files live on Commons, except some uploaded to English Wikipedia directly.
-            host = "en.wikipedia.org" if "/wikipedia/en/" in url else "commons.wikimedia.org"
-            images[asked] = {
-                "url": url,
-                "credit_url": f"https://{host}/wiki/File:{quote(page['pageimage'])}",
-            }
-    return images
-
-
 def fetch_current_champions() -> list[Champion]:
-    sections = _wiki_get({"action": "parse", "page": CHAMPIONS_PAGE, "prop": "sections"})
+    sections = wiki_get({"action": "parse", "page": CHAMPIONS_PAGE, "prop": "sections"})
     index = next(
         s["index"] for s in sections["parse"]["sections"] if s["line"] == "Current champions"
     )
-    wikitext = _wiki_get(
+    wikitext = wiki_get(
         {"action": "parse", "page": CHAMPIONS_PAGE, "prop": "wikitext", "section": index}
     )["parse"]["wikitext"]["*"]
 

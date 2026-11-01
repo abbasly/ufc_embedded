@@ -1,10 +1,11 @@
 import numpy as np
 import pandas as pd
 
-from ufc_embedded.champions import Champion, Photo
+from ufc_embedded.champions import Champion
 from ufc_embedded.data import slugify
 from ufc_embedded.export import SCHEMA_VERSION, style_map_payload
 from ufc_embedded.style_map import STYLE_FEATURES, fit_style_map
+from ufc_embedded.wikipedia import Photo
 
 
 def make_table(n: int = 40) -> pd.DataFrame:
@@ -47,7 +48,15 @@ def test_payload_matches_contract() -> None:
             "image": None,
         },
     ]
-    payload = style_map_payload(table, sm, pd.Timestamp("2026-03-28"), champions, "2026-11-01")
+    photo: Photo = {"url": "https://example.org/b.jpg", "credit_url": "https://example.org/b"}
+    payload = style_map_payload(
+        table,
+        sm,
+        pd.Timestamp("2026-03-28"),
+        champions,
+        "2026-11-01",
+        photos={"Fighter 1": photo, "Fighter 2": photo},
+    )
 
     assert payload["schema_version"] == SCHEMA_VERSION
     assert len(payload["axes"]) == 3
@@ -76,3 +85,8 @@ def test_payload_matches_contract() -> None:
     ]
     assert [c["fighter_id"] for c in payload["champions"]] == ["fighter-1", None]
     assert fighter["rank"] is None or isinstance(fighter["rank"], int)
+    # Champions keep their champion photo; other fighters get theirs from ``photos``.
+    by_name = {f["name"]: f for f in payload["fighters"]}
+    assert by_name["Fighter 1"]["image"] == image
+    assert by_name["Fighter 2"]["image"] == photo
+    assert by_name["Fighter 3"]["image"] is None
