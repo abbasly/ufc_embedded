@@ -1,7 +1,8 @@
 import { Anchor, Avatar, Badge, CloseButton, Group, Progress, Stack, Text, Title, UnstyledButton } from "@mantine/core";
 
 import type { Fighter, StyleMapData } from "../../data/types";
-import { formatRecord, ordinal } from "./model";
+import { RecordText } from "../../components/RecordText";
+import { ordinal } from "./model";
 
 interface Props {
   data: StyleMapData;
@@ -22,12 +23,7 @@ export function FighterPanel({ data, fighter, onSelect }: Props) {
           <FighterAvatar fighter={fighter} size={64} />
           <div>
             <Title order={3}>{fighter.name}</Title>
-            <Text size="sm">
-              <b>{formatRecord(fighter.record)}</b>{" "}
-              <Text span size="xs" c="dimmed">
-                (W-L-D)
-              </Text>
-            </Text>
+            <RecordText record={fighter.record} />
             <Text size="sm" c="dimmed">
               {fighter.weight_class}
               {fighter.rank !== null && fighter.rank > 0 && ` · #${fighter.rank}`}

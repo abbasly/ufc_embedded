@@ -1,11 +1,8 @@
 // Pure, UI-framework-free helpers: colours, groups and the "Show" filter.
 
-import type { Fighter, FightRecord, LayoutId, StyleMapData } from "../../data/types";
+import type { Fighter, LayoutId, StyleMapData } from "../../data/types";
 
 export const GOLD = "#f5c518";
-
-/** "29-4-0" (wins-losses-draws). */
-export const formatRecord = (r: FightRecord) => `${r.wins}-${r.losses}-${r.draws}`;
 
 /** 1 -> "1st", 92 -> "92nd", 13 -> "13th". */
 export function ordinal(n: number): string {

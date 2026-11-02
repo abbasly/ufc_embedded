@@ -2,7 +2,8 @@ import { Anchor, Avatar, Badge, Group, HoverCard, Stack, Text, Tooltip } from "@
 import { Link } from "react-router-dom";
 
 import type { Fighter as StyleFighter, MmaFighter, StyleMapData } from "../../data/types";
-import { GOLD, STYLE_COLORS, formatRecord, ordinal } from "../style-map/model";
+import { RecordText } from "../../components/RecordText";
+import { GOLD, STYLE_COLORS, ordinal } from "../style-map/model";
 import { type Fight, isUpset } from "./graph";
 
 export interface Lookup {
@@ -90,9 +91,7 @@ export function FighterChip({ fighter, lookup, faded }: { fighter: MmaFighter; l
       <HoverCard.Dropdown>
         <Stack gap={6}>
           <Text fw={600}>{fighter.name}</Text>
-          <Text size="xs" c="dimmed">
-            Record {formatRecord(fighter.record)} (W-L-D)
-          </Text>
+          <RecordText record={fighter.record} size="xs" />
           {fighter.champion && (
             <Badge color="yellow" variant="filled" size="sm">
               🏆 {fighter.champion} champion
