@@ -365,7 +365,7 @@ def main() -> None:
         "log_loss": round(min(method_losses), 4),
         "base_rate_log_loss": round(base_loss, 4),
     }
-    predictor = export_predictor(data, m, final_elo, best_C, best_mC, val_scores)
+    predictor = export_predictor(data, m, final_elo, best_k, best_C, best_mC, val_scores)
     out_json = WEB_DATA_DIR / "predictor.json"
     out_json.write_text(json.dumps(predictor, ensure_ascii=False, separators=(",", ":")))
     print(f"wrote {len(predictor['fighters'])} fighters to {out_json}")
@@ -424,6 +424,7 @@ def export_predictor(
     data: Data,
     m: pd.DataFrame,
     final_elo: dict[str, float],
+    elo_k: float,
     lr_C: float,
     method_C: float,
     scores: dict[str, Any],
@@ -444,6 +445,11 @@ def export_predictor(
     now = now[now["last_fight"] >= as_of - pd.DateOffset(years=PREDICTOR_YEARS)]
     now["elo"] = [final_elo.get(str(i), 1500.0) / 400 for i in now.index]
 
+    # For the Elo ladder: rating a year ago (None if they hadn't fought yet) and career peak.
+    _, year_ago = elo(data.feats[data.feats["date"] < as_of - pd.Timedelta(days=365)], elo_k)
+    pre, _ = elo(data.feats, elo_k)
+    peak = pre.groupby(data.feats["id"]).max()
+
     ids = public_ids(data.profiles, fighter_summary(data.fights))
     rankings, rankings_date = load_rankings()
     ranks = current_ranks(rankings, data.profiles)
@@ -460,7 +466,7 @@ def export_predictor(
     }
 
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "fights_until": str(data.fights["date"].max().date()),
         "trained_until": str((TEST_START - pd.Timedelta(days=1)).date()),
@@ -493,6 +499,8 @@ def export_predictor(
                 "champion": belt.get(str(i)),
                 "image": photos.get(str(i)),
                 "elo": round(float(r["elo"]) * 400),
+                "elo_year_ago": round(year_ago[str(i)]) if str(i) in year_ago else None,
+                "elo_peak": round(max(float(peak.get(i, 1500.0)), float(r["elo"]) * 400)),
                 "x": [round(float(r[c]), 4) for c in inputs],
             }
             for i, r in now.iterrows()
