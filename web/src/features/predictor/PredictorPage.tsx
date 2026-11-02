@@ -20,10 +20,11 @@ import {
 import { type ReactNode, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import { useMmaMath, usePredictor } from "../../data/client";
+import { useMmaMath, usePredictor, useStyleMap } from "../../data/client";
 import type { MmaMathData, PredictorData, PredictorFighter } from "../../data/types";
 import { FighterTradingCard } from "./FighterTradingCard";
-import { commonOpponents, contributions, headToHead, outcomes, winProb } from "./model";
+import { styleLabel } from "./TradingCard";
+import { commonOpponents, contributions, headToHead, outcomes, sharedRecord, winProb } from "./model";
 import { canFight, defaultOpponent } from "./matchup";
 import { OutcomeReveal } from "./OutcomeReveal";
 import { useCountUp } from "./useCountUp";
@@ -336,37 +337,128 @@ function TaleOfTheTape({ data, a, b }: { data: PredictorData; a: PredictorFighte
 }
 
 function Notes({ data, mma, a, b }: { data: PredictorData; mma?: MmaMathData; a: PredictorFighter; b: PredictorFighter }) {
+  const styleMap = useStyleMap().data;
   const last = (f: PredictorFighter) => f.name.split(" ").at(-1) ?? f.name;
   const corner = (f: PredictorFighter) => <Text span inherit fw={700} c={f.id === a.id ? A_COLOR : B_COLOR}>{last(f)}</Text>;
+  const other = (f: PredictorFighter) => (f.id === a.id ? b : a);
   const byId = (id: string) => (id === a.id ? a : b);
+  const v = (f: PredictorFighter, k: string) => value(data, f, k);
+  const pct = (x: number) => `${Math.round(x * 100)}%`;
+  const division = (f: PredictorFighter) => f.weight_class.replace("Women's ", "").toLowerCase();
   const meetings = mma ? headToHead(mma, a.id, b.id) : [];
   const common = mma ? commonOpponents(mma, a.id, b.id) : [];
 
-  // Facts as label + value rows, like the notes in a fight programme.
+  // Facts as label + sentence rows, most telling first. Only notable things get a row.
   const rows: [string, ReactNode][] = [];
+
   if (meetings.length) {
+    const wins = (f: PredictorFighter) => meetings.filter((m) => m.winnerId === f.id).length;
+    const leader = wins(a) === wins(b) ? null : wins(a) > wins(b) ? a : b;
     rows.push([
       "History",
       <Stack gap={2}>
-        {meetings.map((f) => (
-          <span key={f.date}>
-            {f.date.slice(0, 4)} · {corner(byId(f.winnerId))} by {f.method}
-            {f.round ? `, R${f.round}` : ""}
+        {leader && meetings.length > 1 && (
+          <span>
+            {corner(leader)} leads the series {wins(leader)}–{wins(other(leader))}.
+          </span>
+        )}
+        {meetings.map((m) => (
+          <span key={m.date}>
+            {m.date.slice(0, 4)}: {corner(byId(m.winnerId))} won by {m.method}
+            {m.round ? ` in round ${m.round}` : ""}.
           </span>
         ))}
       </Stack>,
     ]);
   }
-  for (const f of [a, b]) if (f.champion) rows.push(["Title", <>{corner(f)}, {f.champion} champion</>]);
-  if (a.weight_class !== b.weight_class) rows.push(["Divisions", <>{corner(a)} {a.weight_class} · {corner(b)} {b.weight_class}</>]);
-  const ageGap = value(data, a, "age") - value(data, b, "age");
-  if (Math.abs(ageGap) >= 6) rows.push(["Age", <>{corner(ageGap > 0 ? b : a)} {Math.round(Math.abs(ageGap))} years younger</>]);
-  const reachGap = value(data, a, "reach") - value(data, b, "reach");
-  if (Math.abs(reachGap) >= 8) rows.push(["Reach", <>{corner(reachGap > 0 ? a : b)} +{Math.round(Math.abs(reachGap))} cm</>]);
-  for (const f of [a, b]) {
-    const off = value(data, f, "layoff_years");
-    if (off >= 1.5) rows.push(["Layoff", <>{corner(f)} out {off.toFixed(1)} years</>]);
+
+  const champ = [a, b].find((f) => f.champion);
+  if (champ) {
+    const challenger = other(champ);
+    rows.push([
+      "Title",
+      <>
+        {corner(champ)} holds the {champ.champion?.toLowerCase()} belt
+        {challenger.champion
+          ? <>, {corner(challenger)} the {challenger.champion.toLowerCase()} one: champion vs champion.</>
+          : challenger.rank !== null
+            ? <>; {corner(challenger)} is ranked #{challenger.rank} at {division(challenger)}.</>
+            : "."}
+      </>,
+    ]);
+  } else if (a.rank !== null && b.rank !== null) {
+    rows.push(["Rankings", <>{corner(a)} is #{a.rank} at {division(a)}, {corner(b)} #{b.rank} at {division(b)}.</>]);
   }
+
+  if (a.weight_class !== b.weight_class) {
+    const order = ["Strawweight", "Flyweight", "Bantamweight", "Featherweight", "Lightweight", "Welterweight", "Middleweight", "Light Heavyweight", "Heavyweight"];
+    const rank = (f: PredictorFighter) => order.indexOf(f.weight_class.replace("Women's ", ""));
+    const lighter = rank(a) < rank(b) ? a : b;
+    rows.push([
+      "Divisions",
+      <>
+        {corner(other(lighter))} fights at {division(other(lighter))}, {corner(lighter)} one division down at{" "}
+        {division(lighter)}: {corner(lighter)} would be moving up.
+      </>,
+    ]);
+  }
+
+  const style = (f: PredictorFighter) => {
+    const s = styleMap?.fighters.find((x) => x.id === f.id);
+    return styleLabel(styleMap?.clusters.find((c) => c.id === s?.cluster)?.name);
+  };
+  const [sa, sb] = [style(a), style(b)];
+  if (sa && sb) {
+    rows.push([
+      "Styles",
+      sa === sb ? (
+        <>Both are {sa.toLowerCase()}s on the style map.</>
+      ) : (
+        <>
+          {corner(a)} is a {sa.toLowerCase()}, {corner(b)} a {sb.toLowerCase()} on the style map.
+        </>
+      ),
+    ]);
+  }
+
+  const form = [a, b].flatMap((f) => {
+    const w = v(f, "win_streak");
+    const l = v(f, "loss_streak");
+    if (w >= 3) return [<span key={f.id}>{corner(f)} has won {w} in a row.</span>];
+    if (l >= 2) return [<span key={f.id}>{corner(f)} has lost {l} in a row.</span>];
+    return [];
+  });
+  if (form.length) rows.push(["Form", <Stack gap={2}>{form}</Stack>]);
+
+  const danger = [a, b].flatMap((f) => {
+    const opp = other(f);
+    const ko = v(f, "ko_win_rate");
+    const sub = v(f, "sub_win_rate");
+    const out: ReactNode[] = [];
+    if (ko >= 0.35) out.push(<span key={`${f.id}-ko`}>{corner(f)} has won {pct(ko)} of UFC fights by knockout{v(opp, "finished_rate") >= 0.2 ? <>, and {corner(opp)} has been finished in {pct(v(opp, "finished_rate"))}</> : ""}.</span>);
+    else if (sub >= 0.25) out.push(<span key={`${f.id}-sub`}>{corner(f)} has won {pct(sub)} of UFC fights by submission.</span>);
+    return out;
+  });
+  if (danger.length) rows.push(["Finishing", <Stack gap={2}>{danger}</Stack>]);
+
+  const expGap = v(a, "ufc_fights") - v(b, "ufc_fights");
+  if (Math.abs(expGap) >= 6) {
+    const vet = expGap > 0 ? a : b;
+    rows.push(["Experience", <>{corner(vet)} has {v(vet, "ufc_fights")} UFC fights to {corner(other(vet))}'s {v(other(vet), "ufc_fights")}.</>]);
+  }
+  const ageGap = v(a, "age") - v(b, "age");
+  if (Math.abs(ageGap) >= 5) {
+    const young = ageGap > 0 ? b : a;
+    rows.push(["Age", <>{corner(young)} is {Math.round(Math.abs(ageGap))} years younger ({Math.round(v(young, "age"))} vs {Math.round(v(other(young), "age"))}).</>]);
+  }
+  const reachGap = v(a, "reach") - v(b, "reach");
+  if (Math.abs(reachGap) >= 8) rows.push(["Reach", <>{corner(reachGap > 0 ? a : b)} has {Math.round(Math.abs(reachGap))} cm more reach.</>]);
+  for (const f of [a, b]) {
+    const off = v(f, "layoff_years");
+    if (off >= 1.5) rows.push(["Layoff", <>{corner(f)} hasn't fought in {off.toFixed(1)} years.</>]);
+  }
+
+  const shared = sharedRecord(common);
 
   const result = (r: "W" | "L") => (
     <Text span fw={800} c={r === "W" ? "green.5" : "red.5"}>
@@ -396,6 +488,11 @@ function Notes({ data, mma, a, b }: { data: PredictorData; mma?: MmaMathData; a:
           <Text size="xs" tt="uppercase" fw={700} c="dimmed" mb={6} style={{ letterSpacing: "0.06em" }}>
             Common opponents
           </Text>
+          <Text size="sm" mb={6}>
+            Against {common.length} shared opponent{common.length > 1 ? "s" : ""}: {corner(a)} {shared.a[0]}–{shared.a[1]},{" "}
+            {corner(b)} {shared.b[0]}–{shared.b[1]}.
+            {shared.split.length > 0 && <> Results differ against {shared.split.slice(0, 3).join(", ")}{shared.split.length > 3 ? " and others" : ""}.</>}
+          </Text>
           <Table fz="sm" verticalSpacing={4} horizontalSpacing={6}>
             <Table.Thead>
               <Table.Tr>
@@ -423,7 +520,7 @@ function Notes({ data, mma, a, b }: { data: PredictorData; mma?: MmaMathData; a:
       )}
       {!rows.length && !common.length && (
         <Text size="sm" c="dimmed">
-          First meeting, no common opponents, similar age and reach.
+          First meeting and no common opponents; similar age, reach and experience.
         </Text>
       )}
     </Paper>

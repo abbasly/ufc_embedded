@@ -146,3 +146,18 @@ export function recentResults(mma: MmaMathData, id: string, n = 5): RecentResult
       year: date.slice(0, 4),
     }));
 }
+
+export interface SharedRecord {
+  a: [number, number]; // A's wins, losses against the shared opponents
+  b: [number, number];
+  split: string[]; // opponents one beat and the other lost to
+}
+
+/** Both fighters' records against their common opponents, and where results differ. */
+export function sharedRecord(common: { name: string; a: "W" | "L"; b: "W" | "L" }[]): SharedRecord {
+  const count = (side: "a" | "b"): [number, number] => [
+    common.filter((c) => c[side] === "W").length,
+    common.filter((c) => c[side] === "L").length,
+  ];
+  return { a: count("a"), b: count("b"), split: common.filter((c) => c.a !== c.b).map((c) => c.name) };
+}

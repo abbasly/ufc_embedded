@@ -87,6 +87,10 @@ const UNKNOWN: CardType = {
   moves: [MOVES.combo, MOVES.takedown],
 };
 
+/** The card type a style cluster plays as ("Striker", "Wrestler"...), if it has one. */
+export const styleLabel = (clusterName: string | undefined) =>
+  clusterName ? TYPES[clusterName]?.label : undefined;
+
 const DESIGN_WIDTH = 320; // px the card was designed at
 const PHOTO_HEIGHT = 140; // design px
 

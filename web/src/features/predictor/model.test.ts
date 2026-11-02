@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { MmaMathData, PredictorData, PredictorFighter } from "../../data/types";
-import { commonOpponents, headToHead, methodProbs, outcomes, recentResults, winProb } from "./model";
+import { commonOpponents, headToHead, methodProbs, outcomes, recentResults, sharedRecord, winProb } from "./model";
 
 const fighter = (id: string, x: number[], weight_class = "Lightweight"): PredictorFighter => ({
   id,
@@ -82,5 +82,18 @@ describe("matchup notes", () => {
 
   it("finds common opponents with both results", () => {
     expect(commonOpponents(mma, "a", "b")).toEqual([{ name: "C", a: "W", b: "W" }]);
+  });
+});
+
+describe("shared opponents", () => {
+  it("counts both records and lists split results", () => {
+    const r = sharedRecord([
+      { name: "X", a: "W", b: "W" },
+      { name: "Y", a: "W", b: "L" },
+      { name: "Z", a: "L", b: "L" },
+    ]);
+    expect(r.a).toEqual([2, 1]);
+    expect(r.b).toEqual([1, 2]);
+    expect(r.split).toEqual(["Y"]);
   });
 });
