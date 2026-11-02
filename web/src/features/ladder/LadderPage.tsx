@@ -161,12 +161,6 @@ export default function LadderPage() {
             <Stack gap="md">
               <Movers title="📈 Biggest climbers" subtitle="Elo gained in the last 12 months" fighters={movers(pool, 1)} />
               <Movers title="📉 Biggest drops" subtitle="Elo lost in the last 12 months" fighters={movers(pool, -1)} />
-              <Movers
-                title="👀 Underrated?"
-                subtitle="Highest Elo without an official UFC ranking"
-                fighters={pool.filter((f) => f.rank === null && !f.champion).sort((a, b) => b.elo - a.elo).slice(0, 5)}
-                showElo
-              />
             </Stack>
           </Grid.Col>
         </Grid>
@@ -224,7 +218,7 @@ function OfficialRank({ f }: { f: PredictorFighter }) {
   return <Text span size="xs" c="dimmed">unranked</Text>;
 }
 
-function Movers({ title, subtitle, fighters, showElo }: { title: string; subtitle: string; fighters: PredictorFighter[]; showElo?: boolean }) {
+function Movers({ title, subtitle, fighters }: { title: string; subtitle: string; fighters: PredictorFighter[] }) {
   return (
     <Paper withBorder p="md" radius="md">
       <Text fw={700}>{title}</Text>
@@ -243,13 +237,7 @@ function Movers({ title, subtitle, fighters, showElo }: { title: string; subtitl
                   {f.name}
                 </Text>
               </Group>
-              {showElo ? (
-                <Text size="sm" fw={700}>
-                  {f.elo}
-                </Text>
-              ) : (
-                <Change f={f} />
-              )}
+              <Change f={f} />
             </Group>
           </UnstyledButton>
         ))}

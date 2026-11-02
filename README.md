@@ -41,7 +41,7 @@ opponents, and a tale of the tape.
 Every fighter rated chess-style from every UFC fight since 1994 (start at 1500, the winner takes
 points from the loser, K = 100 tuned on validation), filterable by division and activity, next
 to their official UFC rank and their change over the last 12 months. Side panels: biggest
-climbers, biggest drops, and the highest-rated fighters without an official ranking.
+climbers and biggest drops.
 
 ## How the style map works
 
