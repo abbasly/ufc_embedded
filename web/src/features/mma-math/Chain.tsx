@@ -62,7 +62,7 @@ function FightArrow({ fight }: { fight: Fight }) {
   );
 }
 
-function FighterChip({ fighter, lookup, faded }: { fighter: MmaFighter; lookup: Lookup; faded?: boolean }) {
+export function FighterChip({ fighter, lookup, faded }: { fighter: MmaFighter; lookup: Lookup; faded?: boolean }) {
   const style = lookup.styleById.get(fighter.id);
   const cluster = style && lookup.styleMap?.clusters.find((c) => c.id === style.cluster);
   const color = cluster ? STYLE_COLORS[cluster.name] : undefined;

@@ -132,8 +132,8 @@ export function AboutPage() {
               Loops of 3 to 5 fighters are ranked by how well known the least known fighter is.
             </List.Item>
             <List.Item>
-              The calculator finds the shortest chain of wins between any two fighters, in both
-              directions. Over 1,200 fighters sit in one giant loop, so within it anyone "beats"
+              The calculator finds the shortest chain of wins from one fighter to another and draws it
+              as a circle (swap them to prove the opposite). Over 1,200 fighters sit in one giant loop, so within it anyone "beats"
               anyone.
             </List.Item>
           </List>

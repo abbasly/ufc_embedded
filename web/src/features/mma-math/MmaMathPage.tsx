@@ -1,4 +1,5 @@
 import {
+  ActionIcon,
   Alert,
   Button,
   Center,
@@ -12,11 +13,13 @@ import {
   Stack,
   Text,
   Title,
+  Tooltip,
 } from "@mantine/core";
 import { useMemo, useState } from "react";
 
 import { useMmaMath, useStyleMap } from "../../data/client";
 import { Chain, type Lookup } from "./Chain";
+import { CircleChain } from "./CircleChain";
 import { type Fight, shortestChain, toFight, winsByFighter } from "./graph";
 
 const PAGE_SIZE = 12;
@@ -86,19 +89,22 @@ export default function MmaMathPage() {
           <Stack gap="md">
             <Title order={3}>Settle any argument</Title>
             <Group align="flex-end">
-              <Select label="Fighter A" searchable limit={50} data={options} value={a} onChange={(v) => setPair([v, b])} w={240} />
-              <Select label="Fighter B" searchable limit={50} data={options} value={b} onChange={(v) => setPair([a, v])} w={240} />
+              <Select label="Winner" searchable limit={50} data={options} value={a} onChange={(v) => setPair([v, b])} w={240} />
+              <Tooltip label="Swap: prove it the other way round" withArrow>
+                <ActionIcon variant="light" size="lg" mb={2} onClick={() => setPair([b, a])} aria-label="Swap fighters">
+                  ⇄
+                </ActionIcon>
+              </Tooltip>
+              <Select label="Loser" searchable limit={50} data={options} value={b} onChange={(v) => setPair([a, v])} w={240} />
               <Button variant="light" onClick={randomPair}>Random matchup</Button>
             </Group>
             {a && b && a !== b && (
-              <SimpleGrid cols={{ base: 1, md: 2 }}>
-                {[
-                  [Number(a), Number(b)],
-                  [Number(b), Number(a)],
-                ].map(([x, y]) => (
-                  <Proof key={`${x}-${y}`} chain={shortestChain(wins, x!, y!)} winner={data.fighters[x!]!.name} loser={data.fighters[y!]!.name} lookup={lookup} />
-                ))}
-              </SimpleGrid>
+              <Proof
+                chain={shortestChain(wins, Number(a), Number(b))}
+                winner={data.fighters[Number(a)]!.name}
+                loser={data.fighters[Number(b)]!.name}
+                lookup={lookup}
+              />
             )}
           </Stack>
         </Paper>
@@ -144,23 +150,28 @@ export default function MmaMathPage() {
 }
 
 function Proof({ chain, winner, loser, lookup }: { chain: Fight[] | null; winner: string; loser: string; lookup: Lookup }) {
-  return (
-    <Stack gap="xs">
-      <Text fw={600}>
-        Why {winner} beats {loser}
+  if (!chain) {
+    return (
+      <Text size="sm" c="dimmed">
+        No chain of wins leads from {winner} to {loser}. Even MMA math has limits. Try swapping.
       </Text>
-      {chain ? (
-        <>
-          <Chain fights={chain} lookup={lookup} />
-          <Text size="xs" c="dimmed">
-            {chain.length === 1 ? "They actually fought. Real math." : `${chain.length} fights of airtight logic.`}
-          </Text>
-        </>
-      ) : (
-        <Text size="sm" c="dimmed">
-          No chain of wins leads from {winner} to {loser}. Even MMA math has limits.
-        </Text>
-      )}
-    </Stack>
+    );
+  }
+  const verdict = (
+    <>
+      <Text fw={700} size="lg" lh={1.2}>
+        {winner}
+      </Text>
+      <Text size="sm" c="red" fw={600}>
+        beats
+      </Text>
+      <Text fw={700} size="lg" lh={1.2}>
+        {loser}
+      </Text>
+      <Text size="xs" c="dimmed">
+        {chain.length === 1 ? "They actually fought. Real math." : `${chain.length} fights of airtight logic`}
+      </Text>
+    </>
   );
+  return <CircleChain fights={chain} lookup={lookup} center={verdict} />;
 }

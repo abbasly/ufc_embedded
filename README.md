@@ -46,8 +46,8 @@ checked against betting odds) and, as a stretch, a browser **shadowboxing coach*
    are skipped). Fighters are identified by their UFCStats id, so namesakes stay apart.
 2. Simple cycles of 3 to 5 fighters are found with networkx and ranked by the "fame" of the
    least known fighter in the loop (UFC fights, title wins, current belt).
-3. The calculator runs a breadth-first search in the browser for the shortest chain of wins in
-   each direction. Over 1,200 fighters form one strongly connected component, so within it
+3. The calculator runs a breadth-first search in the browser for the shortest chain of wins
+   from one fighter to another, drawn as a circle (⇄ swaps the direction). Over 1,200 fighters form one strongly connected component, so within it
    anyone "beats" anyone.
 
 ## Architecture
