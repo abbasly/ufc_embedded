@@ -6,42 +6,56 @@ Every active UFC fighter, mapped by how they fight.
 
 A personal ML engineering project: turn fight statistics into interactive, explorable models.
 Data is current to the latest UFC event (fights, records, rankings and odds from UFCStats and
-bookmakers, via Kaggle). Works on desktop and phone.
+bookmakers, via Kaggle). Works on desktop and phone; fully static, hosted free on GitHub Pages.
 
-### [Style Map](https://abbasly.github.io/ufc_embedded/)
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="https://abbasly.github.io/ufc_embedded/"><img src="docs/screenshots/style-map.png" alt="Style map"></a><br>
+      <sub><b>Style Map</b>: 3D map of fighting styles</sub>
+    </td>
+    <td width="50%" valign="top">
+      <a href="https://abbasly.github.io/ufc_embedded/mma-math"><img src="docs/screenshots/mma-math.png" alt="MMA math"></a><br>
+      <sub><b>MMA Math</b>: any fighter &ldquo;beats&rdquo; any other</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="https://abbasly.github.io/ufc_embedded/predictor"><img src="docs/screenshots/predictor.png" alt="Fight predictor"></a><br>
+      <sub><b>Fight Predictor</b>: win chance and most likely outcome</sub>
+    </td>
+    <td width="50%" valign="top">
+      <a href="https://abbasly.github.io/ufc_embedded/predictor"><img src="docs/screenshots/card-flip.png" alt="Flipped fighter card"></a><br>
+      <sub>Cards flip to a <b>fighter file</b>: record, recent form, stats</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="https://abbasly.github.io/ufc_embedded/ladder"><img src="docs/screenshots/ladder.png" alt="Elo ladder"></a><br>
+      <sub><b>Elo Ladder</b>: ratings, official ranks, climbers and drops</sub>
+    </td>
+    <td width="50%" valign="top">
+      <a href="https://abbasly.github.io/ufc_embedded/about"><img src="docs/screenshots/about.png" alt="About page"></a><br>
+      <sub><b>About</b>: what's in the project</sub>
+    </td>
+  </tr>
+</table>
 
-~700 active fighters placed in 3D by how they fight. Click anyone for their W-L-D record, stats,
-current ranking and closest look-alikes. Switch between readable style axes and a t-SNE
-similarity view; filter by style, weight class, champions or ranked fighters.
+## Features
 
-![Style map](docs/screenshots/style-map.png)
-
-### [MMA Math](https://abbasly.github.io/ufc_embedded/mma-math)
-
-Loops of fighters who beat each other in a circle (A beat B, B beat C, C beat A), and a
-calculator that "proves" any fighter beats any other with a chain of wins, drawn as a circle.
-
-![MMA math](docs/screenshots/mma-math.png)
-
-### [Fight Predictor](https://abbasly.github.io/ufc_embedded/predictor) (beta)
-
-Pick two fighters and get the verdict right between them: win chances and the most likely
-outcome (who, and by KO / submission / decision). Fighters are collectible-style cards: style =
-card type, Elo where the HP would be, signature stats as moves, gold holo cards for champions.
-Tap a card and it flips to a "fighter file" with the record, recent form and a full stat sheet.
-Below: every outcome's probability, what drives the call, notes like past meetings and common
-opponents, and a tale of the tape.
-
-![Fight predictor](docs/screenshots/predictor.png)
-
-![Card front, verdict and a flipped card](docs/screenshots/card-flip.png)
-
-### [Elo Ladder](https://abbasly.github.io/ufc_embedded/ladder)
-
-Every fighter rated chess-style from every UFC fight since 1994 (start at 1500, the winner takes
-points from the loser, K = 100 tuned on validation), filterable by division and activity, next
-to their official UFC rank and their change over the last 12 months. Side panels: biggest
-climbers and biggest drops.
+- **[Style Map](https://abbasly.github.io/ufc_embedded/)**: ~700 active fighters placed in 3D by how they fight. Click anyone for
+  their card, stats, ranking and closest look-alikes. Readable style axes or a t-SNE similarity
+  view; filter by style, weight class, champions or ranked fighters.
+- **[MMA Math](https://abbasly.github.io/ufc_embedded/mma-math)**: loops of fighters who beat each other in a circle, and a
+  calculator that "proves" any fighter beats any other with a chain of wins, drawn as a circle.
+- **[Fight Predictor](https://abbasly.github.io/ufc_embedded/predictor)** (beta): pick two fighters for the win chance and the most
+  likely outcome (who, and by KO / submission / decision), what drives the call, past meetings
+  and common opponents, and a tale of the tape.
+- **[Elo Ladder](https://abbasly.github.io/ufc_embedded/ladder)**: every fighter rated chess-style from every UFC fight since 1994,
+  next to their official rank, with the year's biggest climbers and drops.
+- **Fighter cards everywhere**: collectible-style cards (style = card type, Elo where the HP would
+  be, signature stats as moves, gold holo for champions) that flip in 3D to a fighter file. They
+  show up in the predictor, the style map, MMA math hovers and the ladder.
 
 ## How the style map works
 
