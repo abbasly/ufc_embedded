@@ -37,8 +37,10 @@ jobs:
       - run: npm test
       # Served from the custom domain in the SITE_DOMAIN repo variable if set
       # (Settings -> Secrets and variables -> Actions -> Variables), else https://<user>.github.io/<repo>/
+      # Google AdSense is on only while the ADSENSE_CLIENT variable is set (ca-pub-...).
       - run: npm run build
         env:
+          VITE_ADSENSE_CLIENT: ${{ vars.ADSENSE_CLIENT }}
           BASE_PATH: ${{ vars.SITE_DOMAIN && '/' || format('/{0}/', github.event.repository.name) }}
           VITE_SITE_URL: ${{ vars.SITE_DOMAIN && format('https://{0}', vars.SITE_DOMAIN) || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
       - uses: actions/upload-pages-artifact@v3

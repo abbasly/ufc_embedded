@@ -3,6 +3,7 @@ import { Suspense, useEffect } from "react";
 import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import { AboutPage } from "../pages/AboutPage";
+import { PrivacyPage } from "../pages/PrivacyPage";
 import { lazyPage } from "./lazyPage";
 import "./NewBadge.css";
 
@@ -27,6 +28,7 @@ const TITLES: Record<string, string> = {
   "/mma-math": "UFC Embedded: MMA math",
   "/predictor": "UFC Embedded: fight predictor",
   "/ladder": "UFC Embedded: Elo ladder",
+  "/privacy": "UFC Embedded: privacy",
   "/about": "UFC Embedded: about",
 };
 
@@ -97,6 +99,7 @@ export function App() {
             <Route path="/predictor" element={<PredictorPage />} />
             <Route path="/ladder" element={<LadderPage />} />
             <Route path="/about" element={<AboutPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/style-map" element={<Navigate to="/" replace />} />
             <Route path="*" element={<Text>Page not found.</Text>} />
           </Routes>

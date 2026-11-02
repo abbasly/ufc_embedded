@@ -177,7 +177,10 @@ export function AboutPage() {
           </Text>
           <Text size="xs" c="dimmed">
             Fighter photos from Wikimedia Commons / Wikipedia under free licences (credited on each
-            fighter). Unofficial fan project, not affiliated with the UFC.
+            fighter). Unofficial fan project, not affiliated with the UFC.{" "}
+            <Anchor component={Link} to="/privacy" size="xs">
+              Privacy
+            </Anchor>
           </Text>
         </Stack>
       </Stack>
