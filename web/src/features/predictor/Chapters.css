@@ -1,0 +1,86 @@
+/* The predictor page as three full-screen chapters (the fight, the analysis, the tale of the
+   tape), revealed by scrolling. Animations are tied to the scroll position itself
+   (animation-timeline: view()), so they follow the scrollbar exactly. Browsers without
+   scroll-driven animations, and reduced-motion users, simply get the plain page. */
+
+.chapter {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-block: 24px;
+  /* Panels slide in from off to the side: don't let them widen the page. "clip", unlike
+     "hidden", doesn't make the chapter a scroll container. */
+  overflow-x: clip;
+}
+
+/* Desktop: every chapter fills the screen under the 56px header and scrolling snaps
+   gently to the next one ("proximity": it only snaps when you stop close to one). */
+@media (min-width: 62em) {
+  html:has(.chapter) {
+    scroll-snap-type: y proximity;
+    scroll-padding-top: 56px;
+  }
+  .chapter {
+    min-height: calc(100svh - 56px);
+    scroll-snap-align: start;
+  }
+}
+
+/* "Next" hint at the bottom of a chapter. */
+.chapter-next {
+  align-self: center;
+  margin-top: 20px;
+  animation: chapter-nudge 2.4s ease-in-out infinite;
+}
+@keyframes chapter-nudge {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(5px); }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* Leaving: the chapter recedes, shrinking and fading as the next one comes up. Only
+       "forwards" fill, so it has no effect before it starts leaving. */
+    .chapter-leave {
+      animation: chapter-leave linear forwards;
+      animation-timeline: view();
+      animation-range: exit 0% exit 80%;
+    }
+    /* Arriving: rises in and comes into focus. */
+    .chapter-arrive {
+      animation: chapter-arrive linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 90%;
+    }
+    /* Panels inside a chapter slide in from the sides, a beat apart. */
+    .from-left,
+    .from-right {
+      animation: linear both;
+      animation-timeline: view();
+      animation-range: entry 10% cover 30%;
+    }
+    .from-left { animation-name: slide-from-left; }
+    .from-right { animation-name: slide-from-right; animation-range: entry 20% cover 35%; }
+  }
+}
+
+@keyframes chapter-leave {
+  from { opacity: 1; transform: none; filter: none; }
+  to { opacity: 0.1; transform: scale(0.9) translateY(-4%); filter: blur(3px); }
+}
+@keyframes chapter-arrive {
+  from { opacity: 0; transform: translateY(80px) scale(0.95); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes slide-from-left {
+  from { opacity: 0; transform: translateX(-60px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes slide-from-right {
+  from { opacity: 0; transform: translateX(60px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chapter-next { animation: none; }
+}

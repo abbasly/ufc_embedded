@@ -109,10 +109,10 @@ export default function PredictorPage() {
     </Button>
   );
 
-  // Three chapters revealed by scrolling (see Chapters.css): the fight, the analysis, the tape.
+  // Two chapters revealed by scrolling (see Chapters.css): the fight, then the analysis.
   return (
-    <Container size="lg">
-      <section className="chapter">
+    <>
+      <Container size="lg" component="section" className="chapter">
         <Stack gap="md" className={matchup ? "chapter-leave" : undefined}>
           <Title order={2}>Fight predictor</Title>
           <Grid align="stretch">
@@ -137,40 +137,35 @@ export default function PredictorPage() {
           </Grid>
           {matchup ? <Center>{next("analysis", "Breakdown")}</Center> : <Text c="dimmed">Pick two different fighters.</Text>}
         </Stack>
-      </section>
+      </Container>
 
       {matchup && (
-        <>
-          <section className="chapter" id="analysis">
-            <Stack gap="md" className="chapter-leave">
-              <Grid align="stretch" className="chapter-arrive">
-                <Grid.Col span={{ base: 12, md: 7 }} className="from-left">
-                  <Breakdown data={data} a={a} b={b} />
-                </Grid.Col>
-                <Grid.Col span={{ base: 12, md: 5 }} className="from-right">
-                  <Notes data={data} mma={mma} a={a} b={b} />
-                </Grid.Col>
-              </Grid>
-              <Center>{next("tape", "Tale of the tape")}</Center>
-            </Stack>
-          </section>
-
-          <section className="chapter" id="tape">
-            <Stack gap="md" className="chapter-arrive">
-              <TaleOfTheTape data={data} a={a} b={b} />
-              <Text size="xs" c="dimmed" ta="center" maw={720} mx="auto">
-                Logistic regression on pre-fight stats and ratings, trained on fights up to {data.trained_until};
-                fighter stats as of {data.fights_until}. Opponents are limited to the same gender and at most one
-                division apart: the UFC has never had bigger gaps, so the model has nothing to go on there. On
-                2022–23 fights it picked {Math.round((data.validation.logistic?.accuracy ?? 0) * 100)}% of winners
-                (betting market: {Math.round((data.validation.market?.accuracy ?? 0) * 100)}%). Just for fun, not
-                betting advice.
-              </Text>
-            </Stack>
-          </section>
-        </>
+        // Wider than the fight above, so three panels fit side by side.
+        <Container size="xl" component="section" className="chapter" id="analysis">
+          <Stack gap="lg" className="chapter-arrive">
+            <Grid align="stretch">
+              <Grid.Col span={{ base: 12, md: 6, lg: 4 }} className="from-left">
+                <Breakdown data={data} a={a} b={b} />
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, lg: 4 }} order={{ base: 3, lg: 2 }}>
+                <TaleOfTheTape data={data} a={a} b={b} />
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, md: 6, lg: 4 }} order={{ base: 2, lg: 3 }} className="from-right">
+                <Notes data={data} mma={mma} a={a} b={b} />
+              </Grid.Col>
+            </Grid>
+            <Text size="xs" c="dimmed" ta="center" maw={760} mx="auto">
+              Logistic regression on pre-fight stats and ratings, trained on fights up to {data.trained_until};
+              fighter stats as of {data.fights_until}. Opponents are limited to the same gender and at most one
+              division apart: the UFC has never had bigger gaps, so the model has nothing to go on there. On
+              2022–23 fights it picked {Math.round((data.validation.logistic?.accuracy ?? 0) * 100)}% of winners
+              (betting market: {Math.round((data.validation.market?.accuracy ?? 0) * 100)}%). Just for fun, not
+              betting advice.
+            </Text>
+          </Stack>
+        </Container>
       )}
-    </Container>
+    </>
   );
 }
 
@@ -300,11 +295,11 @@ function Breakdown({ data, a, b }: { data: PredictorData; a: PredictorFighter; b
 function TaleOfTheTape({ data, a, b }: { data: PredictorData; a: PredictorFighter; b: PredictorFighter }) {
   const fmtRecord = (f: PredictorFighter) => `${f.record.wins}-${f.record.losses}-${f.record.draws}`;
   return (
-    <Paper withBorder p="md" maw={620} w="100%" mx="auto">
-      <Title order={4} mb="xs" ta="center">
+    <Paper withBorder p="lg" h="100%">
+      <Title order={4} mb="md" ta="center">
         Tale of the tape
       </Title>
-      <Table striped withRowBorders={false} fz="sm">
+      <Table striped withRowBorders={false} fz="sm" horizontalSpacing="xs">
         <Table.Tbody>
           <Table.Tr>
             <Table.Td ta="right" fw={600}>{fmtRecord(a)}</Table.Td>
