@@ -1,5 +1,5 @@
-// The most likely outcome, acted out: three judges' scorecards for a decision, comic-book
-// impacts for a KO/TKO, and a closing choke with three taps for a submission.
+// The most likely outcome, acted out: three judges' scorecards for a decision, three
+// heavy impacts for a KO/TKO, and a closing choke with three taps for a submission.
 
 import type { CSSProperties } from "react";
 
@@ -10,8 +10,6 @@ interface Props {
   color: string; // the winner's corner colour, as a CSS colour
   delayMs: number; // start once the win-chance bar has filled
 }
-
-const KO_WORDS = ["POW!", "BAM!", "POW!"];
 
 /** What a judge would write on the card: the surname, skipping suffixes like "Jr.". */
 function surname(name: string): string {
@@ -33,7 +31,6 @@ export function OutcomeReveal({ method, name, p, color, delayMs }: Props) {
             <div key={i} className="scorecard" style={{ "--i": i } as CSSProperties}>
               <div className="scorecard-judge">Judge {i}</div>
               <div className="scorecard-name">{surname(name)}</div>
-              <div className="scorecard-sign" />
             </div>
           ))}
         </div>
@@ -50,10 +47,8 @@ export function OutcomeReveal({ method, name, p, color, delayMs }: Props) {
     return (
       <div className="outcome outcome-ko" style={style}>
         <div className="outcome-label">Most likely ending</div>
-        {KO_WORDS.map((w, i) => (
-          <span key={i} className={`burst burst-${i}`} style={{ "--i": i } as CSSProperties} aria-hidden>
-            <span>{w}</span>
-          </span>
+        {[0, 1, 2].map((i) => (
+          <span key={i} className={`impact impact-${i}`} style={{ "--i": i } as CSSProperties} aria-hidden />
         ))}
         <div className="outcome-name">{name}</div>
         <div className="outcome-after">
