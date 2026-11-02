@@ -11,18 +11,15 @@
   /* Panels slide in from off to the side: don't let them widen the page. "clip", unlike
      "hidden", doesn't make the chapter a scroll container. */
   overflow-x: clip;
+  /* "Breakdown ↓" scrolls a chapter to the top: stop below the fixed header. */
+  scroll-margin-top: 56px;
 }
 
-/* Desktop: every chapter fills the screen under the 56px header and scrolling snaps
-   gently to the next one ("proximity": it only snaps when you stop close to one). */
+/* Desktop: every chapter fills the screen under the 56px header. No scroll snapping:
+   pulling the page to a chapter after the user stops scrolling felt intrusive. */
 @media (min-width: 62em) {
-  html:has(.chapter) {
-    scroll-snap-type: y proximity;
-    scroll-padding-top: 56px;
-  }
   .chapter {
     min-height: calc(100svh - 56px);
-    scroll-snap-align: start;
   }
 }
 
