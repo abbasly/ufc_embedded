@@ -20,11 +20,11 @@ from urllib.parse import urlparse
 
 import numpy as np
 import pandas as pd
+import wandb
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-import wandb
 from ufc_embedded.champions import current_champions, current_ranks
 from ufc_embedded.data import (
     PROCESSED_DIR,
