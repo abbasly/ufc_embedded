@@ -8,10 +8,11 @@ import { Chain, FighterChip, type Lookup } from "./Chain";
 import { type Fight, isUpset } from "./graph";
 
 const PX_PER_FIGHTER = 135; // arc length per fighter, so long chains get a bigger circle
-const MIN_RADIUS = 120;
+const MIN_RADIUS = 200; // short chains still need room for labels plus the verdict inside
 const CHIP_MARGIN = 60; // room outside the circle for names
 const AVATAR_GAP = 30; // keep arrows clear of the avatars (px)
 const LABEL_INSET = 62; // fight labels sit this far inside the rim
+const CENTER_PAD = 40; // gap between the fight labels and the verdict in the middle
 
 interface Props {
   fights: Fight[];
@@ -93,7 +94,7 @@ export function CircleChain({ fights, lookup, center }: Props) {
             })}
 
             {center && (
-              <Stack pos="absolute" left={c} top={c} gap={4} align="center" maw={r * 1.1} style={{ transform: "translate(-50%, -50%)", textAlign: "center" }}>
+              <Stack pos="absolute" left={c} top={c} gap={4} align="center" maw={2 * (r - LABEL_INSET - CENTER_PAD)} style={{ transform: "translate(-50%, -50%)", textAlign: "center" }}>
                 {center}
               </Stack>
             )}
