@@ -1,64 +1,240 @@
-/* The verdict reveal: the outcome box pops in once the win-chance bar has filled
-   (--reveal-delay), then the icon stamps down and the name wipes in. */
+/* The most likely outcome, acted out once the win-chance bar has filled (--reveal-delay).
+   --accent is the winner's corner colour. */
 
-.verdict-box {
-  animation: verdict-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) var(--reveal-delay) both;
+.outcome {
+  position: relative;
+  overflow: hidden;
+  min-height: 210px;
+  padding: 14px 12px;
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+  text-align: center;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  animation: outcome-in 0.35s ease-out var(--reveal-delay) both;
 }
 
-.verdict-box::after {
-  content: "";
+.outcome-label {
+  position: relative;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mantine-color-dimmed);
+}
+
+.outcome-name {
+  position: relative;
+  z-index: 2;
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1.15;
+  margin-top: 8px;
+}
+
+.outcome-after {
+  position: relative;
+  z-index: 2;
+}
+.outcome-method {
+  font-size: 16px;
+  font-weight: 700;
+}
+.outcome-p {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--mantine-color-dimmed);
+}
+
+@keyframes outcome-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---- Decision: three judges' scorecards drop in one by one, all with the same name ---- */
+.scorecards {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+.scorecard {
+  flex: 1 1 0;
+  max-width: 104px;
+  padding: 6px 6px 8px;
+  border-radius: 3px;
+  background: #f6f1e3;
+  color: #1f1f1f;
+  font-family: "Courier New", Courier, monospace;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+  transform: rotate(calc((var(--i) - 2) * 3deg));
+  animation: scorecard-drop 0.45s cubic-bezier(0.34, 1.4, 0.64, 1)
+    calc(var(--reveal-delay) + 0.15s + (var(--i) - 1) * 0.4s) both;
+}
+.scorecard-judge {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.25);
+  padding-bottom: 3px;
+}
+.scorecard-name {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* A scribbled signature, drawn in the corner colour. */
+.scorecard-sign {
+  height: 8px;
+  margin: 5px 10px 0;
+  border-bottom: 2px solid var(--accent);
+  border-radius: 0 0 60% 40% / 0 0 100% 100%;
+  transform: skewX(-20deg);
+}
+.outcome-dec .outcome-name { animation: rise 0.4s ease-out calc(var(--reveal-delay) + 1.35s) both; }
+.outcome-dec .outcome-after { animation: rise 0.4s ease-out calc(var(--reveal-delay) + 1.55s) both; }
+
+@keyframes scorecard-drop {
+  from { opacity: 0; transform: translateY(-40px) rotate(calc((var(--i) - 2) * 3deg - 15deg)); }
+  to { opacity: 1; transform: rotate(calc((var(--i) - 2) * 3deg)); }
+}
+
+/* ---- KO / TKO: three comic-book impacts shake the box, then the name slams in ---------- */
+.outcome-ko {
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--accent) 35%, transparent) 1.3px, transparent 1.6px) 0 0 / 9px 9px,
+    color-mix(in srgb, var(--accent) 12%, transparent);
+  animation:
+    outcome-in 0.35s ease-out var(--reveal-delay) both,
+    ko-shake 1.1s linear calc(var(--reveal-delay) + 0.2s) both;
+}
+.burst {
   position: absolute;
-  inset: -2px;
-  border-radius: inherit;
-  pointer-events: none;
-  box-shadow: 0 0 0 0 var(--verdict-glow);
-  animation: verdict-glow 1.1s ease-out calc(var(--reveal-delay) + 0.35s) both;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 66px;
+  background: #ffd43b;
+  clip-path: polygon(50% 0%, 60% 24%, 88% 6%, 78% 36%, 100% 46%, 76% 60%, 92% 92%, 60% 76%, 48% 100%, 38% 76%, 6% 90%, 22% 60%, 0% 42%, 24% 34%, 12% 6%, 40% 22%);
+  color: #c92a2a;
+  font-weight: 900;
+  font-style: italic;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+  animation: burst-pop 0.32s cubic-bezier(0.34, 1.8, 0.64, 1)
+    calc(var(--reveal-delay) + 0.2s + var(--i) * 0.3s) both;
+}
+.burst > span { transform: rotate(-8deg); }
+.burst-0 { top: 30px; left: 4%; --tilt: -14deg; }
+.burst-1 { top: 22px; right: 4%; --tilt: 12deg; }
+.burst-2 { bottom: 8px; left: 6%; --tilt: -6deg; }
+.outcome-ko .outcome-name {
+  margin-top: 46px;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
+  animation: ko-slam 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2) calc(var(--reveal-delay) + 1.15s) both;
+}
+.outcome-ko .outcome-after {
+  margin-bottom: 44px;
+  animation: rise 0.4s ease-out calc(var(--reveal-delay) + 1.4s) both;
+}
+/* After the slam the bursts fade back so the name reads clearly. */
+.outcome-ko .burst {
+  animation:
+    burst-pop 0.32s cubic-bezier(0.34, 1.8, 0.64, 1) calc(var(--reveal-delay) + 0.2s + var(--i) * 0.3s) both,
+    burst-settle 0.4s ease-out calc(var(--reveal-delay) + 1.2s) forwards;
 }
 
-.verdict-icon {
-  display: inline-block;
-  animation: verdict-stamp 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) calc(var(--reveal-delay) + 0.2s) both;
+@keyframes burst-pop {
+  from { opacity: 0; transform: scale(0) rotate(var(--tilt)); }
+  to { opacity: 1; transform: scale(1) rotate(var(--tilt)); }
 }
-
-.verdict-name {
-  animation: verdict-wipe 0.55s ease-out calc(var(--reveal-delay) + 0.35s) both;
+@keyframes burst-settle {
+  from { opacity: 1; transform: scale(1) rotate(var(--tilt)); }
+  to { opacity: 0.55; transform: scale(0.85) rotate(var(--tilt)); }
 }
-
-.verdict-rest {
-  animation: verdict-rise 0.4s ease-out calc(var(--reveal-delay) + 0.65s) both;
-}
-
-@keyframes verdict-pop {
-  from { opacity: 0; transform: scale(0.85); }
+@keyframes ko-slam {
+  from { opacity: 0; transform: scale(2.6); }
+  70% { opacity: 1; transform: scale(0.94); }
   to { opacity: 1; transform: scale(1); }
 }
-
-@keyframes verdict-glow {
-  0% { box-shadow: 0 0 0 0 var(--verdict-glow); }
-  100% { box-shadow: 0 0 0 14px transparent; }
+/* One jolt per impact (at 0, 0.3 and 0.6 s of 1.1 s). */
+@keyframes ko-shake {
+  0%, 12%, 27%, 39%, 55%, 67%, 100% { transform: none; }
+  3% { transform: translate(-5px, 2px) rotate(-1deg); }
+  7% { transform: translate(4px, -2px); }
+  30% { transform: translate(5px, 2px) rotate(1deg); }
+  34% { transform: translate(-4px, -1px); }
+  58% { transform: translate(-6px, 3px) rotate(-1.2deg); }
+  62% { transform: translate(5px, -2px); }
 }
 
-@keyframes verdict-stamp {
-  from { opacity: 0; transform: scale(2.4) rotate(-20deg); }
-  to { opacity: 1; transform: scale(1) rotate(0); }
+/* ---- Submission: the edges close in, the name gets squeezed, three taps --------------- */
+.outcome-sub::before {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 22%, color-mix(in srgb, var(--accent) 25%, rgba(0, 0, 0, 0.8)) 55%);
+  animation: choke-close 1.3s ease-in calc(var(--reveal-delay) + 0.1s) both;
 }
-
-@keyframes verdict-wipe {
-  from { opacity: 0; clip-path: inset(0 100% 0 0); filter: blur(4px); letter-spacing: 0.2em; }
-  to { opacity: 1; clip-path: inset(0 0 0 0); filter: blur(0); letter-spacing: normal; }
+.outcome-sub .outcome-name {
+  margin-top: 26px;
+  animation:
+    rise 0.35s ease-out calc(var(--reveal-delay) + 0.1s) both,
+    squeeze 1.05s ease-in-out calc(var(--reveal-delay) + 0.55s) both;
 }
+.taps {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 10px 0 8px;
+}
+.tap {
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 2px solid var(--accent);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  animation: tap 0.35s ease-out calc(var(--reveal-delay) + 0.55s + var(--i) * 0.35s) both;
+}
+.outcome-sub .outcome-after { animation: rise 0.4s ease-out calc(var(--reveal-delay) + 1.75s) both; }
 
-@keyframes verdict-rise {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes choke-close {
+  from { transform: scale(1.8); opacity: 0; }
+  70% { transform: scale(1); opacity: 1; }
+  /* Released after the tap: the grip loosens a little. */
+  to { transform: scale(1.25); opacity: 0.6; }
+}
+/* One squeeze per tap (every 0.35 s), then let go. */
+@keyframes squeeze {
+  0%, 33%, 66%, 100% { transform: none; }
+  16% { transform: scale(0.82, 1.08); }
+  49% { transform: scale(0.78, 1.1); }
+  82% { transform: scale(0.74, 1.12); }
+}
+@keyframes tap {
+  from { opacity: 0; transform: translateY(-10px) scale(1.4); }
+  60% { opacity: 1; transform: translateY(2px) scale(0.95); }
+  to { opacity: 1; transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .verdict-box,
-  .verdict-box::after,
-  .verdict-icon,
-  .verdict-name,
-  .verdict-rest {
-    animation: none;
+  .outcome,
+  .outcome *,
+  .outcome::before {
+    animation: none !important;
   }
 }

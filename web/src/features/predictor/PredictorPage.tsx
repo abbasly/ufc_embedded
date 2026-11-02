@@ -24,11 +24,11 @@ import type { MmaMathData, PredictorData, PredictorFighter } from "../../data/ty
 import { GOLD } from "../style-map/model";
 import { FighterTradingCard } from "./FighterTradingCard";
 import { commonOpponents, contributions, headToHead, outcomes, winProb } from "./model";
+import { OutcomeReveal } from "./OutcomeReveal";
 import { useCountUp } from "./useCountUp";
 import "./Verdict.css";
 
 const DEFAULT = ["islam-makhachev", "ilia-topuria"];
-const METHOD_ICON: Record<string, string> = { "KO/TKO": "💥", SUB: "🔒", DEC: "⚖️" };
 const A_COLOR = "red.6";
 const B_COLOR = "blue.6";
 
@@ -182,37 +182,14 @@ function Verdict({ data, a, b }: { data: PredictorData; a: PredictorFighter; b: 
         <Progress.Section value={100 * (1 - t)} color="transparent" />
         <Progress.Section value={(1 - pA) * 100 * t} color={B_COLOR} />
       </Progress.Root>
-      <Paper
-        className="verdict-box"
-        p="md"
-        radius="md"
-        ta="center"
-        pos="relative"
-        bg={best.winner.id === a.id ? "rgba(250, 82, 82, 0.12)" : "rgba(34, 139, 230, 0.12)"}
-        style={{
-          border: `2px solid var(--mantine-color-${bestColor.replace(".", "-")})`,
-          ["--reveal-delay" as string]: `${FILL_MS * 0.8}ms`,
-          ["--verdict-glow" as string]: `var(--mantine-color-${bestColor.replace(".", "-")})`,
-        }}
-      >
-        <Text size="xs" tt="uppercase" fw={700} c="dimmed" style={{ letterSpacing: 1 }}>
-          Most likely outcome
-        </Text>
-        <Text fz={30} lh={1.2} mt={6}>
-          <span className="verdict-icon">{METHOD_ICON[best.method]}</span>
-        </Text>
-        <Text className="verdict-name" fz={22} fw={800} lh={1.2}>
-          {best.winner.name}
-        </Text>
-        <div className="verdict-rest">
-          <Text fz={16} fw={700}>
-            by {methodName(best.method)}
-          </Text>
-          <Text size="sm" c="dimmed" mt={4}>
-            {Math.round(best.p * 100)}% chance
-          </Text>
-        </div>
-      </Paper>
+      <OutcomeReveal
+        key={best.method + best.winner.id}
+        method={best.method}
+        name={best.winner.name}
+        p={best.p}
+        color={`var(--mantine-color-${bestColor.replace(".", "-")})`}
+        delayMs={FILL_MS * 0.8}
+      />
     </Stack>
   );
 }
