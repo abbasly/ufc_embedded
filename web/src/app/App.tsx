@@ -22,9 +22,13 @@ export function App() {
       <AppShell.Header>
         <Group h="100%" px={{ base: "xs", sm: "md" }} justify="space-between" wrap="nowrap">
           <Anchor component={Link} to="/" c="inherit" underline="never">
-            <Title order={4} fz={{ base: "md", sm: "lg" }} style={{ whiteSpace: "nowrap" }}>
-              UFC Embedded
-            </Title>
+            <Group gap={8} wrap="nowrap">
+              <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" width={26} height={26} />
+              {/* On phones the logo alone leaves room for the tabs. */}
+              <Title order={4} fz={{ base: "md", sm: "lg" }} visibleFrom="xs" style={{ whiteSpace: "nowrap" }}>
+                UFC Embedded
+              </Title>
+            </Group>
           </Anchor>
           <Group gap={2} wrap="nowrap">
             {NAV.map((item) => (
