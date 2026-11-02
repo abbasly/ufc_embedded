@@ -2,6 +2,7 @@ import {
   ActionIcon,
   Alert,
   Box,
+  Button,
   Center,
   Container,
   Grid,
@@ -26,6 +27,7 @@ import { commonOpponents, contributions, headToHead, outcomes, winProb } from ".
 import { canFight, defaultOpponent } from "./matchup";
 import { OutcomeReveal } from "./OutcomeReveal";
 import { useCountUp } from "./useCountUp";
+import "./Chapters.css";
 import "./Verdict.css";
 
 const DEFAULT = ["islam-makhachev", "ilia-topuria"];
@@ -75,68 +77,98 @@ export default function PredictorPage() {
     a && (!asked || !canFight(a.weight_class, asked.weight_class)) ? (defaultOpponent(a, sorted) ?? asked) : asked;
   const bId = b?.id ?? "";
   const options = sorted.map(toOption);
-  // Anyone can be picked in either corner; if the other corner no longer fits (other gender,
-  // or more than one division away), it switches to a fitting opponent.
+  // A can be anyone; B only lists realistic opponents for A (same gender, at most one
+  // division apart). If A changes to someone B can't fight, B switches to a fitting opponent.
+  const allowed = a ? sorted.filter((f) => f.id !== a.id && canFight(a.weight_class, f.weight_class)) : [];
+  // Nobody fits (a fighter with no known division): don't leave the list empty.
+  const bOptions = allowed.length ? allowed.map(toOption) : options;
   const set = (side: "a" | "b", id: string | null) => {
     const picked = id ? byId.get(id) : undefined;
     if (!picked) return;
-    const other = side === "a" ? b : a;
-    const fits = other && other.id !== picked.id && canFight(picked.weight_class, other.weight_class);
-    const opponent = fits ? other : defaultOpponent(picked, sorted);
-    const otherId = opponent?.id ?? (side === "a" ? bId : aId);
-    setParams(side === "a" ? { a: picked.id, b: otherId } : { a: otherId, b: picked.id }, { replace: true });
+    if (side === "b") {
+      setParams({ a: aId, b: picked.id }, { replace: true });
+      return;
+    }
+    const fits = b && b.id !== picked.id && canFight(picked.weight_class, b.weight_class);
+    const opponent = fits ? b : defaultOpponent(picked, sorted);
+    setParams({ a: picked.id, b: opponent?.id ?? bId }, { replace: true });
   };
 
+  const matchup = a && b && a.id !== b.id;
+  const next = (id: string, label: string) => (
+    <Button
+      className="chapter-next"
+      variant="subtle"
+      color="gray"
+      size="compact-sm"
+      rightSection="↓"
+      onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })}
+    >
+      {label}
+    </Button>
+  );
+
+  // Three chapters revealed by scrolling (see Chapters.css): the fight, the analysis, the tape.
   return (
-    <Container size="lg" py="md">
-      <Stack gap="md">
-        <Title order={2}>Fight predictor</Title>
+    <Container size="lg">
+      <section className="chapter">
+        <Stack gap="md" className={matchup ? "chapter-leave" : undefined}>
+          <Title order={2}>Fight predictor</Title>
+          <Grid align="stretch">
+            <Grid.Col span={{ base: 12, md: 4 }}>
+              <FighterCard fighter={a} options={options} value={aId} onChange={(v) => set("a", v)} />
+            </Grid.Col>
+            <Grid.Col span={{ base: 12, md: 4 }}>
+              <Stack h="100%" justify="center" gap="md" py="md">
+                {matchup && <Verdict key={`${a.id}-${b.id}`} data={data} a={a} b={b} />}
+                <Center>
+                  <Tooltip label="Swap corners" withArrow>
+                    <ActionIcon variant="light" size="lg" onClick={() => setParams({ a: bId, b: aId }, { replace: true })} aria-label="Swap fighters">
+                      ⇄
+                    </ActionIcon>
+                  </Tooltip>
+                </Center>
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={{ base: 12, md: 4 }}>
+              <FighterCard fighter={b} options={bOptions} value={bId} onChange={(v) => set("b", v)} />
+            </Grid.Col>
+          </Grid>
+          {matchup ? <Center>{next("analysis", "Breakdown")}</Center> : <Text c="dimmed">Pick two different fighters.</Text>}
+        </Stack>
+      </section>
 
-        <Grid align="stretch">
-          <Grid.Col span={{ base: 12, md: 4 }}>
-            <FighterCard fighter={a} options={options} value={aId} onChange={(v) => set("a", v)} />
-          </Grid.Col>
-          <Grid.Col span={{ base: 12, md: 4 }}>
-            <Stack h="100%" justify="center" gap="md" py="md">
-              {a && b && a.id !== b.id && <Verdict key={`${a.id}-${b.id}`} data={data} a={a} b={b} />}
-              <Center>
-                <Tooltip label="Swap corners" withArrow>
-                  <ActionIcon variant="light" size="lg" onClick={() => setParams({ a: bId, b: aId }, { replace: true })} aria-label="Swap fighters">
-                    ⇄
-                  </ActionIcon>
-                </Tooltip>
-              </Center>
+      {matchup && (
+        <>
+          <section className="chapter" id="analysis">
+            <Stack gap="md" className="chapter-leave">
+              <Grid align="stretch" className="chapter-arrive">
+                <Grid.Col span={{ base: 12, md: 7 }} className="from-left">
+                  <Breakdown data={data} a={a} b={b} />
+                </Grid.Col>
+                <Grid.Col span={{ base: 12, md: 5 }} className="from-right">
+                  <Notes data={data} mma={mma} a={a} b={b} />
+                </Grid.Col>
+              </Grid>
+              <Center>{next("tape", "Tale of the tape")}</Center>
             </Stack>
-          </Grid.Col>
-          <Grid.Col span={{ base: 12, md: 4 }}>
-            <FighterCard fighter={b} options={options} value={bId} onChange={(v) => set("b", v)} />
-          </Grid.Col>
-        </Grid>
+          </section>
 
-        {a && b && a.id !== b.id ? (
-          <>
-            <Grid align="stretch">
-              <Grid.Col span={{ base: 12, md: 7 }}>
-                <Breakdown data={data} a={a} b={b} />
-              </Grid.Col>
-              <Grid.Col span={{ base: 12, md: 5 }}>
-                <Notes data={data} mma={mma} a={a} b={b} />
-              </Grid.Col>
-            </Grid>
-            <TaleOfTheTape data={data} a={a} b={b} />
-          </>
-        ) : (
-          <Text c="dimmed">Pick two different fighters.</Text>
-        )}
-
-        <Text size="xs" c="dimmed">
-          Logistic regression on pre-fight stats and ratings, trained on fights up to {data.trained_until};
-          fighter stats as of {data.fights_until}. Opponents are limited to the same gender and at most one
-          division apart: the UFC has never had bigger gaps, so the model has nothing to go on there. On 2022–23 fights it picked{" "}
-          {Math.round((data.validation.logistic?.accuracy ?? 0) * 100)}% of winners (betting market:{" "}
-          {Math.round((data.validation.market?.accuracy ?? 0) * 100)}%). Just for fun, not betting advice.
-        </Text>
-      </Stack>
+          <section className="chapter" id="tape">
+            <Stack gap="md" className="chapter-arrive">
+              <TaleOfTheTape data={data} a={a} b={b} />
+              <Text size="xs" c="dimmed" ta="center" maw={720} mx="auto">
+                Logistic regression on pre-fight stats and ratings, trained on fights up to {data.trained_until};
+                fighter stats as of {data.fights_until}. Opponents are limited to the same gender and at most one
+                division apart: the UFC has never had bigger gaps, so the model has nothing to go on there. On
+                2022–23 fights it picked {Math.round((data.validation.logistic?.accuracy ?? 0) * 100)}% of winners
+                (betting market: {Math.round((data.validation.market?.accuracy ?? 0) * 100)}%). Just for fun, not
+                betting advice.
+              </Text>
+            </Stack>
+          </section>
+        </>
+      )}
     </Container>
   );
 }
