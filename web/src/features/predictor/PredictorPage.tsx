@@ -105,8 +105,14 @@ export default function PredictorPage() {
 
         {a && b && a.id !== b.id ? (
           <>
-            <Breakdown data={data} a={a} b={b} />
-            <Notes data={data} mma={mma} a={a} b={b} />
+            <Grid align="stretch">
+              <Grid.Col span={{ base: 12, md: 7 }}>
+                <Breakdown data={data} a={a} b={b} />
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, md: 5 }}>
+                <Notes data={data} mma={mma} a={a} b={b} />
+              </Grid.Col>
+            </Grid>
             <TaleOfTheTape data={data} a={a} b={b} />
           </>
         ) : (
@@ -222,11 +228,11 @@ function Breakdown({ data, a, b }: { data: PredictorData; a: PredictorFighter; b
       .map((x) => x.label);
 
   return (
-    <Paper withBorder p="lg">
+    <Paper withBorder p="lg" h="100%">
       <Stack gap="md">
         <Title order={4}>Breakdown</Title>
         <Grid>
-          <Grid.Col span={{ base: 12, md: 6 }}>
+          <Grid.Col span={{ base: 12, xl: 6 }}>
             <Stack gap={6}>
               {all.map((o) => (
                 <div key={`${o.winner.id}-${o.method}`}>
@@ -243,7 +249,7 @@ function Breakdown({ data, a, b }: { data: PredictorData; a: PredictorFighter; b
               ))}
             </Stack>
           </Grid.Col>
-          <Grid.Col span={{ base: 12, md: 6 }}>
+          <Grid.Col span={{ base: 12, xl: 6 }}>
             <Stack gap="xs">
               <Text fw={600} size="sm">
                 What drives the call
@@ -336,7 +342,7 @@ function Notes({ data, mma, a, b }: { data: PredictorData; mma?: MmaMathData; a:
   if (!notes.length) notes.push(["🆕", "First meeting, no common opponents, and similar size and age."]);
 
   return (
-    <Paper withBorder p="md" radius="md" bg="rgba(245, 197, 24, 0.06)" style={{ borderLeft: `4px solid ${GOLD}` }}>
+    <Paper withBorder p="md" radius="md" h="100%" bg="rgba(245, 197, 24, 0.06)" style={{ borderLeft: `4px solid ${GOLD}` }}>
       <Title order={4} mb="sm">
         💡 Worth knowing
       </Title>
