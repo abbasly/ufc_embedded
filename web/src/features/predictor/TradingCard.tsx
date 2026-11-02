@@ -46,6 +46,12 @@ const CHAMPION_FACE = "linear-gradient(160deg, #fff9db 0%, #ffe066 30%, #f5c518 
 
 const UNKNOWN: CardType = { label: "Fighter", icon: "🥊", color: "#868e96", light: "#dee2e6", moves: [MOVES.combo, MOVES.takedown] };
 
+const DESIGN_WIDTH = 320; // px the card was designed at
+const PHOTO_HEIGHT = 140; // design px
+
+/** Design pixels -> a share of the card's width, so the card scales as a whole. */
+const u = (px: number) => `${((px / DESIGN_WIDTH) * 100).toFixed(3)}cqw`;
+
 interface Props {
   fighter: PredictorFighter;
   cluster?: Cluster;
@@ -62,111 +68,112 @@ export function TradingCard({ fighter, cluster, stat }: Props) {
     : `${fighter.weight_class}${fighter.rank ? ` · Ranked #${fighter.rank}` : ""}`;
 
   return (
-    <Box
-      w="100%"
-      maw={320}
-      mx="auto"
-      style={{
-        aspectRatio: "63 / 88",
-        borderRadius: 18,
-        padding: 10,
-        background: fighter.champion
-          ? "linear-gradient(145deg, #b8860b, #ffd700 30%, #fff3a0 50%, #ffd700 70%, #b8860b)"
-          : "linear-gradient(145deg, #f8e27a, #e2b33c 45%, #f8e27a)", // the yellow frame
-        boxShadow: "0 10px 30px rgba(0,0,0,0.45)",
-      }}
-    >
-      <Stack
-        gap={6}
-        h="100%"
-        pos="relative"
+    // The card is a size container: everything inside is sized in units of its width (u()),
+    // so it scales like an image and the layout is identical on every screen and browser.
+    <Box w="100%" maw={DESIGN_WIDTH} mx="auto" style={{ containerType: "inline-size" }}>
+      <Box
         style={{
-          borderRadius: 10,
-          padding: "8px 10px",
-          overflow: "hidden",
-          color: "#1a1b1e",
+          aspectRatio: "63 / 88",
+          borderRadius: u(18),
+          padding: u(10),
           background: fighter.champion
-            ? CHAMPION_FACE
-            : `linear-gradient(170deg, ${type.light} 0%, ${type.color} 120%)`,
+            ? "linear-gradient(145deg, #b8860b, #ffd700 30%, #fff3a0 50%, #ffd700 70%, #b8860b)"
+            : "linear-gradient(145deg, #f8e27a, #e2b33c 45%, #f8e27a)", // the yellow frame
+          boxShadow: "0 10px 30px rgba(0,0,0,0.45)",
         }}
       >
-        {fighter.champion && <Box className="holo" pos="absolute" inset={0} style={{ pointerEvents: "none" }} />}
-
-        {/* Header: name, then "HP" (Elo) and the type icon */}
-        <Group justify="space-between" wrap="nowrap" gap={4}>
-          <Text fw={800} fz={17} lh={1.1} lineClamp={1}>
-            {fighter.name}
-          </Text>
-          <Group gap={4} wrap="nowrap">
-            <Text fz={9} fw={700}>ELO</Text>
-            <Text fw={800} fz={17}>{fighter.elo}</Text>
-            <Box style={{ width: 24, height: 24, borderRadius: "50%", background: "white", display: "grid", placeItems: "center", fontSize: 14, border: `2px solid ${type.color}` }}>
-              {type.icon}
-            </Box>
-          </Group>
-        </Group>
-        <Text fz={10} fw={600} mt={-6} style={{ opacity: 0.8 }}>
-          {type.label} type · {subtitle}
-        </Text>
-
-        {/* Picture window */}
-        <Box
+        <Stack
+          gap={u(6)}
+          h="100%"
+          pos="relative"
           style={{
-            flex: "1 1 0", // the photo takes whatever height the text rows leave
-            minHeight: 0,
-            border: "4px solid #d9d9d9",
-            boxShadow: "inset 0 0 0 1px #888",
-            background: "#2b2b2b",
+            borderRadius: u(10),
+            padding: `${u(8)} ${u(10)}`,
             overflow: "hidden",
+            color: "#1a1b1e",
+            background: fighter.champion
+              ? CHAMPION_FACE
+              : `linear-gradient(170deg, ${type.light} 0%, ${type.color} 120%)`,
           }}
         >
-          {fighter.image ? (
-            <img src={fighter.image.url} alt={fighter.name} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
-          ) : (
-            <Box h="100%" style={{ display: "grid", placeItems: "center", color: "#ddd", fontSize: 48, fontWeight: 800 }}>
-              {initials}
-            </Box>
-          )}
-        </Box>
-        <Text fz={9} fs="italic" ta="center" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent)" }}>
-          Height {Math.round(stat("height"))} cm · Reach {Math.round(stat("reach"))} cm · Age {Math.round(stat("age"))}
-        </Text>
+          {fighter.champion && <Box className="holo" pos="absolute" inset={0} style={{ pointerEvents: "none" }} />}
 
-        {/* Two signature moves, stat as the damage */}
-        <Stack gap={4} style={{ flexShrink: 0 }}>
-          {type.moves.map((move) => (
-            <Box key={move.name} style={{ borderBottom: "1px solid rgba(0,0,0,0.2)", paddingBottom: 3 }}>
-              <Group justify="space-between" wrap="nowrap">
-                <Text fw={800} fz={14}>
-                  {type.icon} {move.name}
-                </Text>
-                <Text fw={800} fz={20}>
-                  {move.format(stat(move.stat))}
-                </Text>
-              </Group>
-              <Text fz={10} style={{ opacity: 0.85 }}>
-                {move.describe(stat(move.stat))}
-              </Text>
-            </Box>
-          ))}
-        </Stack>
-
-        {/* Weakness / resistance / record, like the bottom row of a card */}
-        <Group justify="space-between" gap={4} wrap="nowrap">
-          <Footer label="weakness" value={`finished ${pct(stat("finished_rate"))}`} />
-          <Footer label="resistance" value={`str. def ${pct(stat("str_def"))}`} />
-          <Footer label="record" value={record} />
-        </Group>
-        {cluster && (
-          <Text fz={9} fs="italic" lh={1.2} lineClamp={2} style={{ flexShrink: 0, border: "1px solid rgba(0,0,0,0.35)", borderRadius: 4, padding: "2px 6px", background: "rgba(255,255,255,0.35)" }}>
-            {cluster.description}
+          {/* Header: name, then "HP" (Elo) and the type icon */}
+          <Group justify="space-between" wrap="nowrap" gap={u(4)}>
+            <Text fw={800} fz={u(17)} lh={1.1} lineClamp={1}>
+              {fighter.name}
+            </Text>
+            <Group gap={u(4)} wrap="nowrap">
+              <Text fz={u(9)} fw={700}>ELO</Text>
+              <Text fw={800} fz={u(17)}>{fighter.elo}</Text>
+              <Box style={{ width: u(24), height: u(24), borderRadius: "50%", background: "white", display: "grid", placeItems: "center", fontSize: u(14), border: `${u(2)} solid ${type.color}` }}>
+                {type.icon}
+              </Box>
+            </Group>
+          </Group>
+          <Text fz={u(10)} fw={600} mt={u(-6)} lineClamp={1} style={{ opacity: 0.8 }}>
+            {type.label} type · {subtitle}
           </Text>
-        )}
-        <Group justify="space-between">
-          <Text fz={9} fw={700}>UFC Embedded</Text>
-          <Text fz={11} fw={800}>{rarity}</Text>
-        </Group>
-      </Stack>
+
+          {/* Picture window */}
+          <Box
+            style={{
+              height: u(PHOTO_HEIGHT),
+              flexShrink: 0,
+              border: `${u(4)} solid #d9d9d9`,
+              boxShadow: "inset 0 0 0 1px #888",
+              background: "#2b2b2b",
+              overflow: "hidden",
+            }}
+          >
+            {fighter.image ? (
+              <img src={fighter.image.url} alt={fighter.name} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+            ) : (
+              <Box h="100%" style={{ display: "grid", placeItems: "center", color: "#ddd", fontSize: u(48), fontWeight: 800 }}>
+                {initials}
+              </Box>
+            )}
+          </Box>
+          <Text fz={u(9)} fs="italic" ta="center" lineClamp={1} style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent)" }}>
+            Height {Math.round(stat("height"))} cm · Reach {Math.round(stat("reach"))} cm · Age {Math.round(stat("age"))}
+          </Text>
+
+          {/* Two signature moves, stat as the damage */}
+          <Stack gap={u(4)}>
+            {type.moves.map((move) => (
+              <Box key={move.name} style={{ borderBottom: "1px solid rgba(0,0,0,0.2)", paddingBottom: u(3) }}>
+                <Group justify="space-between" wrap="nowrap">
+                  <Text fw={800} fz={u(14)} lineClamp={1}>
+                    {type.icon} {move.name}
+                  </Text>
+                  <Text fw={800} fz={u(20)}>
+                    {move.format(stat(move.stat))}
+                  </Text>
+                </Group>
+                <Text fz={u(10)} lineClamp={1} style={{ opacity: 0.85 }}>
+                  {move.describe(stat(move.stat))}
+                </Text>
+              </Box>
+            ))}
+          </Stack>
+
+          {/* Weakness / resistance / record, like the bottom row of a card */}
+          <Group justify="space-between" gap={u(4)} wrap="nowrap">
+            <Footer label="weakness" value={`finished ${pct(stat("finished_rate"))}`} />
+            <Footer label="resistance" value={`str. def ${pct(stat("str_def"))}`} />
+            <Footer label="record" value={record} />
+          </Group>
+          {cluster && (
+            <Text fz={u(9)} fs="italic" lh={1.2} lineClamp={2} style={{ border: "1px solid rgba(0,0,0,0.35)", borderRadius: u(4), padding: `${u(2)} ${u(6)}`, background: "rgba(255,255,255,0.35)" }}>
+              {cluster.description}
+            </Text>
+          )}
+          <Group justify="space-between" mt="auto">
+            <Text fz={u(9)} fw={700}>UFC Embedded</Text>
+            <Text fz={u(11)} fw={800}>{rarity}</Text>
+          </Group>
+        </Stack>
+      </Box>
     </Box>
   );
 }
@@ -174,10 +181,10 @@ export function TradingCard({ fighter, cluster, stat }: Props) {
 function Footer({ label, value }: { label: string; value: string }) {
   return (
     <Stack gap={0} align="center">
-      <Text fz={8} fw={700} tt="uppercase" style={{ opacity: 0.75 }}>
+      <Text fz={u(8)} fw={700} tt="uppercase" style={{ opacity: 0.75 }}>
         {label}
       </Text>
-      <Text fz={10} fw={700}>
+      <Text fz={u(10)} fw={700}>
         {value}
       </Text>
     </Stack>
