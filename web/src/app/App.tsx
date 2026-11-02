@@ -1,15 +1,16 @@
 import { Anchor, AppShell, Button, Center, Group, Loader, Text, Title } from "@mantine/core";
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import { AboutPage } from "../pages/AboutPage";
+import { lazyPage } from "./lazyPage";
 import "./NewBadge.css";
 
 // Each product is its own lazily loaded feature, so heavy deps (three.js) only load where used.
-const StyleMapPage = lazy(() => import("../features/style-map/StyleMapPage"));
-const MmaMathPage = lazy(() => import("../features/mma-math/MmaMathPage"));
-const PredictorPage = lazy(() => import("../features/predictor/PredictorPage"));
-const LadderPage = lazy(() => import("../features/ladder/LadderPage"));
+const StyleMapPage = lazyPage(() => import("../features/style-map/StyleMapPage"));
+const MmaMathPage = lazyPage(() => import("../features/mma-math/MmaMathPage"));
+const PredictorPage = lazyPage(() => import("../features/predictor/PredictorPage"));
+const LadderPage = lazyPage(() => import("../features/ladder/LadderPage"));
 
 // `short` labels are used on phones so all tabs fit next to the logo; `fresh` tabs get a
 // "NEW" tag.
@@ -30,9 +31,11 @@ const TITLES: Record<string, string> = {
 };
 
 export function App() {
-  const { pathname } = useLocation();
+  // GitHub Pages serves the pages that have their own link-preview file as a folder, so a
+  // refresh lands on "/predictor/": compare without the trailing slash.
+  const pathname = useLocation().pathname.replace(/(.)\/$/, "$1");
   useEffect(() => {
-    document.title = TITLES[pathname.replace(/\/$/, "")] ?? "UFC Embedded";
+    document.title = TITLES[pathname] ?? "UFC Embedded";
   }, [pathname]);
 
   return (
