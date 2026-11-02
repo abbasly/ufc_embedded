@@ -34,7 +34,7 @@ const B_COLOR = "blue.6";
 
 // Tale of the tape rows: feature, label, formatter, which direction is better (if any).
 const TAPE: [string, string, (v: number) => string, "high" | "low" | null][] = [
-  ["elo", "Elo rating", (v) => String(Math.round(v * 400)), "high"],
+  ["elo", "Elo rating", (v) => String(v), "high"],
   ["ufc_fights", "UFC fights", (v) => String(v), null],
   ["win_streak", "Win streak", (v) => String(v), "high"],
   ["age", "Age", (v) => v.toFixed(1), null],
@@ -132,6 +132,8 @@ export default function PredictorPage() {
 }
 
 function value(data: PredictorData, f: PredictorFighter, feature: string): number {
+  // Elo is shown on the cards and the ladder; the win model may use a different rating.
+  if (feature === "elo") return f.elo;
   return f.x[data.win_model.inputs.indexOf(feature)] ?? 0;
 }
 

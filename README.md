@@ -95,11 +95,17 @@ stats using only fights on *earlier dates* (`features.py`), and a test checks th
 future fight changes no earlier feature. The raw data also always lists the winner first, so
 fighters are randomly assigned to corners A and B.
 
-**Features (28 per fighter, plus Elo).** Experience (UFC fights, cage minutes), form (win rate,
-win / loss streaks), finishing (KO and submission win rates, how often they get finished), pro
-record going in, age, layoff, height, reach, stance, and shrunk per-minute rates for striking,
-defence, takedowns, submissions, control time and knockdowns. Elo is computed online through
-fight history, so it's always the rating going *into* a fight.
+**Features.** Two versions, both built only from fights before the one being predicted.
+- **v1:** 28 career features per fighter plus Elo. Experience (UFC fights, cage minutes), form
+  (win rate, win / loss streaks), finishing (KO and submission win rates, how often they get
+  finished), pro record going in, age, layoff, height, reach, stance, and shrunk per-minute
+  rates for striking, defence, takedowns, submissions, control time and knockdowns.
+- **v2 (deployed):** v1 plus recent form (margins over opponents in results, strikes,
+  takedowns, control and knockdowns: a weighted average favouring recent fights and the last
+  3 fights), an age curve (years past 32, distance from 30), a **Glicko** rating instead of Elo
+  (a rating plus how sure we are about it: newcomers start unsure, and it grows again during
+  layoffs), strength of schedule (average rating of past opponents) and distance below their
+  career peak.
 
 **Models** (`train.py`, all deliberately simple: ~9k fights is too little for deep nets):
 
@@ -107,30 +113,47 @@ fight history, so it's always the rating going *into* a fight.
 |---|---|
 | Betting market | Consensus bookmaker odds with the margin (vig) removed: the benchmark |
 | Elo | Online rating, K tuned on validation |
-| **Win model** | L2 logistic regression on A − B feature differences (+ Elo), no intercept, so P(A beats B) = 1 − P(B beats A) exactly |
+| **Win model** | L2 logistic regression on A − B feature differences, no intercept, so P(A beats B) = 1 − P(B beats A) exactly |
 | **Method model** | Multinomial logistic regression for KO/TKO vs submission vs decision *given the winner*, from the winner's finishing profile, the loser's durability and the weight class |
 
-**Evaluation.** Split by time: train ≤ 2021, tune on 2022–23, and the 2024+ test set stays
-locked until a final run (`--final`). Validation results on the same 896 fights:
+Gradient boosting (sklearn's HistGradientBoosting, trained on both corner orders and
+symmetrised) was tried on the same features and did *worse* than the logistic regression
+(rolling log loss ~0.659): there's too little signal per fight for it to find interactions the
+linear model misses.
 
-| | Accuracy | Log loss ↓ | Brier ↓ |
+**Evaluation.** Split by time: train ≤ 2021, tune on 2022–23, and the 2024+ test set stays
+locked until a final run (`--final`). Feature sets are compared on **rolling validation**: each
+year 2019–23 is predicted by a model trained on all earlier years (2,457 fights).
+
+| Rolling 2019–23 | Accuracy | Log loss ↓ | AUC |
 |---|---|---|---|
-| Betting market | 69.0% | 0.596 | 0.205 |
-| **Win model** | **63.2%** | **0.645** | **0.227** |
-| Elo | 55.4% | 0.682 | 0.244 |
-| Coin flip | 50% | 0.693 | 0.250 |
+| **Win model v2** | **62.2%** | **0.652** | **0.661** |
+| Win model v1 | 61.1% | 0.654 | 0.657 |
+| Elo | 55.5% | 0.685 | 0.578 |
+| Betting market (2,284 fights with odds) | 66.2% | 0.614 | 0.722 |
+
+Accuracy counts how often the fighter given over 50% won; log loss also rewards being
+confident only when it's deserved, so it's the main metric. Calibration, ROC and
+accuracy-vs-coverage (how often the favourite wins when the model is at least 60, 70, 80%
+sure, the precision/recall trade-off for picking winners) on fights with odds:
+
+![Model comparison](docs/model-comparison.png)
+
+On the 2022–23 validation years (896 fights) the deployed v2 scores 65.5% / 0.638, against
+63.2% / 0.645 for v1 and 69.0% / 0.596 for the market. The gap to the market is information
+the stats don't have: injuries, short notice, camps, and debutants' pre-UFC careers.
 
 Method model: log loss 0.990 vs 1.041 for always predicting the base rates. Everything (sweep
 curves, calibration plots, feature weights, worst misses, disagreements with the market, an Elo
 leaderboard and the dataset) is logged to Weights & Biases.
 
-**Reality check.** Scored with pre-fight data only, the model got 5 of 14 winners right at
+**Reality check.** Scored with pre-fight data only, the v1 model got 5 of 14 winners right at
 UFC 333 (2026-10-24), including both headliners wrong. One card is a small sample, but it shows
 what career averages miss (rematches, decline with age, short UFC records). Hence "beta".
 
-**In the browser.** `train.py` exports the deployed weights (fit on fights before 2024) and
-every active fighter's features as of today to `predictor.json`; the page evaluates both models
-client-side, no server needed.
+**In the browser.** `train.py --features v1|v2` (default v2) exports the deployed weights (fit
+on fights before 2024) and every active fighter's features as of today to `predictor.json`;
+the page evaluates both models client-side, no server needed.
 
 ## Architecture
 
@@ -183,7 +206,8 @@ Web: Vite, React, TypeScript, Mantine, react-three-fiber/drei, TanStack Query; v
 ```bash
 uv sync                                  # Python deps
 uv run python -m ufc_embedded.export     # rebuild style map + MMA math JSON
-uv run python -m ufc_embedded.train      # train predictor models, log to W&B, write predictor.json
+uv run python -m ufc_embedded.train      # compare v1/v2, log to W&B, write predictor.json (v2)
+uv run python -m ufc_embedded.train --features v1   # deploy the v1 feature set instead
 uv run pytest                            # Python tests
 
 cd web && npm install
