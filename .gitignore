@@ -17,3 +17,6 @@ __pycache__/
 # web
 web/node_modules/
 web/dist/
+
+# Weights & Biases local run files
+wandb/

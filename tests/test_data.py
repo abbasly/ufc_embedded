@@ -33,6 +33,7 @@ def make_raw() -> pd.DataFrame:
             "finish_round": [r[6] for r in rows],
             "finish_time": [r[7] for r in rows],
             "title_fight": [False, False, True],
+            "fight_url": [f"http://ufcstats.com/fight-details/x{i}" for i in range(3)],
         }
     )
     for k in ("1", "2"):

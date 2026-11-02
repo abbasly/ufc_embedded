@@ -18,6 +18,9 @@ PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
 FIGHTS_CSV = RAW_DIR / "ufc-data" / "UFC_full_data_silver_v2.csv"
 # Kaggle: valihameed/ufc-stats (same fights with betting odds, which the file above lacks)
 ODDS_CSV = RAW_DIR / "ufc-stats" / "ufc-master.csv"
+# Kaggle: jerzyszocik/ufc-betting-odds-daily-dataset (odds keyed by UFCStats ids; many
+# bookmakers and daily snapshots from 2025 on)
+MARKET_CSV = RAW_DIR / "ufc-betting-odds" / "UFC_betting_odds.csv"
 # Kaggle: jerzyszocik/ufc-rankings-history (official rankings; rank 0 = champion)
 RANKINGS_CSV = RAW_DIR / "ufc-rankings-history" / "UFC_rankings_history.csv"
 
@@ -54,7 +57,7 @@ def slugify(name: str) -> str:
 
 
 def fighter_id(url: str) -> str:
-    """The stable UFCStats id at the end of a fighter-details URL."""
+    """The stable UFCStats id at the end of a fighter-details (or fight-details) URL."""
     return url.rstrip("/").rsplit("/", 1)[-1]
 
 
@@ -75,6 +78,7 @@ def load_fights(raw: pd.DataFrame) -> pd.DataFrame:
     winner = f1.where(raw["winner"] == raw["f_1_name"], f2.where(raw["winner"] == raw["f_2_name"]))
     fights = pd.DataFrame(
         {
+            "fight": raw["fight_url"].map(fighter_id),
             "date": raw["event_date"],
             "weight_class": raw["weight_class"].fillna(CATCH_WEIGHT),
             "title": raw["title_fight"].astype(bool),
@@ -125,6 +129,26 @@ def attach_odds(fights: pd.DataFrame, odds: pd.DataFrame) -> pd.DataFrame:
 
 def load_odds(path: Path = ODDS_CSV) -> pd.DataFrame:
     return pd.read_csv(path, parse_dates=["Date"])
+
+
+def load_market(path: Path = MARKET_CSV) -> pd.DataFrame:
+    """Consensus market per fight: median vig-free P(``fighter`` wins) over all bookmakers
+    and snapshots. Index: fight id; columns: ``fighter`` (a fighter id) and ``p``.
+    """
+    raw = pd.read_csv(
+        path,
+        usecols=["fight_url", "fighter_1_url", "fighter_2_url", "odds_1", "odds_2"],
+        low_memory=False,
+    ).dropna()
+    raw = raw[(raw["odds_1"] > 1) & (raw["odds_2"] > 1)]
+    q1, q2 = 1 / raw["odds_1"], 1 / raw["odds_2"]  # decimal odds -> implied probabilities
+    f1, f2 = raw["fighter_1_url"].map(fighter_id), raw["fighter_2_url"].map(fighter_id)
+    # Express every row as P(lexicographically first fighter wins) so snapshots that list
+    # the fighters in a different order still agree.
+    first = f1.where(f1 < f2, f2)
+    p = (q1 / (q1 + q2)).where(f1 == first, q2 / (q1 + q2))
+    market = pd.DataFrame({"fight": raw["fight_url"].map(fighter_id), "fighter": first, "p": p})
+    return market.groupby(["fight", "fighter"])["p"].median().reset_index("fighter")
 
 
 def fighter_appearances(fights: pd.DataFrame) -> pd.DataFrame:
