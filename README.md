@@ -25,12 +25,16 @@ calculator that "proves" any fighter beats any other with a chain of wins, drawn
 
 ### [Fight Predictor](https://abbasly.github.io/ufc_embedded/predictor) (beta)
 
-Pick two fighters, shown as collectible-style cards (style = card type, Elo where the HP would
-be, signature stats as moves, gold cards for champions). You get a win probability, how the fight
-most likely ends (KO / submission / decision), what drives the call, notes like past meetings and
-common opponents, and a tale of the tape.
+Pick two fighters and get the verdict right between them: win chances and the most likely
+outcome (who, and by KO / submission / decision). Fighters are collectible-style cards: style =
+card type, Elo where the HP would be, signature stats as moves, gold holo cards for champions.
+Tap a card and it flips to a "fighter file" with the record, recent form and a full stat sheet.
+Below: every outcome's probability, what drives the call, notes like past meetings and common
+opponents, and a tale of the tape.
 
 ![Fight predictor](docs/screenshots/predictor.png)
+
+![Card front, verdict and a flipped card](docs/screenshots/card-flip.png)
 
 ## How the style map works
 
@@ -64,18 +68,48 @@ common opponents, and a tale of the tape.
 
 ## How the predictor works
 
-- **No leakage:** UFCStats career stats and records are as of today, so every feature is rebuilt
-  from per-fight stats using only fights *before* each fight date (tested). The raw data also
-  always lists the winner first, so fighters are shuffled into A and B.
-- **Features (28 per fighter):** experience, form and streaks, pro record going in, age, layoff,
-  size, and shrunk striking / grappling / control / knockdown rates, plus an online Elo rating.
-- **Models:** the betting market (benchmark, vig removed), Elo, and an antisymmetric logistic
-  regression on A − B feature differences; a multinomial model for the method given the winner.
-- **Evaluation:** time split (train ≤ 2021, validate 2022–23, test 2024+ kept locked). On
-  2022–23 fights: market 69.0% accuracy / 0.596 log loss, logistic regression 63.2% / 0.645,
-  Elo 55.4% / 0.682. Runs are tracked in Weights & Biases (`uv run python -m ufc_embedded.train`).
-- **In the browser:** the trained weights and every active fighter's current features are
-  exported to `predictor.json`; the page computes predictions client-side.
+**Data without leakage.** UFCStats career stats and W-L-D records are *as of today*, so using
+them to predict past fights would leak the results. Every feature is rebuilt from per-fight
+stats using only fights on *earlier dates* (`features.py`), and a test checks that changing a
+future fight changes no earlier feature. The raw data also always lists the winner first, so
+fighters are randomly assigned to corners A and B.
+
+**Features (28 per fighter, plus Elo).** Experience (UFC fights, cage minutes), form (win rate,
+win / loss streaks), finishing (KO and submission win rates, how often they get finished), pro
+record going in, age, layoff, height, reach, stance, and shrunk per-minute rates for striking,
+defence, takedowns, submissions, control time and knockdowns. Elo is computed online through
+fight history, so it's always the rating going *into* a fight.
+
+**Models** (`train.py`, all deliberately simple: ~9k fights is too little for deep nets):
+
+| Model | What it is |
+|---|---|
+| Betting market | Consensus bookmaker odds with the margin (vig) removed: the benchmark |
+| Elo | Online rating, K tuned on validation |
+| **Win model** | L2 logistic regression on A − B feature differences (+ Elo), no intercept, so P(A beats B) = 1 − P(B beats A) exactly |
+| **Method model** | Multinomial logistic regression for KO/TKO vs submission vs decision *given the winner*, from the winner's finishing profile, the loser's durability and the weight class |
+
+**Evaluation.** Split by time: train ≤ 2021, tune on 2022–23, and the 2024+ test set stays
+locked until a final run (`--final`). Validation results on the same 896 fights:
+
+| | Accuracy | Log loss ↓ | Brier ↓ |
+|---|---|---|---|
+| Betting market | 69.0% | 0.596 | 0.205 |
+| **Win model** | **63.2%** | **0.645** | **0.227** |
+| Elo | 55.4% | 0.682 | 0.244 |
+| Coin flip | 50% | 0.693 | 0.250 |
+
+Method model: log loss 0.990 vs 1.041 for always predicting the base rates. Everything (sweep
+curves, calibration plots, feature weights, worst misses, disagreements with the market, an Elo
+leaderboard and the dataset) is logged to Weights & Biases.
+
+**Reality check.** Scored with pre-fight data only, the model got 5 of 14 winners right at
+UFC 333 (2026-10-24), including both headliners wrong. One card is a small sample, but it shows
+what career averages miss (rematches, decline with age, short UFC records). Hence "beta".
+
+**In the browser.** `train.py` exports the deployed weights (fit on fights before 2024) and
+every active fighter's features as of today to `predictor.json`; the page evaluates both models
+client-side, no server needed.
 
 ## Architecture
 
@@ -90,17 +124,22 @@ flowchart LR
         data --> champs["champions.py<br/>champions + ranks"]
         wiki(["Wikipedia API"]) --> photos["wikipedia.py<br/>fighter photos"]
         data --> mma["mma_math.py<br/>win graph + cycles"]
+        data --> pit["features.py + ratings.py<br/>point-in-time features, Elo"]
+        pit --> train["train.py + method.py<br/>win + method models, W&B"]
         sm --> export["export.py"]
         champs --> export
         photos --> export
         mma --> export
     end
 
+    train --> json
+
     export --> json[/"web/public/data/*.json<br/>(versioned data contracts)"/]
 
     subgraph web["Web app (web/)"]
         client["data/client.ts<br/>only place that fetches"] --> feat["features/style-map<br/>React + three.js"]
         client --> mmaui["features/mma-math<br/>chains + loops"]
+        client --> predui["features/predictor<br/>cards + predictions"]
     end
 
     json --> client
@@ -122,7 +161,8 @@ Web: Vite, React, TypeScript, Mantine, react-three-fiber/drei, TanStack Query; v
 
 ```bash
 uv sync                                  # Python deps
-uv run python -m ufc_embedded.export     # rebuild web/public/data/*.json
+uv run python -m ufc_embedded.export     # rebuild style map + MMA math JSON
+uv run python -m ufc_embedded.train      # train predictor models, log to W&B, write predictor.json
 uv run pytest                            # Python tests
 
 cd web && npm install
