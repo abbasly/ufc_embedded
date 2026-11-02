@@ -1,4 +1,4 @@
-import { Anchor, AppShell, Button, Center, Group, Loader, Text, Title } from "@mantine/core";
+import { Anchor, AppShell, Badge, Button, Center, Group, Loader, Text, Title } from "@mantine/core";
 import { Suspense, lazy } from "react";
 import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 
@@ -7,10 +7,13 @@ import { AboutPage } from "../pages/AboutPage";
 // Each product is its own lazily loaded feature, so heavy deps (three.js) only load where used.
 const StyleMapPage = lazy(() => import("../features/style-map/StyleMapPage"));
 const MmaMathPage = lazy(() => import("../features/mma-math/MmaMathPage"));
+const PredictorPage = lazy(() => import("../features/predictor/PredictorPage"));
 
-const NAV = [
-  { to: "/", label: "Style Map" },
-  { to: "/mma-math", label: "MMA Math" },
+// `short` labels are used on phones so all tabs fit next to the logo.
+const NAV: { to: string; label: string; short?: string; beta?: boolean }[] = [
+  { to: "/", label: "Style Map", short: "Map" },
+  { to: "/mma-math", label: "MMA Math", short: "Math" },
+  { to: "/predictor", label: "Predictor", beta: true },
   { to: "/about", label: "About" },
 ];
 
@@ -40,8 +43,26 @@ export function App() {
                 color={pathname === item.to ? "red" : "gray"}
                 size="compact-sm"
                 px={{ base: 6, sm: "sm" }}
+                rightSection={
+                  item.beta && (
+                    <Badge size="xs" variant={pathname === item.to ? "white" : "light"} color="red" px={4}>
+                      Beta
+                    </Badge>
+                  )
+                }
               >
-                {item.label}
+                {item.short ? (
+                  <>
+                    <Text span inherit visibleFrom="xs">
+                      {item.label}
+                    </Text>
+                    <Text span inherit hiddenFrom="xs">
+                      {item.short}
+                    </Text>
+                  </>
+                ) : (
+                  item.label
+                )}
               </Button>
             ))}
           </Group>
@@ -53,6 +74,7 @@ export function App() {
           <Routes>
             <Route path="/" element={<StyleMapPage />} />
             <Route path="/mma-math" element={<MmaMathPage />} />
+            <Route path="/predictor" element={<PredictorPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/style-map" element={<Navigate to="/" replace />} />
             <Route path="*" element={<Text>Page not found.</Text>} />

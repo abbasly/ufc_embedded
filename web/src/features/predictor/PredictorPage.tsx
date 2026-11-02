@@ -1,0 +1,331 @@
+import {
+  ActionIcon,
+  Alert,
+  Box,
+  Center,
+  Container,
+  Grid,
+  Group,
+  Loader,
+  Paper,
+  Progress,
+  Select,
+  Stack,
+  Table,
+  Text,
+  Title,
+  Tooltip,
+} from "@mantine/core";
+import { useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
+
+import { useMmaMath, usePredictor, useStyleMap } from "../../data/client";
+import type { MmaMathData, PredictorData, PredictorFighter, StyleMapData } from "../../data/types";
+import { GOLD } from "../style-map/model";
+import { commonOpponents, contributions, headToHead, outcomes, winProb } from "./model";
+import { TradingCard } from "./TradingCard";
+
+const DEFAULT = ["islam-makhachev", "ilia-topuria"];
+const METHOD_ICON: Record<string, string> = { "KO/TKO": "💥", SUB: "🔒", DEC: "⚖️" };
+const A_COLOR = "red.6";
+const B_COLOR = "blue.6";
+
+// Tale of the tape rows: feature, label, formatter, which direction is better (if any).
+const TAPE: [string, string, (v: number) => string, "high" | "low" | null][] = [
+  ["elo", "Elo rating", (v) => String(Math.round(v * 400)), "high"],
+  ["ufc_fights", "UFC fights", (v) => String(v), null],
+  ["win_streak", "Win streak", (v) => String(v), "high"],
+  ["age", "Age", (v) => v.toFixed(1), null],
+  ["height", "Height", (v) => `${Math.round(v)} cm`, null],
+  ["reach", "Reach", (v) => `${Math.round(v)} cm`, "high"],
+  ["slpm", "Strikes landed / min", (v) => v.toFixed(2), "high"],
+  ["sapm", "Strikes absorbed / min", (v) => v.toFixed(2), "low"],
+  ["str_def", "Strike defence", (v) => `${Math.round(v * 100)}%`, "high"],
+  ["td15", "Takedowns / 15 min", (v) => v.toFixed(2), "high"],
+  ["td_def", "Takedown defence", (v) => `${Math.round(v * 100)}%`, "high"],
+  ["sub15", "Sub attempts / 15 min", (v) => v.toFixed(2), "high"],
+  ["kd15", "Knockdowns / 15 min", (v) => v.toFixed(2), "high"],
+  ["finished_rate", "Gets finished", (v) => `${Math.round(v * 100)}%`, "low"],
+  ["layoff_years", "Time since last fight", (v) => `${v.toFixed(1)} y`, "low"],
+];
+
+export default function PredictorPage() {
+  const { data, error, isPending } = usePredictor();
+  const mma = useMmaMath().data;
+  const styleMap = useStyleMap().data;
+  const [params, setParams] = useSearchParams();
+
+  const byId = useMemo(() => new Map(data?.fighters.map((f) => [f.id, f])), [data]);
+  const options = useMemo(
+    () =>
+      // Champions and ranked fighters first, then by Elo, so the list opens on names people know.
+      [...(data?.fighters ?? [])]
+        .sort((x, y) => (x.rank ?? 99) - (y.rank ?? 99) || y.elo - x.elo)
+        .map((f) => ({ value: f.id, label: f.name })),
+    [data],
+  );
+
+  if (isPending) return <Center h="60vh"><Loader /></Center>;
+  if (error) return <Alert color="red" title="Could not load the predictor">{error.message}</Alert>;
+
+  const aId = params.get("a") ?? DEFAULT[0]!;
+  const bId = params.get("b") ?? DEFAULT[1]!;
+  const a = byId.get(aId);
+  const b = byId.get(bId);
+  const set = (side: "a" | "b", id: string | null) => {
+    if (!id) return;
+    setParams({ a: side === "a" ? id : aId, b: side === "b" ? id : bId }, { replace: true });
+  };
+
+  return (
+    <Container size="lg" py="md">
+      <Stack gap="lg">
+        <Title order={1}>Fight predictor</Title>
+
+        <Grid align="stretch">
+          <Grid.Col span={{ base: 12, sm: 5.5 }}>
+            <FighterCard data={data} styleMap={styleMap} fighter={a} options={options} value={aId} onChange={(v) => set("a", v)} color={A_COLOR} />
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 1 }}>
+            <Center h="100%">
+              <Tooltip label="Swap corners" withArrow>
+                <ActionIcon variant="light" size="lg" onClick={() => setParams({ a: bId, b: aId }, { replace: true })} aria-label="Swap fighters">
+                  ⇄
+                </ActionIcon>
+              </Tooltip>
+            </Center>
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, sm: 5.5 }}>
+            <FighterCard data={data} styleMap={styleMap} fighter={b} options={options} value={bId} onChange={(v) => set("b", v)} color={B_COLOR} />
+          </Grid.Col>
+        </Grid>
+
+        {a && b && a.id !== b.id ? (
+          <>
+            <Prediction data={data} a={a} b={b} />
+            <Notes data={data} mma={mma} a={a} b={b} />
+            <TaleOfTheTape data={data} a={a} b={b} />
+          </>
+        ) : (
+          <Text c="dimmed">Pick two different fighters.</Text>
+        )}
+
+        <Text size="xs" c="dimmed">
+          Logistic regression on pre-fight stats and Elo, trained on fights up to {data.trained_until}; fighter
+          stats as of {data.fights_until}. On 2022–23 fights it picked{" "}
+          {Math.round((data.validation.logistic?.accuracy ?? 0) * 100)}% of winners (betting market:{" "}
+          {Math.round((data.validation.market?.accuracy ?? 0) * 100)}%). Just for fun, not betting advice.
+        </Text>
+      </Stack>
+    </Container>
+  );
+}
+
+function value(data: PredictorData, f: PredictorFighter, feature: string): number {
+  return f.x[data.win_model.inputs.indexOf(feature)] ?? 0;
+}
+
+interface CardProps {
+  data: PredictorData;
+  styleMap?: StyleMapData;
+  fighter?: PredictorFighter;
+  options: { value: string; label: string }[];
+  value: string;
+  onChange: (id: string | null) => void;
+  color: string;
+}
+
+function FighterCard({ data, styleMap, fighter, options, value: id, onChange }: CardProps) {
+  const style = styleMap?.fighters.find((f) => f.id === id);
+  const cluster = style && styleMap?.clusters.find((c) => c.id === style.cluster);
+  return (
+    <Stack gap="sm" maw={320} mx="auto" w="100%">
+      <Select searchable limit={200} data={options} value={id} onChange={onChange} placeholder="Pick a fighter" />
+      {fighter && <TradingCard fighter={fighter} cluster={cluster} stat={(k) => value(data, fighter, k)} />}
+    </Stack>
+  );
+}
+
+function Prediction({ data, a, b }: { data: PredictorData; a: PredictorFighter; b: PredictorFighter }) {
+  const pA = winProb(data.win_model, a, b);
+  const all = outcomes(data, a, b);
+  const best = all[0]!;
+  const labels = data.feature_labels;
+  const contrib = contributions(data.win_model, a, b).map((c, i) => ({ c, label: labels[data.win_model.inputs[i]!] ?? "" }));
+  const edges = (sign: 1 | -1) =>
+    contrib
+      .filter((x) => x.c * sign > 0.03)
+      .sort((x, y) => y.c * sign - x.c * sign)
+      .slice(0, 3)
+      .map((x) => x.label);
+  const methodName = (m: string) => ({ "KO/TKO": "KO/TKO", SUB: "submission", DEC: "decision" })[m] ?? m;
+
+  return (
+    <Paper withBorder p="lg">
+      <Stack gap="md">
+        <Group justify="space-between" align="baseline">
+          <Text fw={700} size="xl" c={A_COLOR}>
+            {Math.round(pA * 100)}%
+          </Text>
+          <Text size="sm" c="dimmed">
+            Win probability
+          </Text>
+          <Text fw={700} size="xl" c={B_COLOR}>
+            {Math.round((1 - pA) * 100)}%
+          </Text>
+        </Group>
+        <Progress.Root size={18}>
+          <Progress.Section value={pA * 100} color={A_COLOR}>
+            <Progress.Label>{a.name}</Progress.Label>
+          </Progress.Section>
+          <Progress.Section value={(1 - pA) * 100} color={B_COLOR}>
+            <Progress.Label>{b.name}</Progress.Label>
+          </Progress.Section>
+        </Progress.Root>
+
+        <Paper
+          p="md"
+          radius="md"
+          ta="center"
+          bg={best.winner.id === a.id ? "rgba(250, 82, 82, 0.12)" : "rgba(34, 139, 230, 0.12)"}
+          style={{ border: `2px solid var(--mantine-color-${(best.winner.id === a.id ? A_COLOR : B_COLOR).replace(".", "-")})` }}
+        >
+          <Text size="xs" tt="uppercase" fw={700} c="dimmed" style={{ letterSpacing: 1 }}>
+            Most likely outcome
+          </Text>
+          <Text fz={{ base: 22, sm: 28 }} fw={800} lh={1.2} mt={4}>
+            {METHOD_ICON[best.method]} {best.winner.name} by {methodName(best.method)}
+          </Text>
+          <Text size="sm" c="dimmed">
+            {Math.round(best.p * 100)}% chance
+          </Text>
+        </Paper>
+
+        <Grid>
+          <Grid.Col span={{ base: 12, md: 6 }}>
+            <Stack gap={6}>
+              {all.map((o) => (
+                <div key={`${o.winner.id}-${o.method}`}>
+                  <Group justify="space-between">
+                    <Text size="sm">
+                      {o.winner.name} by {methodName(o.method)}
+                    </Text>
+                    <Text size="sm" c="dimmed">
+                      {Math.round(o.p * 100)}%
+                    </Text>
+                  </Group>
+                  <Progress value={o.p * 100} color={o.winner.id === a.id ? A_COLOR : B_COLOR} size="sm" />
+                </div>
+              ))}
+            </Stack>
+          </Grid.Col>
+          <Grid.Col span={{ base: 12, md: 6 }}>
+            <Stack gap="xs">
+              <Text fw={600} size="sm">
+                What drives the call
+              </Text>
+              {[
+                [a, edges(1), A_COLOR],
+                [b, edges(-1), B_COLOR],
+              ].map(([f, list, color]) => (
+                <Box key={(f as PredictorFighter).id}>
+                  <Text size="sm" c={color as string} fw={600}>
+                    {(f as PredictorFighter).name}
+                  </Text>
+                  <Text size="sm" c="dimmed">
+                    {(list as string[]).length ? (list as string[]).join(", ") : "No clear edges"}
+                  </Text>
+                </Box>
+              ))}
+            </Stack>
+          </Grid.Col>
+        </Grid>
+      </Stack>
+    </Paper>
+  );
+}
+
+function TaleOfTheTape({ data, a, b }: { data: PredictorData; a: PredictorFighter; b: PredictorFighter }) {
+  const fmtRecord = (f: PredictorFighter) => `${f.record.wins}-${f.record.losses}-${f.record.draws}`;
+  return (
+    <Paper withBorder p="md">
+      <Title order={4} mb="xs">
+        Tale of the tape
+      </Title>
+      <Table striped withRowBorders={false} fz="sm">
+        <Table.Tbody>
+          <Table.Tr>
+            <Table.Td ta="right" fw={600}>{fmtRecord(a)}</Table.Td>
+            <Table.Td ta="center" c="dimmed">Pro record</Table.Td>
+            <Table.Td fw={600}>{fmtRecord(b)}</Table.Td>
+          </Table.Tr>
+          {TAPE.map(([key, label, fmt, better]) => {
+            const va = value(data, a, key);
+            const vb = value(data, b, key);
+            const aBetter = better && va !== vb && (better === "high" ? va > vb : va < vb);
+            const bBetter = better && va !== vb && !aBetter;
+            return (
+              <Table.Tr key={key}>
+                <Table.Td ta="right" fw={aBetter ? 700 : 400} c={aBetter ? A_COLOR : undefined}>
+                  {fmt(va)}
+                </Table.Td>
+                <Table.Td ta="center" c="dimmed">
+                  {label}
+                </Table.Td>
+                <Table.Td fw={bBetter ? 700 : 400} c={bBetter ? B_COLOR : undefined}>
+                  {fmt(vb)}
+                </Table.Td>
+              </Table.Tr>
+            );
+          })}
+        </Table.Tbody>
+      </Table>
+    </Paper>
+  );
+}
+
+function Notes({ data, mma, a, b }: { data: PredictorData; mma?: MmaMathData; a: PredictorFighter; b: PredictorFighter }) {
+  const notes: [string, string][] = []; // [icon, text]
+  const name = (id: string) => (id === a.id ? a.name : b.name);
+
+  if (mma) {
+    for (const f of headToHead(mma, a.id, b.id)) {
+      notes.push(["🔁", `They've met before: ${name(f.winnerId)} won by ${f.method}${f.round ? ` in round ${f.round}` : ""} (${f.date.slice(0, 4)}).`]);
+    }
+    const common = commonOpponents(mma, a.id, b.id);
+    if (common.length) {
+      const last = (f: PredictorFighter) => f.name.split(" ").at(-1);
+      const shown = common.slice(0, 4).map((c) => `${c.name} (${last(a)} ${c.a}, ${last(b)} ${c.b})`);
+      notes.push(["👥", `${common.length} common opponent${common.length > 1 ? "s" : ""}: ${shown.join("; ")}${common.length > 4 ? "…" : ""}.`]);
+    }
+  }
+  if (a.weight_class !== b.weight_class) notes.push(["⚖️", `Cross-division: ${a.name} fights at ${a.weight_class}, ${b.name} at ${b.weight_class}.`]);
+  for (const f of [a, b]) if (f.champion) notes.push(["🏆", `${f.name} is the ${f.champion} champion.`]);
+  const ageGap = value(data, a, "age") - value(data, b, "age");
+  if (Math.abs(ageGap) >= 6) notes.push(["🎂", `${ageGap > 0 ? b.name : a.name} is ${Math.round(Math.abs(ageGap))} years younger.`]);
+  const reachGap = value(data, a, "reach") - value(data, b, "reach");
+  if (Math.abs(reachGap) >= 8) notes.push(["📏", `${reachGap > 0 ? a.name : b.name} has a ${Math.round(Math.abs(reachGap))} cm reach advantage.`]);
+  for (const f of [a, b]) {
+    const off = value(data, f, "layoff_years");
+    if (off >= 1.5) notes.push(["⏳", `${f.name} hasn't fought in ${off.toFixed(1)} years.`]);
+  }
+  if (!notes.length) notes.push(["🆕", "First meeting, no common opponents, and similar size and age."]);
+
+  return (
+    <Paper withBorder p="md" radius="md" bg="rgba(245, 197, 24, 0.06)" style={{ borderLeft: `4px solid ${GOLD}` }}>
+      <Title order={4} mb="sm">
+        💡 Worth knowing
+      </Title>
+      <Stack gap="xs">
+        {notes.map(([icon, text]) => (
+          <Group key={text} gap="sm" wrap="nowrap" align="flex-start">
+            <Text fz="lg" lh={1.3}>
+              {icon}
+            </Text>
+            <Text size="md">{text}</Text>
+          </Group>
+        ))}
+      </Stack>
+    </Paper>
+  );
+}

@@ -3,7 +3,14 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-import { MMA_MATH_SCHEMA_VERSION, type MmaMathData, STYLE_MAP_SCHEMA_VERSION, type StyleMapData } from "./types";
+import {
+  MMA_MATH_SCHEMA_VERSION,
+  type MmaMathData,
+  PREDICTOR_SCHEMA_VERSION,
+  type PredictorData,
+  STYLE_MAP_SCHEMA_VERSION,
+  type StyleMapData,
+} from "./types";
 
 const DATA_URL = `${import.meta.env.BASE_URL}data`;
 
@@ -47,6 +54,14 @@ export function useMmaMath() {
   return useQuery({
     queryKey: ["mma-math"],
     queryFn: () => fetchJson<MmaMathData>("mma_math.json", MMA_MATH_SCHEMA_VERSION),
+    staleTime: Infinity,
+  });
+}
+
+export function usePredictor() {
+  return useQuery({
+    queryKey: ["predictor"],
+    queryFn: () => fetchJson<PredictorData>("predictor.json", PREDICTOR_SCHEMA_VERSION),
     staleTime: Infinity,
   });
 }

@@ -17,8 +17,9 @@ A personal ML engineering project: turn fight statistics into interactive, explo
 Data is current to the latest UFC event (fights, records and rankings from UFCStats via Kaggle).
 Works on desktop and phone.
 
-Planned next: a probabilistic **fight predictor** (Bayesian skill ratings with uncertainty,
-checked against betting odds).
+- **[Fight Predictor](https://abbasly.github.io/ufc_embedded/predictor)** (beta): pick two
+  fighters for a win probability, the likely method (KO / submission / decision), a tale of the
+  tape and notes like past meetings and common opponents.
 
 ## How the style map works
 
@@ -49,6 +50,21 @@ checked against betting odds).
 3. The calculator runs a breadth-first search in the browser for the shortest chain of wins
    from one fighter to another, drawn as a circle (⇄ swaps the direction). Over 1,200 fighters form one strongly connected component, so within it
    anyone "beats" anyone.
+
+## How the predictor works
+
+- **No leakage:** UFCStats career stats and records are as of today, so every feature is rebuilt
+  from per-fight stats using only fights *before* each fight date (tested). The raw data also
+  always lists the winner first, so fighters are shuffled into A and B.
+- **Features (28 per fighter):** experience, form and streaks, pro record going in, age, layoff,
+  size, and shrunk striking / grappling / control / knockdown rates, plus an online Elo rating.
+- **Models:** the betting market (benchmark, vig removed), Elo, and an antisymmetric logistic
+  regression on A − B feature differences; a multinomial model for the method given the winner.
+- **Evaluation:** time split (train ≤ 2021, validate 2022–23, test 2024+ kept locked). On
+  2022–23 fights: market 69.0% accuracy / 0.596 log loss, logistic regression 63.2% / 0.645,
+  Elo 55.4% / 0.682. Runs are tracked in Weights & Biases (`uv run python -m ufc_embedded.train`).
+- **In the browser:** the trained weights and every active fighter's current features are
+  exported to `predictor.json`; the page computes predictions client-side.
 
 ## Architecture
 
@@ -109,12 +125,14 @@ Raw data isn't committed. Download these regularly updated Kaggle datasets into
 | Dataset | Used for |
 |---|---|
 | [`scarekrow/ufc-data`](https://www.kaggle.com/datasets/scarekrow/ufc-data) | Every UFC fight (UFCStats), fighter records and career stats |
-| [`valihameed/ufc-stats`](https://www.kaggle.com/datasets/valihameed/ufc-stats) | Betting odds (for MMA math upsets) |
+| [`valihameed/ufc-stats`](https://www.kaggle.com/datasets/valihameed/ufc-stats) | Betting odds up to 2024 (MMA math upsets, market baseline fallback) |
+| [`jerzyszocik/ufc-betting-odds-daily-dataset`](https://www.kaggle.com/datasets/jerzyszocik/ufc-betting-odds-daily-dataset) | Betting odds keyed by UFCStats ids, incl. 2025+ (market baseline) |
 | [`jerzyszocik/ufc-rankings-history`](https://www.kaggle.com/datasets/jerzyszocik/ufc-rankings-history) | Official rankings and current champions |
 
 ```bash
-for ds in scarekrow/ufc-data valihameed/ufc-stats jerzyszocik/ufc-rankings-history; do
-  n=$(basename $ds); mkdir -p data/raw/$n
+for ds in scarekrow/ufc-data valihameed/ufc-stats jerzyszocik/ufc-rankings-history \
+          jerzyszocik/ufc-betting-odds-daily-dataset; do
+  n=$(basename $ds); [ $n = ufc-betting-odds-daily-dataset ] && n=ufc-betting-odds; mkdir -p data/raw/$n
   curl -sSL "https://www.kaggle.com/api/v1/datasets/download/$ds" -o /tmp/$n.zip && unzip -oq /tmp/$n.zip -d data/raw/$n
 done
 ```

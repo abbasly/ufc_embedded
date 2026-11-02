@@ -23,8 +23,9 @@ const PRODUCTS: Product[] = [
   },
   {
     title: "Fight Predictor",
-    status: "Planned",
-    text: "Bayesian skill ratings that evolve over time, predicting win probability and method with honest uncertainty, checked against the betting market.",
+    status: "Beta",
+    to: "/predictor",
+    text: "Pick any two fighters: win probability, how it ends (KO, submission, decision), a tale of the tape and their shared history.",
   },
 ];
 

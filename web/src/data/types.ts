@@ -122,3 +122,44 @@ export interface MmaMathData {
   fights: FightRow[];
   cycles: number[][]; // fight indices; each fight's loser is the next fight's winner
 }
+
+// ---- Fight predictor (written by ufc_embedded.train) ----
+
+export const PREDICTOR_SCHEMA_VERSION = 1;
+
+export interface PredictorFighter {
+  id: string; // same public id as the style map / MMA math
+  name: string;
+  weight_class: string;
+  last_fight: string;
+  record: FightRecord;
+  rank: number | null;
+  champion: string | null;
+  image: Photo | null;
+  elo: number;
+  x: number[]; // feature values, in win_model.inputs order
+}
+
+export interface PredictorData {
+  schema_version: number;
+  generated_at: string;
+  fights_until: string;
+  trained_until: string;
+  rankings_as_of: string;
+  validation: Record<string, Record<string, number>>;
+  feature_labels: Record<string, string>;
+  // P(A wins) = sigmoid(sum_i weights[i] * (a.x[i] - b.x[i]) / scale[i])
+  win_model: { inputs: string[]; weights: number[]; scale: number[] };
+  // P(method | winner) = softmax(coef . standardise([winner feats, loser feats, extras]) + intercept)
+  method_model: {
+    classes: string[];
+    winner_inputs: string[];
+    loser_inputs: string[];
+    extra_inputs: string[];
+    mean: number[];
+    scale: number[];
+    coef: number[][];
+    intercept: number[];
+  };
+  fighters: PredictorFighter[];
+}
