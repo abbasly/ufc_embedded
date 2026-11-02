@@ -11,6 +11,12 @@ import { FighterPanel } from "./FighterPanel";
 import { type ColorBy, type Dims, SHOW_OPTIONS, type Show, WEIGHT_CLASSES, colorOfGroup, groupOf, legend } from "./model";
 import { Scene } from "./Scene";
 
+// What the current layout is, shown next to the plot.
+const METHOD_NOTE: Record<LayoutId, string> = {
+  axes: "Style axes: each axis mixes a few stats into a grappling, striking or defence score",
+  similarity: "t-SNE: nearby means similar, the axes have no meaning",
+};
+
 export default function StyleMapPage() {
   const { data, error, isPending } = useStyleMap();
   const [params, setParams] = useSearchParams();
@@ -78,47 +84,40 @@ export default function StyleMapPage() {
             value={weightClasses}
             onChange={setWeightClasses}
           />
-          <div>
-            <Text size="sm" fw={500} mb={4}>Layout</Text>
-            <SegmentedControl
-              size={narrow ? "xs" : "sm"}
-              fullWidth
-              value={layout}
-              onChange={(v) => setLayout(v as LayoutId)}
-              data={data.layouts.map((l) => ({ value: l.id, label: l.label }))}
-            />
-          </div>
-          <Group grow>
-            <div>
-              <Text size="sm" fw={500} mb={4}>Colour by</Text>
-              <SegmentedControl
-              size={narrow ? "xs" : "sm"}
-                fullWidth
-                value={colorBy}
-                onChange={(v) => {
-                  setColorBy(v as ColorBy);
-                  setHiddenGroups([]); // legend groups differ per colouring
-                }}
-                data={[{ value: "style", label: "Style" }, { value: "weight_class", label: "Weight" }]}
-              />
-            </div>
-            <div>
-              <Text size="sm" fw={500} mb={4}>View</Text>
-              <SegmentedControl
-              size={narrow ? "xs" : "sm"}
-                fullWidth
-                value={String(dims)}
-                onChange={(v) => setDims(Number(v) as Dims)}
-                data={[{ value: "3", label: "3D" }, { value: "2", label: "2D" }]}
-              />
-            </div>
-          </Group>
           <LayoutInfo data={data} layout={layout} dims={dims} />
         </Stack>
       </Grid.Col>
 
       <Grid.Col span={{ base: 12, md: 6 }} order={{ base: 1, md: 2 }}>
-        <Paper withBorder pos="relative" h={{ base: "65vh", md: "calc(100vh - 110px)" }} style={{ overflow: "hidden" }}>
+        <Group justify="space-between" align="center" gap="xs" mb={6} wrap="wrap">
+          <Group gap="xs" wrap="wrap">
+            <SegmentedControl
+              size="xs"
+              value={layout}
+              onChange={(v) => setLayout(v as LayoutId)}
+              data={data.layouts.map((l) => ({ value: l.id, label: l.label }))}
+            />
+            <SegmentedControl
+              size="xs"
+              value={colorBy}
+              onChange={(v) => {
+                setColorBy(v as ColorBy);
+                setHiddenGroups([]); // legend groups differ per colouring
+              }}
+              data={[{ value: "style", label: "Colour: style" }, { value: "weight_class", label: "Colour: weight" }]}
+            />
+            <SegmentedControl
+              size="xs"
+              value={String(dims)}
+              onChange={(v) => setDims(Number(v) as Dims)}
+              data={[{ value: "3", label: "3D" }, { value: "2", label: "2D" }]}
+            />
+          </Group>
+          <Text size="xs" c="dimmed">
+            {METHOD_NOTE[layout]}
+          </Text>
+        </Group>
+        <Paper withBorder pos="relative" h={{ base: "65vh", md: "calc(100vh - 150px)" }} style={{ overflow: "hidden" }}>
           <ErrorBoundary
             fallback={
               <Center h="100%">
@@ -174,9 +173,6 @@ function LayoutInfo({ data, layout, dims }: { data: StyleMapData; layout: Layout
 
   return (
     <Stack gap={4}>
-      <Text size="xs" c="dimmed">
-        {meta.description}
-      </Text>
       {meta.interpretable &&
         data.axes.slice(0, dims).map((a) => (
           <Text key={a.label} size="xs" c="dimmed">

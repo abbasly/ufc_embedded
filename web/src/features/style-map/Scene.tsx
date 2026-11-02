@@ -27,7 +27,8 @@ interface Props {
 const RADIUS = 0.06;
 const SPIN_SPEED = 1.2; // OrbitControls units: 2 = one turn per 30 s, so ~50 s per turn
 const SPIN_RESUME_MS = 3000; // start spinning again after this long without interaction
-const CAMERA: Record<Dims, Vec3> = { 3: [8, 6, 10.5], 2: [0, 0, 13] };
+const CAMERA: Record<Dims, Vec3> = { 3: [9.6, 7.2, 12.6], 2: [0, 0, 14] };
+const PORTRAIT_ZOOM_OUT = 1.4;
 const HIT_SCALE = 2.5;
 const noRaycast = () => null;
 const AXIS_LENGTH = 4.5;
@@ -180,16 +181,22 @@ function useIdleSpin() {
   return { on: idle && !reduceMotion, pause, resumeLater };
 }
 
-/** Put the camera back to its default view whenever the layout or 2D/3D changes. */
+/**
+ * Put the camera back to its default view whenever the layout or 2D/3D changes.
+ * Tall, narrow plots (phones) start further back so the sides aren't cropped.
+ */
 function CameraReset({ resetKey, dims }: { resetKey: string; dims: Dims }) {
-  const { camera, controls } = useThree();
+  const { camera, controls, size } = useThree();
+  const portrait = size.width < size.height;
   useEffect(() => {
-    camera.position.set(...CAMERA[dims]);
+    const back = portrait ? PORTRAIT_ZOOM_OUT : 1;
+    const [x, y, z] = CAMERA[dims];
+    camera.position.set(x * back, y * back, z * back);
     camera.lookAt(0, 0, 0);
     const orbit = controls as unknown as { target?: { set: (x: number, y: number, z: number) => void }; update?: () => void } | null;
     orbit?.target?.set(0, 0, 0);
     orbit?.update?.();
-  }, [resetKey, dims, camera, controls]);
+  }, [resetKey, dims, camera, controls, portrait]);
   return null;
 }
 
