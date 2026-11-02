@@ -1,4 +1,4 @@
-import { Anchor, AppShell, Badge, Button, Center, Group, Loader, Text, Title } from "@mantine/core";
+import { Anchor, AppShell, Button, Center, Group, Loader, Text, Title } from "@mantine/core";
 import { Suspense, lazy, useEffect } from "react";
 import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 
@@ -11,11 +11,11 @@ const PredictorPage = lazy(() => import("../features/predictor/PredictorPage"));
 const LadderPage = lazy(() => import("../features/ladder/LadderPage"));
 
 // `short` labels are used on phones so all tabs fit next to the logo.
-const NAV: { to: string; label: string; short?: string; beta?: boolean }[] = [
+const NAV: { to: string; label: string; short?: string }[] = [
   { to: "/", label: "Style Map", short: "Map" },
-  { to: "/mma-math", label: "MMA Math", short: "Math" },
-  { to: "/predictor", label: "Predictor", short: "Predict", beta: true },
+  { to: "/predictor", label: "Predictor", short: "Predict" },
   { to: "/ladder", label: "Ladder" },
+  { to: "/mma-math", label: "MMA Math", short: "Math" },
   { to: "/about", label: "About" },
 ];
 
@@ -56,14 +56,6 @@ export function App() {
                 color={pathname === item.to ? "red" : "gray"}
                 size="compact-sm"
                 px={{ base: 6, sm: "sm" }}
-                rightSection={
-                  item.beta && (
-                    // Too wide for the phone header; desktop only.
-                    <Badge size="xs" variant={pathname === item.to ? "white" : "light"} color="red" px={4} visibleFrom="xs">
-                      Beta
-                    </Badge>
-                  )
-                }
               >
                 {item.short ? (
                   <>

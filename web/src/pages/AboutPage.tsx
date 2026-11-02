@@ -1,65 +1,49 @@
-import { Anchor, Badge, Button, Card, Container, Group, List, SimpleGrid, Stack, Text, Title } from "@mantine/core";
+import { Anchor, Card, Container, Group, List, SimpleGrid, Stack, Text, Title } from "@mantine/core";
 import { Link } from "react-router-dom";
 
 interface Product {
   title: string;
-  status: string;
-  to?: string; // live features link to their page
+  to: string;
   text: string;
 }
 
+// Same order as the navigation bar.
 const PRODUCTS: Product[] = [
   {
     title: "Style Map",
-    status: "Live",
     to: "/",
-    text: "Every active UFC fighter placed in 3D by how they fight. Similar styles sit close together; click a fighter for their record, stats and closest look-alikes.",
+    text: "Every active UFC fighter placed in 3D by how they fight. Similar styles sit close together; click a fighter for their card, stats and closest look-alikes.",
   },
   {
-    title: "MMA Math",
-    status: "Live",
-    to: "/mma-math",
-    text: 'Loops of fighters who beat each other in a circle, plus a calculator that "proves" anyone beats anyone.',
+    title: "Fight Predictor",
+    to: "/predictor",
+    text: "Pick any two fighters: win probability, how it ends (KO, submission, decision), a tale of the tape and their shared history.",
   },
   {
     title: "Elo Ladder",
-    status: "Live",
     to: "/ladder",
     text: "Every fighter rated chess-style from every UFC fight since 1994, next to their official rank, with the year's biggest climbers and drops.",
   },
   {
-    title: "Fight Predictor",
-    status: "Beta",
-    to: "/predictor",
-    text: "Pick any two fighters: win probability, how it ends (KO, submission, decision), a tale of the tape and their shared history.",
+    title: "MMA Math",
+    to: "/mma-math",
+    text: 'Loops of fighters who beat each other in a circle, plus a calculator that "proves" anyone beats anyone.',
   },
 ];
 
+/** The whole card links to the feature's page. */
 function ProductCard({ p }: { p: Product }) {
-  const body = (
-    <>
-      <Group justify="space-between" mb="xs">
-        <Text fw={600}>{p.title}</Text>
-        <Badge variant={p.to ? "filled" : "light"} color={p.to ? "red" : "gray"}>
-          {p.status}
-        </Badge>
-      </Group>
+  return (
+    <Card withBorder padding="lg" component={Link} to={p.to}>
+      <Text fw={600} mb="xs">
+        {p.title}
+      </Text>
       <Text size="sm" c="dimmed">
         {p.text}
       </Text>
-    </>
-  );
-  // Live features: the whole card is a link to the page.
-  return p.to ? (
-    <Card withBorder padding="lg" component={Link} to={p.to}>
-      {body}
       <Text size="sm" c="red" mt="sm" fw={500}>
         Open {p.title} →
       </Text>
-    </Card>
-  ) : (
-    <Card withBorder padding="lg" style={{ opacity: 0.75 }}>
-      {body}
     </Card>
   );
 }
@@ -74,14 +58,6 @@ export function AboutPage() {
             A personal ML engineering project: fighter statistics turned into interactive, explorable
             models. Fun on the surface, with careful modelling underneath.
           </Text>
-          <Group mt="sm">
-            <Button component={Link} to="/" size="md">
-              Explore the style map
-            </Button>
-            <Button component={Link} to="/mma-math" size="md" variant="light">
-              Try MMA math
-            </Button>
-          </Group>
         </Stack>
 
         <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }}>
@@ -117,6 +93,56 @@ export function AboutPage() {
             <List.Item>
               K-means for style groups; "most similar fighters" are nearest neighbours in the full
               8-stat space, not on the map.
+            </List.Item>
+          </List>
+        </Stack>
+
+        <Stack gap="xs">
+          <Group justify="space-between">
+            <Title order={3}>How the predictor works</Title>
+            <Anchor component={Link} to="/predictor" size="sm">
+              Open the predictor →
+            </Anchor>
+          </Group>
+          <List spacing="xs">
+            <List.Item>
+              Every feature is rebuilt from fights <i>before</i> the one being predicted, so the model
+              never sees the result it's predicting (a test checks this).
+            </List.Item>
+            <List.Item>
+              Per fighter: career stats, recent form (the last few fights count most), age, reach,
+              experience, a Glicko rating that knows how sure it is, and the strength of past
+              opponents.
+            </List.Item>
+            <List.Item>
+              A logistic regression on the differences between the two fighters gives the win
+              chance; a second model gives KO / submission / decision given who wins. Gradient
+              boosting was tried and did worse.
+            </List.Item>
+            <List.Item>
+              Trained on fights up to 2023 and checked year by year: it picks about 62–65% of
+              winners, against about 66–69% for the betting market, which knows about injuries,
+              camps and short notice.
+            </List.Item>
+          </List>
+        </Stack>
+
+        <Stack gap="xs">
+          <Group justify="space-between">
+            <Title order={3}>How the Elo ladder works</Title>
+            <Anchor component={Link} to="/ladder" size="sm">
+              Open the ladder →
+            </Anchor>
+          </Group>
+          <List spacing="xs">
+            <List.Item>Everyone starts at 1500 and every UFC fight since 1994 is replayed in order.</List.Item>
+            <List.Item>
+              The winner takes points from the loser; beating someone rated higher moves more points
+              than an expected win. How fast ratings move is tuned on past results.
+            </List.Item>
+            <List.Item>
+              One ladder across all divisions, next to the official UFC ranking, with the biggest
+              climbers and drops over the last 12 months.
             </List.Item>
           </List>
         </Stack>
