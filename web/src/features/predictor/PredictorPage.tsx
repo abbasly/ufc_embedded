@@ -24,6 +24,8 @@ import type { MmaMathData, PredictorData, PredictorFighter } from "../../data/ty
 import { GOLD } from "../style-map/model";
 import { FighterTradingCard } from "./FighterTradingCard";
 import { commonOpponents, contributions, headToHead, outcomes, winProb } from "./model";
+import { useCountUp } from "./useCountUp";
+import "./Verdict.css";
 
 const DEFAULT = ["islam-makhachev", "ilia-topuria"];
 const METHOD_ICON: Record<string, string> = { "KO/TKO": "💥", SUB: "🔒", DEC: "⚖️" };
@@ -87,7 +89,7 @@ export default function PredictorPage() {
           </Grid.Col>
           <Grid.Col span={{ base: 12, md: 4 }}>
             <Stack h="100%" justify="center" gap="md" py="md">
-              {a && b && a.id !== b.id && <Verdict data={data} a={a} b={b} />}
+              {a && b && a.id !== b.id && <Verdict key={`${a.id}-${b.id}`} data={data} a={a} b={b} />}
               <Center>
                 <Tooltip label="Swap corners" withArrow>
                   <ActionIcon variant="light" size="lg" onClick={() => setParams({ a: bId, b: aId }, { replace: true })} aria-label="Swap fighters">
@@ -152,49 +154,62 @@ function FighterCard({ fighter, options, value: id, onChange }: CardProps) {
 const methodName = (m: string) => ({ "KO/TKO": "KO/TKO", SUB: "submission", DEC: "decision" })[m] ?? m;
 
 /** The headline, between the two cards: win probabilities and the single most likely outcome. */
+const FILL_MS = 1100;
+
 function Verdict({ data, a, b }: { data: PredictorData; a: PredictorFighter; b: PredictorFighter }) {
   const pA = winProb(data.win_model, a, b);
   const best = outcomes(data, a, b)[0]!;
   const bestColor = best.winner.id === a.id ? A_COLOR : B_COLOR;
+  // Both sides count up from 0 and the bar fills in from each end until they meet.
+  const t = useCountUp(`${a.id}-${b.id}`, FILL_MS);
   return (
     <Stack gap="sm">
       <Group justify="space-between" align="flex-end" wrap="nowrap">
-        <Text fw={800} fz={40} lh={1} c={A_COLOR}>
-          {Math.round(pA * 100)}%
+        <Text fw={800} fz={40} lh={1} c={A_COLOR} style={{ fontVariantNumeric: "tabular-nums" }}>
+          {Math.round(pA * 100 * t)}%
         </Text>
         <Text size="xs" tt="uppercase" fw={700} c="dimmed" ta="center" style={{ letterSpacing: 1 }}>
           Win chance
         </Text>
-        <Text fw={800} fz={40} lh={1} c={B_COLOR}>
-          {Math.round((1 - pA) * 100)}%
+        <Text fw={800} fz={40} lh={1} c={B_COLOR} style={{ fontVariantNumeric: "tabular-nums" }}>
+          {Math.round((1 - pA) * 100 * t)}%
         </Text>
       </Group>
-      <Progress.Root size={12}>
-        <Progress.Section value={pA * 100} color={A_COLOR} />
-        <Progress.Section value={(1 - pA) * 100} color={B_COLOR} />
+      <Progress.Root size={12} transitionDuration={0}>
+        <Progress.Section value={pA * 100 * t} color={A_COLOR} />
+        <Progress.Section value={100 * (1 - t)} color="transparent" />
+        <Progress.Section value={(1 - pA) * 100 * t} color={B_COLOR} />
       </Progress.Root>
       <Paper
+        className="verdict-box"
         p="md"
         radius="md"
         ta="center"
+        pos="relative"
         bg={best.winner.id === a.id ? "rgba(250, 82, 82, 0.12)" : "rgba(34, 139, 230, 0.12)"}
-        style={{ border: `2px solid var(--mantine-color-${bestColor.replace(".", "-")})` }}
+        style={{
+          border: `2px solid var(--mantine-color-${bestColor.replace(".", "-")})`,
+          ["--reveal-delay" as string]: `${FILL_MS * 0.8}ms`,
+          ["--verdict-glow" as string]: `var(--mantine-color-${bestColor.replace(".", "-")})`,
+        }}
       >
         <Text size="xs" tt="uppercase" fw={700} c="dimmed" style={{ letterSpacing: 1 }}>
           Most likely outcome
         </Text>
         <Text fz={30} lh={1.2} mt={6}>
-          {METHOD_ICON[best.method]}
+          <span className="verdict-icon">{METHOD_ICON[best.method]}</span>
         </Text>
-        <Text fz={22} fw={800} lh={1.2}>
+        <Text className="verdict-name" fz={22} fw={800} lh={1.2}>
           {best.winner.name}
         </Text>
-        <Text fz={16} fw={700}>
-          by {methodName(best.method)}
-        </Text>
-        <Text size="sm" c="dimmed" mt={4}>
-          {Math.round(best.p * 100)}% chance
-        </Text>
+        <div className="verdict-rest">
+          <Text fz={16} fw={700}>
+            by {methodName(best.method)}
+          </Text>
+          <Text size="sm" c="dimmed" mt={4}>
+            {Math.round(best.p * 100)}% chance
+          </Text>
+        </div>
       </Paper>
     </Stack>
   );
