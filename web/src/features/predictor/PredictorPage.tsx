@@ -28,6 +28,8 @@ import { styleLabel } from "./TradingCard";
 import { commonOpponents, contributions, headToHead, outcomes, sharedRecord, winProb } from "./model";
 import { canFight, defaultOpponent } from "./matchup";
 import { OutcomeReveal } from "./OutcomeReveal";
+import { UpcomingTicker } from "./Upcoming";
+import { pairKey, upcomingCards } from "./upcomingCards";
 import { useCountUp } from "./useCountUp";
 import "./Chapters.css";
 import "./Verdict.css";
@@ -79,6 +81,12 @@ export default function PredictorPage() {
     [data],
   );
   const toOption = (f: PredictorFighter) => ({ value: f.id, label: f.name });
+  // Upcoming cards (future dates only) and the set of booked pairs among them.
+  const cards = useMemo(() => (data ? upcomingCards(data, new Date().toLocaleDateString("en-CA")) : []), [data]);
+  const booked = useMemo(
+    () => new Set(cards.flatMap((c) => c.bouts.filter((x) => x.a && x.b).map((x) => pairKey(x.a!, x.b!)))),
+    [cards],
+  );
 
   if (isPending) return <Center h="60vh"><Loader /></Center>;
   if (error) return <Alert color="red" title="Could not load the predictor">{error.message}</Alert>;
@@ -87,8 +95,10 @@ export default function PredictorPage() {
   const a = byId.get(aId);
   // B must be a realistic opponent for A (see matchup.ts); otherwise suggest one.
   const asked = byId.get(params.get("b") ?? DEFAULT[1]!);
-  const b =
-    a && (!asked || !canFight(a.weight_class, asked.weight_class)) ? (defaultOpponent(a, sorted) ?? asked) : asked;
+  // Booked fights are always allowed, even across the usual gender / division limits.
+  const fits = (x: PredictorFighter, y: PredictorFighter) =>
+    canFight(x.weight_class, y.weight_class) || booked.has(pairKey(x.id, y.id));
+  const b = a && (!asked || !fits(a, asked)) ? (defaultOpponent(a, sorted) ?? asked) : asked;
   const bId = b?.id ?? "";
   const options = sorted.map(toOption);
   // A can be anyone; B only lists realistic opponents for A (same gender, at most one
@@ -96,6 +106,10 @@ export default function PredictorPage() {
   const allowed = a ? sorted.filter((f) => f.id !== a.id && canFight(a.weight_class, f.weight_class)) : [];
   // Nobody fits (a fighter with no known division): don't leave the list empty.
   const bOptions = allowed.length ? allowed.map(toOption) : options;
+  const pickFight = (x: string, y: string) => {
+    setParams({ a: x, b: y }, { replace: true });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
   const set = (side: "a" | "b", id: string | null) => {
     const picked = id ? byId.get(id) : undefined;
     if (!picked) return;
@@ -103,8 +117,7 @@ export default function PredictorPage() {
       setParams({ a: aId, b: picked.id }, { replace: true });
       return;
     }
-    const fits = b && b.id !== picked.id && canFight(picked.weight_class, b.weight_class);
-    const opponent = fits ? b : defaultOpponent(picked, sorted);
+    const opponent = b && b.id !== picked.id && fits(picked, b) ? b : defaultOpponent(picked, sorted);
     setParams({ a: picked.id, b: opponent?.id ?? bId }, { replace: true });
   };
 
@@ -125,7 +138,12 @@ export default function PredictorPage() {
   // Two chapters revealed by scrolling (see Chapters.css): the fight, then the analysis.
   return (
     <>
-      <Box component="section" className="chapter" pos="relative" ref={fightRef}>
+      <Box component="section" className="chapter" pos="relative" ref={fightRef} pt={cards.length ? 62 : undefined}>
+        {cards.length > 0 && (
+          <Box pos="absolute" top={0} left={0} right={0} style={{ zIndex: 2 }} data-content>
+            <UpcomingTicker cards={cards} onPick={pickFight} />
+          </Box>
+        )}
         {/* Punchable heavy bags in the empty space either side of the fight (wide screens only). */}
         {wide && (
           <Suspense fallback={null}>
@@ -134,7 +152,6 @@ export default function PredictorPage() {
         )}
         <Container size={fightWidth ?? "lg"} w="100%" pos="relative" style={{ zIndex: 1 }}>
         <Stack gap="md" className={matchup ? "chapter-leave" : undefined}>
-          <Title order={2} data-content style={{ alignSelf: "flex-start" }}>Fight predictor</Title>
           <Grid align="stretch">
             <Grid.Col span={{ base: 12, md: 3.75 }}>
               <FighterCard fighter={a} options={options} value={aId} onChange={(v) => set("a", v)} />

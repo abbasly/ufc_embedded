@@ -164,4 +164,22 @@ export interface PredictorData {
     intercept: number[];
   };
   fighters: PredictorFighter[];
+  // Upcoming UFC cards from bookmakers' listings (added after schema 2; absent in old files).
+  upcoming?: UpcomingCard[];
+}
+
+export interface UpcomingFight {
+  a: string | null; // public fighter id, null for fighters we have no data on (debutants)
+  b: string | null;
+  a_name: string;
+  b_name: string;
+  p_market: number | null; // bookmakers' vig-free P(A wins)
+  main?: boolean; // the bout the event is named after
+}
+
+export interface UpcomingCard {
+  date: string; // yyyy-mm-dd
+  name?: string | null; // "UFC 335: Oliveira vs. Lopes" (from Wikipedia), if known
+  city?: string | null;
+  fights: UpcomingFight[];
 }

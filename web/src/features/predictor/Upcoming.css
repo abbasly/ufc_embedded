@@ -1,0 +1,116 @@
+/* The upcoming-fights ticker: a broadcast-style strip with a fixed red "UPCOMING" label on
+   the left. Scrolling is driven from Upcoming.tsx (auto-scroll, slower on hover, manual). */
+
+.ticker {
+  display: flex;
+  align-items: stretch;
+  height: 38px;
+  overflow: hidden;
+  border-block: 1px solid rgba(255, 255, 255, 0.07);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.25));
+  font-size: 13px;
+}
+
+.ticker-label {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 0 22px 0 14px;
+  background: linear-gradient(135deg, #ff4d4d, #c92a2a);
+  color: #fff;
+  font-weight: 900;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%);
+  z-index: 1;
+}
+
+.ticker-window {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+  /* Fade the fights in and out at the edges. */
+  mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+}
+
+.ticker-window::-webkit-scrollbar {
+  display: none;
+}
+
+.ticker-track {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  height: 100%;
+}
+.ticker-copy {
+  display: flex;
+  align-items: center;
+}
+
+/* Event name and date at the start of each card: "UFC 334 · SAT 14 NOV". */
+.ticker-event {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 6px 0 22px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(255, 77, 77, 0.15);
+  color: #ff8787;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.ticker-event b {
+  color: #fff;
+  font-weight: 900;
+}
+
+.ticker-fight {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 4px;
+  padding: 3px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--mantine-color-text);
+  font: inherit;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+button.ticker-fight:hover,
+button.ticker-fight:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+  outline: none;
+}
+.ticker-vs {
+  color: var(--mantine-color-dimmed);
+  font-weight: 400;
+  font-size: 11px;
+}
+.ticker-pick {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--mantine-color-dimmed);
+  font-size: 11px;
+  font-weight: 600;
+}
+.ticker-off {
+  cursor: default;
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-window { scrollbar-width: thin; }
+}

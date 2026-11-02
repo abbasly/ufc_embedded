@@ -48,7 +48,8 @@ bookmakers, via Kaggle). Works on desktop and phone; fully static, hosted free o
   view; filter by style, weight class, champions or ranked fighters.
 - **[Fight Predictor](https://abbasly.github.io/ufc_embedded/predictor)**: pick two fighters for the win chance and the most
   likely outcome (who, and by KO / submission / decision), what drives the call, past meetings
-  and common opponents, and a tale of the tape.
+  and common opponents, and a tale of the tape. Upcoming UFC cards scroll past in a ticker
+  (from bookmakers' listings); click a fight to load it, with our pick next to the bookies'.
 - **[Elo Ladder](https://abbasly.github.io/ufc_embedded/ladder)**: every fighter rated chess-style from every UFC fight since 1994,
   next to their official rank, with the year's biggest climbers and drops.
 - **[MMA Math](https://abbasly.github.io/ufc_embedded/mma-math)**: loops of fighters who beat each other in a circle, and a
