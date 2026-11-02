@@ -123,3 +123,26 @@ export function commonOpponents(
     .filter((o) => rb.has(o) && o !== a && o !== b)
     .map((o) => ({ name: mma.fighters[o]!.name, a: ra.get(o)!, b: rb.get(o)! }));
 }
+
+export interface RecentResult {
+  result: "W" | "L";
+  opponent: string;
+  method: string;
+  year: string;
+}
+
+/** A fighter's last `n` decisive UFC fights, most recent first. */
+export function recentResults(mma: MmaMathData, id: string, n = 5): RecentResult[] {
+  const me = mma.fighters.findIndex((f) => f.id === id);
+  if (me < 0) return [];
+  return mma.fights
+    .filter(([w, l]) => w === me || l === me)
+    .slice(-n)
+    .reverse()
+    .map(([w, l, date, method]) => ({
+      result: w === me ? "W" : "L",
+      opponent: mma.fighters[w === me ? l : w]!.name,
+      method,
+      year: date.slice(0, 4),
+    }));
+}

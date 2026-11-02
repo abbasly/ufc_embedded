@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { MmaMathData, PredictorData, PredictorFighter } from "../../data/types";
-import { commonOpponents, headToHead, methodProbs, outcomes, winProb } from "./model";
+import { commonOpponents, headToHead, methodProbs, outcomes, recentResults, winProb } from "./model";
 
 const fighter = (id: string, x: number[], weight_class = "Lightweight"): PredictorFighter => ({
   id,
@@ -68,6 +68,14 @@ describe("matchup notes", () => {
 
   it("finds earlier fights between the two", () => {
     expect(headToHead(mma, "b", "a")).toEqual([{ winnerId: "a", date: "2020-01-01", method: "KO/TKO", round: 1 }]);
+  });
+
+  it("lists recent results newest first", () => {
+    expect(recentResults(mma, "a", 2)).toEqual([
+      { result: "W", opponent: "C", method: "U-DEC", year: "2022" },
+      { result: "W", opponent: "B", method: "KO/TKO", year: "2020" },
+    ]);
+    expect(recentResults(mma, "c").map((r) => r.result)).toEqual(["L", "L"]);
   });
 
   it("finds common opponents with both results", () => {
