@@ -3,6 +3,7 @@ import { Suspense, lazy, useEffect } from "react";
 import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import { AboutPage } from "../pages/AboutPage";
+import "./NewBadge.css";
 
 // Each product is its own lazily loaded feature, so heavy deps (three.js) only load where used.
 const StyleMapPage = lazy(() => import("../features/style-map/StyleMapPage"));
@@ -10,10 +11,11 @@ const MmaMathPage = lazy(() => import("../features/mma-math/MmaMathPage"));
 const PredictorPage = lazy(() => import("../features/predictor/PredictorPage"));
 const LadderPage = lazy(() => import("../features/ladder/LadderPage"));
 
-// `short` labels are used on phones so all tabs fit next to the logo.
-const NAV: { to: string; label: string; short?: string }[] = [
+// `short` labels are used on phones so all tabs fit next to the logo; `fresh` tabs get a
+// "NEW" tag.
+const NAV: { to: string; label: string; short?: string; fresh?: boolean }[] = [
   { to: "/", label: "Style Map", short: "Map" },
-  { to: "/predictor", label: "Predictor", short: "Predict" },
+  { to: "/predictor", label: "Predictor", short: "Predict", fresh: true },
   { to: "/ladder", label: "Ladder" },
   { to: "/mma-math", label: "MMA Math", short: "Math" },
   { to: "/about", label: "About" },
@@ -56,7 +58,16 @@ export function App() {
                 color={pathname === item.to ? "red" : "gray"}
                 size="compact-sm"
                 px={{ base: 6, sm: "sm" }}
+                style={item.fresh ? { overflow: "visible" } : undefined}
               >
+                {item.fresh && (
+                  <>
+                    <Text span className="nav-new" visibleFrom="xs">
+                      NEW
+                    </Text>
+                    <Text span className="nav-new-dot" hiddenFrom="xs" />
+                  </>
+                )}
                 {item.short ? (
                   <>
                     <Text span inherit visibleFrom="xs">

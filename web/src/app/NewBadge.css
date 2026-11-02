@@ -1,0 +1,44 @@
+/* "NEW" tag pinned to a nav tab's corner: a hot gradient that pulses. Phones get a
+   glowing dot instead (the tabs are tight there). */
+
+.nav-new {
+  position: absolute;
+  top: -7px;
+  right: -9px;
+  z-index: 1;
+  padding: 1px 5px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  color: #fff;
+  background: linear-gradient(135deg, #ff9f43, #ff3b3b 60%, #e0218a);
+  box-shadow: 0 0 0 0 rgba(255, 70, 70, 0.6);
+  animation: new-pulse 2s ease-out infinite;
+  pointer-events: none;
+}
+.nav-new-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ff3b3b;
+  animation: new-pulse 2s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes new-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 70, 70, 0.6); }
+  70% { box-shadow: 0 0 0 7px rgba(255, 70, 70, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 70, 70, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-new,
+  .nav-new-dot {
+    animation: none;
+  }
+}
