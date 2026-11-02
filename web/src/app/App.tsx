@@ -1,5 +1,5 @@
 import { Anchor, AppShell, Badge, Button, Center, Group, Loader, Text, Title } from "@mantine/core";
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
 
 import { AboutPage } from "../pages/AboutPage";
@@ -17,8 +17,18 @@ const NAV: { to: string; label: string; short?: string; beta?: boolean }[] = [
   { to: "/about", label: "About" },
 ];
 
+// Browser tab titles; keep in sync with scripts/route-previews.mjs.
+const TITLES: Record<string, string> = {
+  "/mma-math": "UFC Embedded: MMA math",
+  "/predictor": "UFC Embedded: fight predictor",
+  "/about": "UFC Embedded: about",
+};
+
 export function App() {
   const { pathname } = useLocation();
+  useEffect(() => {
+    document.title = TITLES[pathname.replace(/\/$/, "")] ?? "UFC Embedded";
+  }, [pathname]);
 
   return (
     <AppShell header={{ height: 56 }} padding={{ base: "xs", sm: "md" }}>

@@ -79,8 +79,8 @@ export default function PredictorPage() {
 
   return (
     <Container size="lg" py="md">
-      <Stack gap="lg">
-        <Title order={1}>Fight predictor</Title>
+      <Stack gap="md">
+        <Title order={2}>Fight predictor</Title>
 
         <Grid align="stretch">
           <Grid.Col span={{ base: 12, sm: 5.5 }}>
