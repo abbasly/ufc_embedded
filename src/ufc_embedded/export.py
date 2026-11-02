@@ -272,7 +272,7 @@ def main() -> None:
 
     edges = win_edges(fights)
     in_graph = sorted(set(edges["winner"]) | set(edges["loser"]))
-    mma = mma_math_payload(edges, profiles, ids, champions, photos_by_id(profiles, in_graph))
+    mma = mma_math_payload(edges, profiles, ids, champions, photos_by_id(profiles, in_graph), ranks)
     write_json(mma, WEB_DATA_DIR / "mma_math.json")
     print(f"wrote {len(mma['cycles'])} MMA math cycles (giant loop: {mma['giant_loop_size']})")
 

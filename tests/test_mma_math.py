@@ -63,7 +63,8 @@ def test_finds_the_cycle_and_rotates_to_most_famous() -> None:
 
 def test_payload_cycle_is_a_chain_of_fights() -> None:
     edges = win_edges(make_fights())
-    payload = mma_math_payload(edges, PROFILES, {n: n.lower() for n in "ABCD"})
+    payload = mma_math_payload(edges, PROFILES, {n: n.lower() for n in "ABCD"}, ranks={"B": 4})
+    assert [f["rank"] for f in payload["fighters"]] == [None, 4, None, None]
     assert payload["fighters"][3]["record"] == {"wins": 2, "losses": 1, "draws": 1}
     fights = payload["fights"]
     (cycle,) = payload["cycles"]

@@ -99,14 +99,17 @@ def mma_math_payload(
     ids: dict[str, str],
     champions: list[Champion] | None = None,
     photos: dict[str, Photo] | None = None,
+    ranks: dict[str, int] | None = None,
 ) -> dict[str, Any]:
     """JSON for the MMA math page.
 
     ``edges`` and ``profiles`` use UFCStats fighter ids; ``ids`` maps them to the public
-    ids shared with the style map. ``photos`` is keyed by fighter id.
+    ids shared with the style map. ``photos`` and ``ranks`` (current divisional rank, 0 =
+    champion) are keyed by fighter id.
     """
     champions = champions or []
     photos = photos or {}
+    ranks = ranks or {}
     graph = win_graph(edges)
     fame_of = fame(edges, [c["fighter"] for c in champions if c["fighter"]])
     cycles = rank_cycles(find_cycles(graph), fame_of)
@@ -125,7 +128,7 @@ def mma_math_payload(
     ]
 
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "fights_until": rows[-1]["date"].date().isoformat(),
         "giant_loop_size": len(giant),
         "fighters": [
@@ -134,6 +137,7 @@ def mma_math_payload(
                 "name": str(profiles.at[f, "name"]),
                 "record": record[f],
                 "champion": belt.get(f),
+                "rank": ranks.get(f),
                 "image": photos.get(f),
             }
             for f in fighter_ids
