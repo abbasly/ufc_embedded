@@ -15,9 +15,10 @@ import {
   Physics,
   type RapierRigidBody,
   RigidBody,
-  useRopeJoint,
+  useBeforePhysicsStep,
+  useRapier,
 } from "@react-three/rapier";
-import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
+import { type RefObject, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
 import { bagProfile, leatherTexture } from "./leather";
@@ -48,15 +49,28 @@ interface Hit {
   power: number;
 }
 
-/** The rope: a maximum distance between the ceiling mount and the bag's strap ring, so
- *  the bag swings and spins freely below it and can't be pulled away. */
-function Rope({ a, b }: { a: RefObject<RapierRigidBody | null>; b: RefObject<RapierRigidBody | null> }) {
-  useRopeJoint(a as RefObject<RapierRigidBody>, b as RefObject<RapierRigidBody>, [
-    [0, 0, 0],
-    [0, TOP + STRAP_RISE, 0],
-    ROPE,
-  ]);
-  return null;
+/** The rope: a maximum distance between the ceiling mount and the bag's strap ring, so the
+ *  bag swings and spins freely below it and can't be pulled away. Created on the first frame
+ *  both bodies exist (the library's useRopeJoint skips it if they're registered a moment
+ *  later, and the bag would fall out of view until something re-rendered). */
+type ImpulseJoint = ReturnType<ReturnType<typeof useRapier>["world"]["createImpulseJoint"]>;
+
+function useRope(a: RefObject<RapierRigidBody | null>, b: RefObject<RapierRigidBody | null>) {
+  const { world, rapier } = useRapier();
+  const joint = useRef<ImpulseJoint | null>(null);
+  useBeforePhysicsStep(() => {
+    if (joint.current || !a.current || !b.current) return;
+    const data = rapier.JointData.rope(ROPE, { x: 0, y: 0, z: 0 }, { x: 0, y: TOP + STRAP_RISE, z: 0 });
+    joint.current = world.createImpulseJoint(data, a.current, b.current, true);
+  });
+  useEffect(
+    () => () => {
+      const j = joint.current;
+      joint.current = null;
+      if (j && world.getImpulseJoint(j.handle)) world.removeImpulseJoint(j, true);
+    },
+    [world],
+  );
 }
 
 /** Whether a pointer event landed on the background rather than on the page's content. */
@@ -71,6 +85,7 @@ interface BagProps {
 function Bag({ x, onPunch, pointerSpeed }: BagProps) {
   const anchor = useRef<RapierRigidBody>(null);
   const bag = useRef<RapierRigidBody>(null);
+  useRope(anchor, bag);
   const rope = useRef<THREE.Mesh>(null);
   const strand = useMemo(
     () => new VerletRope(new THREE.Vector3(x, ANCHOR_Y, 0), new THREE.Vector3(x, ANCHOR_Y - ROPE, 0), ROPE),
@@ -196,8 +211,6 @@ function Bag({ x, onPunch, pointerSpeed }: BagProps) {
         </group>
       </RigidBody>
 
-      <Rope a={anchor} b={bag} />
-
       <Billboard>
         <mesh ref={ring} visible={false}>
           <ringGeometry args={[0.08, 0.11, 40]} />
@@ -217,6 +230,7 @@ function Scene({ at, onPunch, pointerSpeed }: { at: number[]; onPunch: (power: n
   const fov = THREE.MathUtils.degToRad((camera as THREE.PerspectiveCamera).fov);
   const width = 2 * CAMERA_Z * Math.tan(fov / 2) * (size.width / size.height);
   const xs = at.map((a) => (a - 0.5) * width);
+  const measured = size.width > 0 && size.height > 0;
 
   useFrame((state) => {
     const h = lastHit.current;
@@ -226,6 +240,8 @@ function Scene({ at, onPunch, pointerSpeed }: { at: number[]; onPunch: (power: n
     state.camera.position.y = 1.25 + Math.cos(t * 75) * shake;
   });
 
+  // Before the canvas has a size the bags' positions aren't numbers yet: wait for it.
+  if (!measured) return null;
   return (
     // Re-created on resize, so the bags (fixed in the physics world) move with the layout.
     <Physics key={xs.map((x) => x.toFixed(2)).join()} gravity={[0, -9.81, 0]}>
@@ -247,6 +263,7 @@ function Scene({ at, onPunch, pointerSpeed }: { at: number[]; onPunch: (power: n
 /** Heavy bags behind `eventSource`, hanging at the given shares of its width. */
 export default function HeavyBag({ eventSource, at }: { eventSource: RefObject<HTMLElement | null>; at: number[] }) {
   const [punched, setPunched] = useState(false);
+  const [ready, setReady] = useState(false);
   const [sound, setSound] = useState(true);
   // Recent pointer positions, to measure how fast the pointer was moving into a punch.
   const trail = useRef<{ x: number; y: number; t: number }[]>([]);
@@ -276,26 +293,52 @@ export default function HeavyBag({ eventSource, at }: { eventSource: RefObject<H
 
   return (
     <>
-      <Box pos="absolute" inset={0} style={{ zIndex: 0, pointerEvents: "none" }} aria-hidden>
+      {/* Fades in once the scene is up, rather than popping in. */}
+      <Box
+        pos="absolute"
+        inset={0}
+        style={{ zIndex: 0, pointerEvents: "none", opacity: ready ? 1 : 0, transition: "opacity 0.8s ease-out" }}
+        aria-hidden
+      >
         <Canvas
           shadows
           eventSource={eventSource as RefObject<HTMLElement>}
-          eventPrefix="client"
+          // Measure on resize only. With scroll tracking on, the measuring waits for scrolling
+          // to pause for 50 ms; the upcoming-fights ticker scrolls every frame, so the canvas
+          // never got its size and the bags only appeared once the tab was hidden.
+          resize={{ scroll: false }}
           style={{ pointerEvents: "none" }}
           camera={{ position: [0, 1.25, CAMERA_Z], fov: 34 }}
-          onCreated={({ camera }) => camera.lookAt(0, 1.2, 0)}
+          onCreated={({ camera, setEvents }) => {
+            camera.lookAt(0, 1.2, 0);
+            // Pointer position from the canvas's live position, so punches land right however
+            // far the page is scrolled (the size above isn't updated on scroll).
+            setEvents({
+              compute: (event, state) => {
+                const r = state.gl.domElement.getBoundingClientRect();
+                state.pointer.set(((event.clientX - r.left) / r.width) * 2 - 1, -((event.clientY - r.top) / r.height) * 2 + 1);
+                state.raycaster.setFromCamera(state.pointer, state.camera);
+              },
+            });
+            setReady(true);
+          }}
         >
           <ambientLight intensity={0.5} />
           <spotLight position={[0, 6, 4]} angle={0.9} penumbra={0.7} intensity={90} castShadow />
           <pointLight position={[0, 1.5, 3]} intensity={6} color="#ff8c5a" />
-          <Scene
-            at={at}
-            pointerSpeed={pointerSpeed}
-            onPunch={(power) => {
-              setPunched(true);
-              if (sound) thud(power);
-            }}
-          />
+          {/* The physics engine suspends while it starts up. Catch that here, inside the
+              scene: if it reached the page's Suspense boundary, React would hide this canvas
+              (size 0 x 0) and the canvas would wait for a size that never came. */}
+          <Suspense fallback={null}>
+            <Scene
+              at={at}
+              pointerSpeed={pointerSpeed}
+              onPunch={(power) => {
+                setPunched(true);
+                if (sound) thud(power);
+              }}
+            />
+          </Suspense>
         </Canvas>
       </Box>
 

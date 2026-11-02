@@ -34,9 +34,14 @@ import { useCountUp } from "./useCountUp";
 import "./Chapters.css";
 import "./Verdict.css";
 
-// Loaded only on wide screens: the physics engine is the biggest download on the site.
-const HeavyBag = lazy(() => import("../heavy-bag/HeavyBag"));
-const BAG_STRIP = 160; // px kept free on each side of the fight for a bag
+// Loaded only on wide screens: the physics engine is the biggest download on the site. Start
+// that download as soon as this page's code runs, alongside the predictor data, rather than
+// after the data has arrived.
+const loadHeavyBag = () => import("../heavy-bag/HeavyBag");
+if (typeof window !== "undefined" && window.matchMedia("(min-width: 62em)").matches) void loadHeavyBag();
+const HeavyBag = lazy(loadHeavyBag);
+// px kept free on each side of the fight for a bag: narrower on smaller laptop screens.
+const bagStrip = (viewportWidth: number) => (viewportWidth >= 1280 ? 160 : 120);
 
 const DEFAULT = ["islam-makhachev", "ilia-topuria"];
 const A_COLOR = "red.6";
@@ -67,11 +72,11 @@ export default function PredictorPage() {
   const [params, setParams] = useSearchParams();
   const fightRef = useRef<HTMLDivElement>(null);
   // The bag needs free space beside the cards; skip it (and its download) on smaller screens.
-  const wide = useMediaQuery("(min-width: 75em)");
+  const wide = useMediaQuery("(min-width: 62em)");
   // With the bags, the fight narrows to leave a strip on each side (the cards scale down to
   // fit); a bag hangs in the middle of each strip.
   const { width: viewportWidth } = useViewportSize();
-  const fightWidth = wide && viewportWidth ? Math.min(1140, viewportWidth - 2 * BAG_STRIP) : undefined;
+  const fightWidth = wide && viewportWidth ? Math.min(1140, viewportWidth - 2 * bagStrip(viewportWidth)) : undefined;
   const bagAt = fightWidth ? 1 - (viewportWidth - fightWidth) / 4 / viewportWidth : 0.9;
 
   const byId = useMemo(() => new Map(data?.fighters.map((f) => [f.id, f])), [data]);
