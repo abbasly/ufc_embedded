@@ -79,12 +79,14 @@ from ufc_embedded.method import (
     winner_view,
 )
 from ufc_embedded.ratings import START, elo, expected, glicko, schedule
+from ufc_embedded.upcoming import load_listings, name_index, scheduled_events, upcoming_cards
 
 PROJECT = "ufc-embedded"
 ELO_KS = [16.0, 32.0, 48.0, 64.0, 80.0, 100.0, 120.0, 150.0, 200.0]
 LR_CS = [0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1.0, 3.0]
 METHOD_CS = [0.003, 0.01, 0.03, 0.1, 0.3, 1.0]
-PREDICTOR_YEARS = 5  # fighters on the predictor page: last fight within this many years
+PREDICTOR_YEARS = 5
+UPCOMING_ACTIVE_YEARS = 3  # fighters on the predictor page: last fight within this many years
 
 
 @dataclass
@@ -679,7 +681,15 @@ def export_predictor(
     pre, _ = elo(data.feats, elo_k)
     peak = pre.groupby(data.feats["id"]).max()
 
-    ids = public_ids(data.profiles, fighter_summary(data.fights))
+    summary = fighter_summary(data.fights)
+    ids = public_ids(data.profiles, summary)
+    # Upcoming UFC cards from the bookmakers' listings; a "current" UFC fighter has fought in
+    # the UFC within the last UPCOMING_ACTIVE_YEARS years.
+    today = pd.Timestamp.now().normalize()
+    since = today - pd.DateOffset(years=UPCOMING_ACTIVE_YEARS)
+    current = {ids[str(i)] for i in summary.index[summary["last_fight"] >= since] if str(i) in ids}
+    known = name_index(data.profiles["name"], ids)
+    cards = upcoming_cards(load_listings(), known, current, today, scheduled_events())
     rankings, rankings_date = load_rankings()
     ranks = current_ranks(rankings, data.profiles)
     belt = {
@@ -699,6 +709,7 @@ def export_predictor(
         "fights_until": str(data.fights["date"].max().date()),
         "trained_until": str((TEST_START - pd.Timedelta(days=1)).date()),
         "feature_set": version,
+        "upcoming": cards,
         "rankings_as_of": rankings_date,
         "validation": scores,
         "feature_labels": FEATURE_LABELS,
