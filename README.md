@@ -15,24 +15,24 @@ bookmakers, via Kaggle). Works on desktop and phone; fully static, hosted free o
       <sub><b>Style Map</b>: 3D map of fighting styles</sub>
     </td>
     <td width="50%" valign="top">
-      <a href="https://abbasly.github.io/ufc_embedded/mma-math"><img src="docs/screenshots/mma-math.png" alt="MMA math"></a><br>
-      <sub><b>MMA Math</b>: any fighter &ldquo;beats&rdquo; any other</sub>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
       <a href="https://abbasly.github.io/ufc_embedded/predictor"><img src="docs/screenshots/predictor.png" alt="Fight predictor"></a><br>
       <sub><b>Fight Predictor</b>: win chance and most likely outcome</sub>
     </td>
+  </tr>
+  <tr>
     <td width="50%" valign="top">
       <a href="https://abbasly.github.io/ufc_embedded/predictor"><img src="docs/screenshots/card-flip.png" alt="Flipped fighter card"></a><br>
       <sub>Cards flip to a <b>fighter file</b>: record, recent form, stats</sub>
     </td>
-  </tr>
-  <tr>
     <td width="50%" valign="top">
       <a href="https://abbasly.github.io/ufc_embedded/ladder"><img src="docs/screenshots/ladder.png" alt="Elo ladder"></a><br>
       <sub><b>Elo Ladder</b>: ratings, official ranks, climbers and drops</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="https://abbasly.github.io/ufc_embedded/mma-math"><img src="docs/screenshots/mma-math.png" alt="MMA math"></a><br>
+      <sub><b>MMA Math</b>: any fighter &ldquo;beats&rdquo; any other</sub>
     </td>
     <td width="50%" valign="top">
       <a href="https://abbasly.github.io/ufc_embedded/about"><img src="docs/screenshots/about.png" alt="About page"></a><br>
@@ -46,13 +46,13 @@ bookmakers, via Kaggle). Works on desktop and phone; fully static, hosted free o
 - **[Style Map](https://abbasly.github.io/ufc_embedded/)**: ~700 active fighters placed in 3D by how they fight. Click anyone for
   their card, stats, ranking and closest look-alikes. Readable style axes or a t-SNE similarity
   view; filter by style, weight class, champions or ranked fighters.
-- **[MMA Math](https://abbasly.github.io/ufc_embedded/mma-math)**: loops of fighters who beat each other in a circle, and a
-  calculator that "proves" any fighter beats any other with a chain of wins, drawn as a circle.
-- **[Fight Predictor](https://abbasly.github.io/ufc_embedded/predictor)** (beta): pick two fighters for the win chance and the most
+- **[Fight Predictor](https://abbasly.github.io/ufc_embedded/predictor)**: pick two fighters for the win chance and the most
   likely outcome (who, and by KO / submission / decision), what drives the call, past meetings
   and common opponents, and a tale of the tape.
 - **[Elo Ladder](https://abbasly.github.io/ufc_embedded/ladder)**: every fighter rated chess-style from every UFC fight since 1994,
   next to their official rank, with the year's biggest climbers and drops.
+- **[MMA Math](https://abbasly.github.io/ufc_embedded/mma-math)**: loops of fighters who beat each other in a circle, and a
+  calculator that "proves" any fighter beats any other with a chain of wins, drawn as a circle.
 - **Fighter cards everywhere**: collectible-style cards (style = card type, Elo where the HP would
   be, signature stats as moves, gold holo for champions) that flip in 3D to a fighter file. They
   show up in the predictor, the style map, MMA math hovers and the ladder.
@@ -149,7 +149,7 @@ leaderboard and the dataset) is logged to Weights & Biases.
 
 **Reality check.** Scored with pre-fight data only, the v1 model got 5 of 14 winners right at
 UFC 333 (2026-10-24), including both headliners wrong. One card is a small sample, but it shows
-what career averages miss (rematches, decline with age, short UFC records). Hence "beta".
+what career averages miss (rematches, decline with age, short UFC records).
 
 **In the browser.** `train.py --features v1|v2` (default v2) exports the deployed weights (fit
 on fights before 2024) and every active fighter's features as of today to `predictor.json`;
