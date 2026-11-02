@@ -7,8 +7,8 @@ import {
   Container,
   Grid,
   Group,
-  HoverCard,
   Loader,
+  Modal,
   Paper,
   SegmentedControl,
   Select,
@@ -20,7 +20,7 @@ import {
   UnstyledButton,
 } from "@mantine/core";
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 import { RecordText } from "../../components/RecordText";
 import { usePredictor } from "../../data/client";
@@ -33,7 +33,7 @@ const PAGE = 50;
 
 export default function LadderPage() {
   const { data, error, isPending } = usePredictor();
-  const navigate = useNavigate();
+  const [open, setOpen] = useState<PredictorFighter | null>(null);
   const [division, setDivision] = useState<string | null>(null);
   const [scope, setScope] = useState<"active" | "all">("active");
   const [query, setQuery] = useState("");
@@ -116,7 +116,7 @@ export default function LadderPage() {
                   </Table.Thead>
                   <Table.Tbody>
                     {rows.map(({ f, place }) => (
-                      <Table.Tr key={f.id} style={{ cursor: "pointer" }} onClick={() => navigate(`/predictor?a=${f.id}`)}>
+                      <Table.Tr key={f.id} style={{ cursor: "pointer" }} onClick={() => setOpen(f)}>
                         <Table.Td c="dimmed" fw={700}>
                           {place}
                         </Table.Td>
@@ -152,52 +152,66 @@ export default function LadderPage() {
                 </Center>
               )}
               <Text size="xs" c="dimmed">
-                Click a fighter to predict a fight with them. Hover for their card. Elo as of {data.fights_until}.
+                Click a fighter to see their card. Elo as of {data.fights_until}.
               </Text>
             </Stack>
           </Grid.Col>
 
           <Grid.Col span={{ base: 12, md: 3.5 }}>
             <Stack gap="md">
-              <Movers title="📈 Biggest climbers" subtitle="Elo gained in the last 12 months" fighters={movers(pool, 1)} />
-              <Movers title="📉 Biggest drops" subtitle="Elo lost in the last 12 months" fighters={movers(pool, -1)} />
+              <Movers title="📈 Biggest climbers" subtitle="Elo gained in the last 12 months" fighters={movers(pool, 1)} onOpen={setOpen} />
+              <Movers title="📉 Biggest drops" subtitle="Elo lost in the last 12 months" fighters={movers(pool, -1)} onOpen={setOpen} />
             </Stack>
           </Grid.Col>
         </Grid>
       </Stack>
+
+      {/* No focus trap: it would focus the card on open and draw a focus ring around it.
+          Escape and clicking outside still close the popup. */}
+      <Modal
+        opened={open !== null}
+        onClose={() => setOpen(null)}
+        centered
+        size="auto"
+        withCloseButton={false}
+        trapFocus={false}
+        padding="md"
+        radius="lg"
+      >
+        {open && (
+          <Stack gap="sm" w={320} maw="calc(100vw - 64px)">
+            <FighterTradingCard id={open.id} />
+            <Group grow>
+              <Button component={Link} to={`/predictor?a=${open.id}`} variant="light" leftSection="🥊">
+                Predict
+              </Button>
+              <Button variant="default" onClick={() => setOpen(null)}>
+                Close
+              </Button>
+            </Group>
+          </Stack>
+        )}
+      </Modal>
     </Container>
   );
 }
 
 function FighterCell({ f }: { f: PredictorFighter }) {
   return (
-    <HoverCard openDelay={200} withArrow shadow="md" width={280} position="right">
-      <HoverCard.Target>
-        <Group gap="sm" wrap="nowrap">
-          <Avatar
-            src={f.image?.url}
-            size={32}
-            radius="xl"
-            color="gray"
-            style={{ border: f.champion ? `2px solid ${GOLD}` : undefined }}
-          >
-            {f.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}
-          </Avatar>
-          <div>
-            <Text size="sm" fw={600} lh={1.2}>
-              {f.champion && "🏆 "}
-              {f.name}
-            </Text>
-            <Text size="xs" c="dimmed">
-              {f.weight_class}
-            </Text>
-          </div>
-        </Group>
-      </HoverCard.Target>
-      <HoverCard.Dropdown p={6} onClick={(e) => e.stopPropagation()}>
-        <FighterTradingCard id={f.id} />
-      </HoverCard.Dropdown>
-    </HoverCard>
+    <Group gap="sm" wrap="nowrap">
+      <Avatar src={f.image?.url} size={32} radius="xl" color="gray" style={{ border: f.champion ? `2px solid ${GOLD}` : undefined }}>
+        {f.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}
+      </Avatar>
+      <div>
+        <Text size="sm" fw={600} lh={1.2}>
+          {f.champion && "🏆 "}
+          {f.name}
+        </Text>
+        <Text size="xs" c="dimmed">
+          {f.weight_class}
+        </Text>
+      </div>
+    </Group>
   );
 }
 
@@ -218,7 +232,14 @@ function OfficialRank({ f }: { f: PredictorFighter }) {
   return <Text span size="xs" c="dimmed">unranked</Text>;
 }
 
-function Movers({ title, subtitle, fighters }: { title: string; subtitle: string; fighters: PredictorFighter[] }) {
+interface MoversProps {
+  title: string;
+  subtitle: string;
+  fighters: PredictorFighter[];
+  onOpen: (f: PredictorFighter) => void;
+}
+
+function Movers({ title, subtitle, fighters, onOpen }: MoversProps) {
   return (
     <Paper withBorder p="md" radius="md">
       <Text fw={700}>{title}</Text>
@@ -227,7 +248,7 @@ function Movers({ title, subtitle, fighters }: { title: string; subtitle: string
       </Text>
       <Stack gap={6}>
         {fighters.map((f) => (
-          <UnstyledButton key={f.id} component={Link} to={`/predictor?a=${f.id}`}>
+          <UnstyledButton key={f.id} onClick={() => onOpen(f)}>
             <Group justify="space-between" wrap="nowrap">
               <Group gap={8} wrap="nowrap">
                 <Avatar src={f.image?.url} size={24} radius="xl" color="gray">
