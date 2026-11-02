@@ -115,3 +115,12 @@
   .flip-lift.lift-b { animation: none; }
   .flip-face::after { display: none; }
 }
+
+/* A still light sheen on regular cards: a soft glare top left and a faint diagonal band. */
+.sheen {
+  background:
+    radial-gradient(120% 60% at 15% 0%, rgba(255, 255, 255, 0.55), transparent 60%),
+    linear-gradient(115deg, transparent 45%, rgba(255, 255, 255, 0.22) 55%, transparent 65%);
+  mix-blend-mode: soft-light;
+  z-index: 0;
+}

@@ -13,8 +13,10 @@ import type { RecentResult } from "./model";
 interface CardType {
   label: string;
   icon: string;
-  color: string; // main colour of the card face
-  light: string; // lighter tint for the gradient
+  color: string; // accent: icon ring, the glow on the back
+  light: string; // light tint: stat bars on the back
+  face: string; // card face gradient
+  frame: string; // metallic border gradient
   moves: [Move, Move];
 }
 
@@ -37,17 +39,53 @@ const MOVES = {
   defence: { name: "Slip & Counter", stat: "str_def", format: pct, describe: (v: number) => `avoids ${pct(v)} of strikes` },
 } satisfies Record<string, Move>;
 
+/** A metallic frame: dark edges, a bright band across the middle, in one colour family. */
+const metal = (dark: string, mid: string, shine: string) =>
+  `linear-gradient(145deg, ${dark}, ${mid} 30%, ${shine} 50%, ${mid} 70%, ${dark})`;
+
+// Faces: a light top running into a saturated bottom; the deepest stop sits past the edge so
+// the dark text along the bottom stays readable.
 const TYPES: Record<string, CardType> = {
-  "Pure strikers": { label: "Striker", icon: "💥", color: "#e8590c", light: "#ffc078", moves: [MOVES.combo, MOVES.power] },
-  "Dominant wrestlers": { label: "Wrestler", icon: "🤼", color: "#1971c2", light: "#a5d8ff", moves: [MOVES.takedown, MOVES.control] },
-  "Scrambly grapplers": { label: "Grappler", icon: "🌀", color: "#7048e8", light: "#d0bfff", moves: [MOVES.sub, MOVES.takedown] },
-  "Volume mixers": { label: "Volume", icon: "⚡", color: "#f08c00", light: "#ffec99", moves: [MOVES.combo, MOVES.takedown] },
-  "Low-volume all-rounders": { label: "All-rounder", icon: "🌿", color: "#2f9e44", light: "#b2f2bb", moves: [MOVES.defence, MOVES.takedown] },
+  "Pure strikers": {
+    label: "Striker", icon: "💥", color: "#e8590c", light: "#ffc078",
+    face: "linear-gradient(160deg, #fff4e6 0%, #ffd8a8 28%, #ff922b 72%, #d9480f 125%)",
+    frame: metal("#7a2805", "#f76707", "#ffd8a8"),
+    moves: [MOVES.combo, MOVES.power],
+  },
+  "Dominant wrestlers": {
+    label: "Wrestler", icon: "🤼", color: "#3b5bdb", light: "#bac8ff",
+    face: "linear-gradient(160deg, #f8f9ff 0%, #dbe4ff 28%, #91a7ff 70%, #4c3fc4 125%)",
+    frame: metal("#1e2a78", "#5c7cfa", "#e5ebff"),
+    moves: [MOVES.takedown, MOVES.control],
+  },
+  "Scrambly grapplers": {
+    label: "Grappler", icon: "🌀", color: "#ae3ec9", light: "#eebefa",
+    face: "linear-gradient(160deg, #fdf4ff 0%, #f3d9fa 28%, #da77f2 70%, #862e9c 125%)",
+    frame: metal("#5a1a6b", "#be4bdb", "#f8e1fd"),
+    moves: [MOVES.sub, MOVES.takedown],
+  },
+  "Volume mixers": {
+    label: "Volume", icon: "⚡", color: "#0c8599", light: "#99e9f2",
+    face: "linear-gradient(160deg, #f0fdff 0%, #c5f6fa 28%, #3bc9db 70%, #0b7285 125%)",
+    frame: metal("#08454f", "#15aabf", "#d8fbff"),
+    moves: [MOVES.combo, MOVES.takedown],
+  },
+  "Low-volume all-rounders": {
+    label: "All-rounder", icon: "🌿", color: "#2f9e44", light: "#b2f2bb",
+    face: "linear-gradient(160deg, #f4fce3 0%, #d8f5a2 28%, #8ce99a 66%, #2b8a3e 125%)",
+    frame: metal("#1b4d24", "#40c057", "#e6fcdc"),
+    moves: [MOVES.defence, MOVES.takedown],
+  },
 };
 // Champions get an all-gold card face instead of their type colour.
 const CHAMPION_FACE = "linear-gradient(160deg, #fff9db 0%, #ffe066 30%, #f5c518 60%, #e8a400 100%)";
 
-const UNKNOWN: CardType = { label: "Fighter", icon: "🥊", color: "#868e96", light: "#dee2e6", moves: [MOVES.combo, MOVES.takedown] };
+const UNKNOWN: CardType = {
+  label: "Fighter", icon: "🥊", color: "#868e96", light: "#dee2e6",
+  face: "linear-gradient(160deg, #f8f9fa 0%, #e9ecef 30%, #adb5bd 74%, #495057 125%)",
+  frame: metal("#343a40", "#adb5bd", "#f8f9fa"),
+  moves: [MOVES.combo, MOVES.takedown],
+};
 
 const DESIGN_WIDTH = 320; // px the card was designed at
 const PHOTO_HEIGHT = 140; // design px
@@ -58,7 +96,6 @@ const nameSize = (name: string) => (name.length <= 15 ? 17 : name.length <= 19 ?
 /** Design pixels -> a share of the card's width, so the card scales as a whole. */
 const u = (px: number) => `${((px / DESIGN_WIDTH) * 100).toFixed(3)}cqw`;
 
-const YELLOW_FRAME = "linear-gradient(145deg, #f8e27a, #e2b33c 45%, #f8e27a)";
 const GOLD_FRAME = "linear-gradient(145deg, #b8860b, #ffd700 30%, #fff3a0 50%, #ffd700 70%, #b8860b)";
 
 interface Props {
@@ -83,7 +120,7 @@ export function TradingCard({ fighter, cluster, stat, recent }: Props) {
   const frame = {
     borderRadius: u(18),
     padding: u(10),
-    background: fighter.champion ? GOLD_FRAME : YELLOW_FRAME,
+    background: fighter.champion ? GOLD_FRAME : type.frame,
     boxShadow: "0 10px 30px rgba(0,0,0,0.45)",
   };
   const flip = () => setTurns((t) => t + 1);
@@ -120,12 +157,11 @@ export function TradingCard({ fighter, cluster, stat, recent }: Props) {
             padding: `${u(8)} ${u(10)}`,
             overflow: "hidden",
             color: "#1a1b1e",
-            background: fighter.champion
-              ? CHAMPION_FACE
-              : `linear-gradient(170deg, ${type.light} 0%, ${type.color} 120%)`,
+            background: fighter.champion ? CHAMPION_FACE : type.face,
           }}
         >
-          {fighter.champion && <Box className="holo" pos="absolute" inset={0} style={{ pointerEvents: "none" }} />}
+          {/* Champions shimmer; everyone else gets a still sheen so the face isn't flat. */}
+          <Box className={fighter.champion ? "holo" : "sheen"} pos="absolute" inset={0} style={{ pointerEvents: "none" }} />
 
           {/* Header: name, then "HP" (Elo) and the type icon */}
           <Group justify="space-between" wrap="nowrap" gap={u(4)}>
