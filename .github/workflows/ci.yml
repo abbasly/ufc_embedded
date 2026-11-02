@@ -35,11 +35,12 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - run: npm ci
       - run: npm test
-      # The site is served from https://<user>.github.io/<repo>/
+      # Served from the custom domain in the SITE_DOMAIN repo variable if set
+      # (Settings -> Secrets and variables -> Actions -> Variables), else https://<user>.github.io/<repo>/
       - run: npm run build
         env:
-          BASE_PATH: /${{ github.event.repository.name }}/
-          VITE_SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+          BASE_PATH: ${{ vars.SITE_DOMAIN && '/' || format('/{0}/', github.event.repository.name) }}
+          VITE_SITE_URL: ${{ vars.SITE_DOMAIN && format('https://{0}', vars.SITE_DOMAIN) || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web/dist
