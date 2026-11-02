@@ -5,21 +5,32 @@ Every active UFC fighter, mapped by how they fight.
 **Live:** https://abbasly.github.io/ufc_embedded/
 
 A personal ML engineering project: turn fight statistics into interactive, explorable models.
+Data is current to the latest UFC event (fights, records, rankings and odds from UFCStats and
+bookmakers, via Kaggle). Works on desktop and phone.
 
-- **[Style Map](https://abbasly.github.io/ufc_embedded/)**: ~700 active fighters placed in 3D by
-  how they fight. Click anyone for their W-L-D record, stats, current ranking and closest
-  look-alikes. Switch between readable style axes and a t-SNE similarity view, filter by style,
-  weight class, champions or ranked fighters.
-- **[MMA Math](https://abbasly.github.io/ufc_embedded/mma-math)**: loops of fighters who beat each
-  other in a circle (A beat B, B beat C, C beat A), and a calculator that "proves" any fighter
-  beats any other with a chain of wins. Hover anyone to see their style profile.
+### [Style Map](https://abbasly.github.io/ufc_embedded/)
 
-Data is current to the latest UFC event (fights, records and rankings from UFCStats via Kaggle).
-Works on desktop and phone.
+~700 active fighters placed in 3D by how they fight. Click anyone for their W-L-D record, stats,
+current ranking and closest look-alikes. Switch between readable style axes and a t-SNE
+similarity view; filter by style, weight class, champions or ranked fighters.
 
-- **[Fight Predictor](https://abbasly.github.io/ufc_embedded/predictor)** (beta): pick two
-  fighters for a win probability, the likely method (KO / submission / decision), a tale of the
-  tape and notes like past meetings and common opponents.
+![Style map](docs/screenshots/style-map.png)
+
+### [MMA Math](https://abbasly.github.io/ufc_embedded/mma-math)
+
+Loops of fighters who beat each other in a circle (A beat B, B beat C, C beat A), and a
+calculator that "proves" any fighter beats any other with a chain of wins, drawn as a circle.
+
+![MMA math](docs/screenshots/mma-math.png)
+
+### [Fight Predictor](https://abbasly.github.io/ufc_embedded/predictor) (beta)
+
+Pick two fighters, shown as collectible-style cards (style = card type, Elo where the HP would
+be, signature stats as moves, gold cards for champions). You get a win probability, how the fight
+most likely ends (KO / submission / decision), what drives the call, notes like past meetings and
+common opponents, and a tale of the tape.
+
+![Fight predictor](docs/screenshots/predictor.png)
 
 ## How the style map works
 
