@@ -1,9 +1,10 @@
 // 3D/2D scatter of fighters, built on react-three-fiber + drei.
 // Points are plain meshes; photos and labels are HTML pinned to 3D positions.
 
+import { useReducedMotion } from "@mantine/hooks";
 import { Html, Line, OrbitControls } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MOUSE, SphereGeometry } from "three";
 
 import type { Fighter, LayoutId, StyleMapData } from "../../data/types";
@@ -24,6 +25,8 @@ interface Props {
 }
 
 const RADIUS = 0.06;
+const SPIN_SPEED = 1.2; // OrbitControls units: 2 = one turn per 30 s, so ~50 s per turn
+const SPIN_RESUME_MS = 3000; // start spinning again after this long without interaction
 const CAMERA: Record<Dims, Vec3> = { 3: [8, 6, 10.5], 2: [0, 0, 13] };
 const HIT_SCALE = 2.5;
 const noRaycast = () => null;
@@ -32,6 +35,7 @@ const LABEL_Z = [100, 0]; // keep HTML labels below the app's own overlays
 
 export function Scene({ data, layout, dims, colorOf, label, isShown, highlightChampions, selectedId, onSelect }: Props) {
   const [hovered, setHovered] = useState<Fighter | null>(null);
+  const spin = useIdleSpin();
   const geometry = useMemo(() => new SphereGeometry(RADIUS, 12, 12), []);
 
   const byId = useMemo(() => new Map(data.fighters.map((f) => [f.id, f])), [data]);
@@ -41,12 +45,19 @@ export function Scene({ data, layout, dims, colorOf, label, isShown, highlightCh
   const interpretable = data.layouts.find((l) => l.id === layout)?.interpretable ?? false;
 
   return (
-    <Canvas camera={{ position: CAMERA[dims], fov: 45 }}>
+    <Canvas
+      camera={{ position: CAMERA[dims], fov: 45 }}
+      onPointerDown={spin.pause}
+      onPointerUp={spin.resumeLater}
+      onPointerCancel={spin.resumeLater}
+    >
       <CameraReset resetKey={`${layout}-${dims}`} dims={dims} />
       <OrbitControls
         makeDefault
         enableDamping
         enableRotate={dims === 3}
+        autoRotate={dims === 3 && spin.on}
+        autoRotateSpeed={SPIN_SPEED}
         mouseButtons={dims === 3 ? undefined : { LEFT: MOUSE.PAN, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.PAN }}
       />
       {/* Hidden rather than unmounted: unmounting drei <Html> here trips a React DOM error. */}
@@ -144,6 +155,29 @@ export function Scene({ data, layout, dims, colorOf, label, isShown, highlightCh
       )}
     </Canvas>
   );
+}
+
+/**
+ * Slow auto-spin that pauses while the user presses on the map (a mouse drag or a finger,
+ * via pointer events) and resumes after a quiet period. Hovering and scroll-wheel zoom aren't
+ * pointer presses, so they don't pause it. Off entirely for people who prefer reduced motion.
+ */
+function useIdleSpin() {
+  const reduceMotion = useReducedMotion();
+  const [idle, setIdle] = useState(true);
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const pause = useCallback(() => {
+    clearTimeout(timer.current);
+    setIdle(false);
+  }, []);
+  const resumeLater = useCallback(() => {
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setIdle(true), SPIN_RESUME_MS);
+  }, []);
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  return { on: idle && !reduceMotion, pause, resumeLater };
 }
 
 /** Put the camera back to its default view whenever the layout or 2D/3D changes. */
