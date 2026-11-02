@@ -5,7 +5,7 @@
 import "./TradingCard.css";
 
 import { Box, Group, Stack, Text } from "@mantine/core";
-import { useState } from "react";
+import { type PointerEvent, useState } from "react";
 
 import type { Cluster, PredictorFighter } from "../../data/types";
 import type { RecentResult } from "./model";
@@ -124,6 +124,16 @@ export function TradingCard({ fighter, cluster, stat, recent }: Props) {
     boxShadow: "0 10px 30px rgba(0,0,0,0.45)",
   };
   const flip = () => setTurns((t) => t + 1);
+  // Foil shine follows the mouse: position as CSS variables, set directly (no re-render).
+  const track = (e: PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== "mouse") return;
+    const r = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - r.left) / r.width) * 100;
+    const y = ((e.clientY - r.top) / r.height) * 100;
+    e.currentTarget.style.setProperty("--mx", `${x}%`);
+    e.currentTarget.style.setProperty("--mx-back", `${100 - x}%`); // the back is mirrored
+    e.currentTarget.style.setProperty("--my", `${y}%`);
+  };
   // Alternate class names so the lift + glint animations restart on every flip.
   const lift = turns === 0 ? "" : turns % 2 ? " lift-a" : " lift-b";
 
@@ -138,6 +148,7 @@ export function TradingCard({ fighter, cluster, stat, recent }: Props) {
         aria-pressed={flipped}
         aria-label={`${fighter.name}: flip card for more stats`}
         onClick={flip}
+        onPointerMove={track}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
@@ -148,6 +159,7 @@ export function TradingCard({ fighter, cluster, stat, recent }: Props) {
         style={{ transform: `rotateY(${turns * 180}deg)` }}
       >
       <Box className="flip-face" style={frame}>
+        <Box className="hover-shine" />
         <Stack
           gap={u(6)}
           h="100%"
@@ -241,6 +253,7 @@ export function TradingCard({ fighter, cluster, stat, recent }: Props) {
         </Stack>
       </Box>
       <Box className="flip-face flip-back" style={frame}>
+        <Box className="hover-shine hover-shine-back" />
         <BackFace fighter={fighter} type={type} stat={stat} recent={recent} rarity={rarity} />
       </Box>
       </Box>
