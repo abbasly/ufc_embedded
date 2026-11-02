@@ -20,9 +20,10 @@ import { useMemo, useState } from "react";
 import { useMmaMath, useStyleMap } from "../../data/client";
 import { Chain, type Lookup } from "./Chain";
 import { CircleChain } from "./CircleChain";
-import { type Fight, shortestChain, toFight, winsByFighter } from "./graph";
+import { type Fight, fighterOptions, shortestChain, toFight, winsByFighter } from "./graph";
 
 const PAGE_SIZE = 12;
+const PICKER_LIMIT = 200; // rendering all ~2,800 fighters makes the dropdown laggy on phones
 // A flyweight and a heavyweight: the funniest kind of MMA math.
 const DEFAULT_PAIR = ["Alexandre Pantoja", "Ciryl Gane"];
 
@@ -53,9 +54,8 @@ export default function MmaMathPage() {
 
   const indexOf = (name: string) => data.fighters.findIndex((f) => f.name === name);
   const [a, b] = pair ?? (DEFAULT_PAIR.map((n) => String(indexOf(n))) as [string, string]);
-  const options = data.fighters
-    .map((f, i) => ({ value: String(i), label: f.name }))
-    .sort((x, y) => x.label.localeCompare(y.label));
+  const options = fighterOptions(data.fighters, fights);
+  const placeholder = `Type to search ${data.fighters.length.toLocaleString()} fighters`;
 
   const randomPair = () => {
     // Pick two experienced fighters where MMA math works in both directions.
@@ -89,13 +89,13 @@ export default function MmaMathPage() {
           <Stack gap="md">
             <Title order={3}>Settle any argument</Title>
             <Group align="flex-end">
-              <Select label="Winner" searchable limit={50} data={options} value={a} onChange={(v) => setPair([v, b])} w={240} />
+              <Select label="Winner" searchable limit={PICKER_LIMIT} placeholder={placeholder} data={options} value={a} onChange={(v) => setPair([v, b])} w={240} />
               <Tooltip label="Swap: prove it the other way round" withArrow>
                 <ActionIcon variant="light" size="lg" mb={2} onClick={() => setPair([b, a])} aria-label="Swap fighters">
                   ⇄
                 </ActionIcon>
               </Tooltip>
-              <Select label="Loser" searchable limit={50} data={options} value={b} onChange={(v) => setPair([a, v])} w={240} />
+              <Select label="Loser" searchable limit={PICKER_LIMIT} placeholder={placeholder} data={options} value={b} onChange={(v) => setPair([a, v])} w={240} />
               <Button variant="light" onClick={randomPair}>Random matchup</Button>
             </Group>
             {a && b && a !== b && (

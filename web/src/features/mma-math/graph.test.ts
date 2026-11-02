@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { FightRow } from "../../data/types";
 import { ordinal } from "../style-map/model";
-import { shortestChain, toFight, winsByFighter } from "./graph";
+import { fighterOptions, shortestChain, toFight, winsByFighter } from "./graph";
 
 // 0 beat 1, 1 beat 2, 2 beat 0 (a loop), 2 beat 3; 3 never beat anyone.
 const rows: FightRow[] = [
@@ -37,5 +37,21 @@ describe("ordinal", () => {
     expect([1, 2, 3, 4, 11, 12, 13, 21, 92, 100].map(ordinal)).toEqual([
       "1st", "2nd", "3rd", "4th", "11th", "12th", "13th", "21st", "92nd", "100th",
     ]);
+  });
+});
+
+describe("fighterOptions", () => {
+  it("puts champions first, then fighters with more UFC fights", () => {
+    const fighters = [
+      { name: "Aaron", champion: null }, // 1 fight
+      { name: "Busy", champion: null }, // 3 fights
+      { name: "Champ", champion: "Lightweight" }, // 2 fights
+      { name: "Dave", champion: null }, // 2 fights
+    ];
+    const pairs: [number, number][] = [[1, 0], [1, 2], [2, 3], [3, 1]]; // [winner, loser]
+    const fights = pairs.map(([w, l], k) =>
+      toFight([w, l, "2020-01-01", "U-DEC", 3, false, null, "Lightweight"], k),
+    );
+    expect(fighterOptions(fighters, fights).map((o) => o.label)).toEqual(["Champ", "Busy", "Dave", "Aaron"]);
   });
 });

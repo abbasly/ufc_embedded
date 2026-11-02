@@ -54,3 +54,27 @@ export function shortestChain(adj: Map<number, Fight[]>, from: number, to: numbe
 
 /** American odds > 0 means the winner was the betting underdog. */
 export const isUpset = (f: Fight) => f.winnerOdds !== null && f.winnerOdds > 0;
+
+/**
+ * Picker options, most notable first: current champions, then by UFC fights.
+ * Search keeps this order, so "silva" lists the famous Silvas first.
+ */
+export function fighterOptions(
+  fighters: { name: string; champion: string | null }[],
+  fights: Fight[],
+): { value: string; label: string }[] {
+  const count = new Array<number>(fighters.length).fill(0);
+  for (const f of fights) {
+    count[f.winner]! += 1;
+    count[f.loser]! += 1;
+  }
+  return fighters
+    .map((f, i) => ({ i, f }))
+    .sort(
+      (x, y) =>
+        Number(y.f.champion !== null) - Number(x.f.champion !== null) ||
+        count[y.i]! - count[x.i]! ||
+        x.f.name.localeCompare(y.f.name),
+    )
+    .map(({ i, f }) => ({ value: String(i), label: f.name }));
+}
