@@ -25,7 +25,8 @@
 .outcome-name {
   position: relative;
   z-index: 2;
-  font-size: 24px;
+  /* cqw: the Verdict column is a size container, so long names shrink in narrow columns. */
+  font-size: clamp(18px, 7cqw, 24px);
   font-weight: 900;
   line-height: 1.15;
   margin-top: 8px;
@@ -58,11 +59,13 @@
 .scorecards {
   display: flex;
   justify-content: center;
-  gap: 8px;
+  gap: clamp(4px, 2cqw, 8px);
+  padding-inline: 4px; /* room for the tilted cards' corners */
   margin-top: 12px;
 }
 .scorecard {
   flex: 1 1 0;
+  min-width: 0; /* let the cards shrink below their text width; the name ellipsises */
   max-width: 104px;
   padding: 6px 6px 8px;
   border-radius: 3px;
@@ -84,7 +87,7 @@
 }
 .scorecard-name {
   margin-top: 6px;
-  font-size: 13px;
+  font-size: clamp(10px, 3.6cqw, 13px);
   font-weight: 700;
   text-transform: uppercase;
   overflow: hidden;

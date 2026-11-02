@@ -17,7 +17,8 @@ import {
   Title,
   Tooltip,
 } from "@mantine/core";
-import { type ReactNode, useMemo } from "react";
+import { useMediaQuery, useViewportSize } from "@mantine/hooks";
+import { lazy, type ReactNode, Suspense, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { useMmaMath, usePredictor, useStyleMap } from "../../data/client";
@@ -30,6 +31,10 @@ import { OutcomeReveal } from "./OutcomeReveal";
 import { useCountUp } from "./useCountUp";
 import "./Chapters.css";
 import "./Verdict.css";
+
+// Loaded only on wide screens: the physics engine is the biggest download on the site.
+const HeavyBag = lazy(() => import("../heavy-bag/HeavyBag"));
+const BAG_STRIP = 160; // px kept free on each side of the fight for a bag
 
 const DEFAULT = ["islam-makhachev", "ilia-topuria"];
 const A_COLOR = "red.6";
@@ -58,6 +63,14 @@ export default function PredictorPage() {
   const { data, error, isPending } = usePredictor();
   const mma = useMmaMath().data;
   const [params, setParams] = useSearchParams();
+  const fightRef = useRef<HTMLDivElement>(null);
+  // The bag needs free space beside the cards; skip it (and its download) on smaller screens.
+  const wide = useMediaQuery("(min-width: 75em)");
+  // With the bags, the fight narrows to leave a strip on each side (the cards scale down to
+  // fit); a bag hangs in the middle of each strip.
+  const { width: viewportWidth } = useViewportSize();
+  const fightWidth = wide && viewportWidth ? Math.min(1140, viewportWidth - 2 * BAG_STRIP) : undefined;
+  const bagAt = fightWidth ? 1 - (viewportWidth - fightWidth) / 4 / viewportWidth : 0.9;
 
   const byId = useMemo(() => new Map(data?.fighters.map((f) => [f.id, f])), [data]);
   // Champions and ranked fighters first, then by Elo, so the lists open on names people know.
@@ -112,15 +125,22 @@ export default function PredictorPage() {
   // Two chapters revealed by scrolling (see Chapters.css): the fight, then the analysis.
   return (
     <>
-      <Container size="lg" component="section" className="chapter">
+      <Box component="section" className="chapter" pos="relative" ref={fightRef}>
+        {/* Punchable heavy bags in the empty space either side of the fight (wide screens only). */}
+        {wide && (
+          <Suspense fallback={null}>
+            <HeavyBag eventSource={fightRef} at={[1 - bagAt, bagAt]} />
+          </Suspense>
+        )}
+        <Container size={fightWidth ?? "lg"} w="100%" pos="relative" style={{ zIndex: 1 }}>
         <Stack gap="md" className={matchup ? "chapter-leave" : undefined}>
-          <Title order={2}>Fight predictor</Title>
+          <Title order={2} data-content style={{ alignSelf: "flex-start" }}>Fight predictor</Title>
           <Grid align="stretch">
-            <Grid.Col span={{ base: 12, md: 4 }}>
+            <Grid.Col span={{ base: 12, md: 3.75 }}>
               <FighterCard fighter={a} options={options} value={aId} onChange={(v) => set("a", v)} />
             </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 4 }}>
-              <Stack h="100%" justify="center" gap="md" py="md">
+            <Grid.Col span={{ base: 12, md: 4.5 }}>
+              <Stack h="100%" justify="center" gap="md" py="md" data-content>
                 {matchup && <Verdict key={`${a.id}-${b.id}`} data={data} a={a} b={b} />}
                 <Center>
                   <Tooltip label="Swap corners" withArrow>
@@ -131,13 +151,20 @@ export default function PredictorPage() {
                 </Center>
               </Stack>
             </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 4 }}>
+            <Grid.Col span={{ base: 12, md: 3.75 }}>
               <FighterCard fighter={b} options={bOptions} value={bId} onChange={(v) => set("b", v)} />
             </Grid.Col>
           </Grid>
-          {matchup ? <Center>{next("analysis", "Breakdown")}</Center> : <Text c="dimmed">Pick two different fighters.</Text>}
+          {matchup ? (
+            <Center>
+              <Box data-content>{next("analysis", "Breakdown")}</Box>
+            </Center>
+          ) : (
+            <Text c="dimmed">Pick two different fighters.</Text>
+          )}
         </Stack>
-      </Container>
+        </Container>
+      </Box>
 
       {matchup && (
         // Wider than the fight above, so three panels fit side by side.
@@ -184,7 +211,7 @@ interface CardProps {
 
 function FighterCard({ fighter, options, value: id, onChange }: CardProps) {
   return (
-    <Stack gap="sm" maw={320} mx="auto" w="100%">
+    <Stack gap="sm" maw={320} mx="auto" w="100%" data-content>
       <Select searchable limit={200} data={options} value={id} onChange={onChange} placeholder="Pick a fighter" />
       {fighter && <FighterTradingCard id={fighter.id} />}
     </Stack>
@@ -203,15 +230,16 @@ function Verdict({ data, a, b }: { data: PredictorData; a: PredictorFighter; b: 
   // Both sides count up from 0 and the bar fills in from each end until they meet.
   const t = useCountUp(`${a.id}-${b.id}`, FILL_MS);
   return (
-    <Stack gap="sm">
+    // A size container: the numbers and the outcome box scale with the column (cqw units).
+    <Stack gap="sm" style={{ containerType: "inline-size" }}>
       <Group justify="space-between" align="flex-end" wrap="nowrap">
-        <Text fw={800} fz={40} lh={1} c={A_COLOR} style={{ fontVariantNumeric: "tabular-nums" }}>
+        <Text fw={800} lh={1} c={A_COLOR} style={{ fontVariantNumeric: "tabular-nums", fontSize: "clamp(26px, 11cqw, 40px)" }}>
           {Math.round(pA * 100 * t)}%
         </Text>
-        <Text size="xs" tt="uppercase" fw={700} c="dimmed" ta="center" style={{ letterSpacing: 1 }}>
+        <Text size="xs" tt="uppercase" fw={700} c="dimmed" ta="center" style={{ letterSpacing: 1, whiteSpace: "nowrap" }}>
           Win chance
         </Text>
-        <Text fw={800} fz={40} lh={1} c={B_COLOR} style={{ fontVariantNumeric: "tabular-nums" }}>
+        <Text fw={800} lh={1} c={B_COLOR} style={{ fontVariantNumeric: "tabular-nums", fontSize: "clamp(26px, 11cqw, 40px)" }}>
           {Math.round((1 - pA) * 100 * t)}%
         </Text>
       </Group>
