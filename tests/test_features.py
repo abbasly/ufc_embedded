@@ -3,14 +3,14 @@ import pandas as pd
 
 from ufc_embedded.data import load_fights
 from ufc_embedded.features import (
-    FEATURES,
+    FEATURES_V2,
     appearances,
     current_features,
     matchups,
     pre_fight_features,
     priors,
 )
-from ufc_embedded.ratings import elo, expected
+from ufc_embedded.ratings import elo, expected, glicko, glicko_expected, schedule
 
 URL = "http://ufcstats.com/"
 STATS = ["knockdowns", "sig_strikes_att", "sig_strikes_succ", "takedown_att", "takedown_succ",
@@ -76,7 +76,7 @@ def test_features_only_use_earlier_fights() -> None:
     changed.loc[last, "winner"] = changed.loc[last, "f_2_name"]
     after = features(changed)
     # Every appearance's features, including the last fight's own, are unchanged.
-    pd.testing.assert_frame_equal(before[FEATURES], after[FEATURES])
+    pd.testing.assert_frame_equal(before[FEATURES_V2], after[FEATURES_V2])
 
 
 def test_first_fight_is_a_debut_with_prior_rates() -> None:
@@ -127,3 +127,35 @@ def test_current_features_count_every_past_fight() -> None:
     assert a["ufc_fights"] == 4 and a["win_streak"] == 1  # A: W, W, L (to D), W
     # Last fight Jul 2020 -> about half a year off by Jan 2021.
     assert 0.4 < a["layoff_years"] < 0.6
+
+
+def test_recent_form_uses_earlier_fights_only() -> None:
+    feats = features(make_raw()).set_index(["name", "date"])
+    # A: W (Jan), W (Mar) -> going into May, recent results are all wins.
+    assert feats.loc[("A", pd.Timestamp("2020-05-01")), "l3_won"] == 1.0
+    assert feats.loc[("A", pd.Timestamp("2020-01-01")), "ew_won"] == 0.5  # nothing known yet
+    # Then A lost to D in May: the last-three mean going into July drops to 2/3.
+    assert feats.loc[("A", pd.Timestamp("2020-07-01")), "l3_won"] == 2 / 3
+
+
+def test_glicko_is_pre_fight_and_unsure_about_newcomers() -> None:
+    feats = features(make_raw())
+    g = glicko(feats)
+    first = feats["date"] == feats["date"].min()
+    assert (g.loc[first, "glicko"] == 1500).all()
+    a = g[feats["name"] == "A"]
+    assert a["glicko"].iloc[2] > 1500  # two wins in
+    assert a["glicko_rd"].iloc[2] < a["glicko_rd"].iloc[0]  # more fights, more certain
+    assert glicko_expected(1600, 50, 1500, 50) + glicko_expected(1500, 50, 1600, 50) == 1
+    # Uncertainty pulls the prediction towards a coin flip.
+    assert glicko_expected(1600, 300, 1500, 300) < glicko_expected(1600, 50, 1500, 50)
+
+
+def test_schedule_averages_earlier_opponents() -> None:
+    feats = features(make_raw())
+    rating = pd.Series(1500.0, index=feats.index)
+    rating[feats["name"] == "B"] = 1700.0
+    sched = schedule(feats, rating)
+    a = sched[feats["name"] == "A"]
+    assert a["sos"].iloc[0] == 1500  # no earlier opponents
+    assert a["sos"].iloc[1] == 1700  # A's only earlier opponent was B

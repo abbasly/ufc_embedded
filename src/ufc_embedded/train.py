@@ -1,11 +1,15 @@
 """Train and evaluate fight-outcome models, logging everything to Weights & Biases.
 
-    uv run python -m ufc_embedded.train            # tune on 2022-23, report validation
-    uv run python -m ufc_embedded.train --final    # also score the locked 2024+ test set
+    uv run python -m ufc_embedded.train                  # tune on 2022-23, deploy v2
+    uv run python -m ufc_embedded.train --features v1    # deploy the original feature set
+    uv run python -m ufc_embedded.train --final          # also score the locked 2024+ test set
 
 Models: the betting market (benchmark), Elo, a regularised logistic regression on
-point-in-time feature differences (+ Elo), and a method model (KO/TKO, SUB, DEC given the
-winner). Also writes ``web/public/data/predictor.json`` for the site's predictor page.
+point-in-time feature differences, and a method model (KO/TKO, SUB, DEC given the winner).
+Two feature sets: v1 (career stats + Elo) and v2 (+ recent form, age curve, Glicko rating
+with uncertainty, strength of schedule). Both are compared on rolling yearly validation
+(2019-23) every run; ``--features`` picks the one deployed. Also writes
+``web/public/data/predictor.json`` for the site's predictor page.
 W&B runs offline when not logged in; upload later with ``wandb sync``.
 """
 
@@ -15,13 +19,19 @@ import netrc
 import os
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np
 import pandas as pd
 import wandb
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score, roc_curve
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.preprocessing import StandardScaler
 
@@ -39,21 +49,26 @@ from ufc_embedded.data import (
     public_ids,
 )
 from ufc_embedded.evaluate import (
+    CV_YEARS,
     TEST_START,
     VAL_START,
     calibration_table,
+    coverage_curve,
     metrics,
     multiclass_log_loss,
+    rolling_folds,
     split,
 )
 from ufc_embedded.export import WEB_DATA_DIR, photos_by_id
 from ufc_embedded.features import (
     FEATURES,
+    FEATURES_V2,
     appearances,
     current_features,
     matchups,
     pre_fight_features,
     priors,
+    with_upcoming,
 )
 from ufc_embedded.method import (
     EXTRA_INPUTS,
@@ -63,7 +78,7 @@ from ufc_embedded.method import (
     method_model,
     winner_view,
 )
-from ufc_embedded.ratings import elo, expected
+from ufc_embedded.ratings import START, elo, expected, glicko, schedule
 
 PROJECT = "ufc-embedded"
 ELO_KS = [16.0, 32.0, 48.0, 64.0, 80.0, 100.0, 120.0, 150.0, 200.0]
@@ -91,8 +106,40 @@ def build(seed: int = 0) -> Data:
     prior = priors(app, VAL_START)
     feats = pre_fight_features(app, prior, profiles[["wins", "losses", "draws"]])
     names = dict(zip(feats["id"], feats["name"], strict=False))
-    m = matchups(feats, fights, load_market(), seed)
+    m = with_ratings(feats, matchups(feats, fights, load_market(), seed))
     return Data(fights, profiles, app, prior, feats, m, names)
+
+
+RATING_V2 = ["glicko", "glicko_rd", "sos", "off_peak"]
+
+
+def rating_features(feats: pd.DataFrame) -> pd.DataFrame:
+    """v2 rating inputs per appearance, on the same /400 scale as ``d_elo``."""
+    g = glicko(feats)
+    sched = schedule(feats, g["glicko"])
+    return pd.DataFrame(
+        {
+            "glicko": (g["glicko"] - START) / 400,
+            "glicko_rd": g["glicko_rd"] / 400,
+            "sos": (sched["sos"] - START) / 400,
+            "off_peak": sched["off_peak"] / 400,
+        },
+        index=feats.index,
+    )
+
+
+def with_ratings(feats: pd.DataFrame, m: pd.DataFrame) -> pd.DataFrame:
+    """Add A's, B's and the difference of every v2 rating input to the matchups."""
+    per_app = rating_features(feats)
+    per_app.index = pd.MultiIndex.from_arrays([feats["fight"], feats["id"]])
+    out = m.copy()
+    for side in ("a", "b"):
+        rows = per_app.reindex(pd.MultiIndex.from_arrays([out["fight"], out[side]]))
+        for c in RATING_V2:
+            out[f"{side}_{c}"] = rows[c].to_numpy()
+    for c in RATING_V2:
+        out[f"d_{c}"] = out[f"a_{c}"] - out[f"b_{c}"]
+    return out
 
 
 def with_elo(
@@ -111,7 +158,15 @@ def with_elo(
     return out, final
 
 
-LR_INPUTS = [f"d_{c}" for c in FEATURES] + ["d_elo"]
+# Per feature set: fighter features, then rating inputs (all used as A - B differences).
+FEATURE_SETS: dict[str, list[str]] = {
+    "v1": [*FEATURES, "elo"],
+    "v2": [*FEATURES_V2, *RATING_V2],
+}
+
+
+def lr_inputs(version: str) -> list[str]:
+    return [f"d_{c}" for c in FEATURE_SETS[version]]
 
 
 def logistic(C: float) -> Pipeline:
@@ -148,7 +203,11 @@ def main() -> None:
         "--wandb", default="auto", choices=["auto", "online", "offline", "disabled"]
     )
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--features", default="v2", choices=sorted(FEATURE_SETS), help="feature set to deploy"
+    )
     args = parser.parse_args()
+    inputs = lr_inputs(args.features)
 
     data = build(args.seed)
     feats, m, names = data.feats, data.m, data.names
@@ -158,7 +217,8 @@ def main() -> None:
         mode=wandb_mode(args.wandb),  # type: ignore[arg-type]
         config={
             "val_start": str(VAL_START.date()),
-            "features": FEATURES,
+            "feature_set": args.features,
+            "features": FEATURE_SETS[args.features],
             "elo_ks": ELO_KS,
             "lr_Cs": LR_CS,
             "seed": args.seed,
@@ -179,28 +239,35 @@ def main() -> None:
         {"elo/k_sweep": line(ELO_KS, elo_losses, "K", "val log loss", "Elo: validation loss vs K")}
     )
 
-    # --- Logistic regression: sweep regularisation ----------------------------------
+    # --- Feature sets: tune C and compare v1 vs v2 on rolling yearly validation -------
+    oof, best_Cs, sweeps = compare_feature_sets(m)
+    for version, losses in sweeps.items():
+        run.log(
+            {
+                f"lr/{version}/C_sweep": line(
+                    [float(np.log10(c)) for c in LR_CS],
+                    losses,
+                    "log10 C",
+                    "rolling val log loss",
+                    f"Logistic regression {version}: rolling validation loss vs regularisation",
+                )
+            }
+        )
+    comparison = comparison_table(oof)
+    print(f"rolling validation {CV_YEARS[0]}-{CV_YEARS[-1]}:")
+    print(comparison.round(4).to_string(index=False))
+    run.log({"compare/table": wandb.Table(dataframe=comparison.round(4))})
+    log_comparison_curves(run, oof)
+    PLOT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    plot_comparison(oof, PLOT_PATH)
+    run.log({"compare/figure": wandb.Image(str(PLOT_PATH))})
+    print(f"wrote {PLOT_PATH}")
+
+    best_C = best_Cs[args.features]
     parts = split(m)
-    train, val = parts["train"], parts["val"]
-    lr_losses = []
-    for C in LR_CS:
-        model = logistic(C).fit(train[LR_INPUTS], train["y"])
-        lr_losses.append(metrics(val["y"], model.predict_proba(val[LR_INPUTS])[:, 1])["log_loss"])
-        run.log({"lr/C": C, "lr/val_log_loss": lr_losses[-1]})
-    best_C = LR_CS[int(np.argmin(lr_losses))]
-    run.log(
-        {
-            "lr/C_sweep": line(
-                [float(np.log10(c)) for c in LR_CS],
-                lr_losses,
-                "log10 C",
-                "val log loss",
-                "Logistic regression: validation loss vs regularisation",
-            )
-        }
-    )
-    model = logistic(best_C).fit(train[LR_INPUTS], train["y"])
-    m["p_lr"] = model.predict_proba(m[LR_INPUTS])[:, 1]
+    train = parts["train"]
+    model = logistic(best_C).fit(train[inputs], train["y"])
+    m["p_lr"] = model.predict_proba(m[inputs])[:, 1]
     run.config["best_elo_k"] = best_k
     run.config["best_lr_C"] = best_C
 
@@ -247,7 +314,7 @@ def main() -> None:
     )
 
     # --- Qualitative: what the model believes and where it goes wrong --------------
-    coefs = pd.Series(model[-1].coef_[0], index=LR_INPUTS).sort_values()
+    coefs = pd.Series(model[-1].coef_[0], index=inputs).sort_values()
     run.log(
         {
             "lr/coefficients": wandb.plot.bar(
@@ -365,7 +432,14 @@ def main() -> None:
         "log_loss": round(min(method_losses), 4),
         "base_rate_log_loss": round(base_loss, 4),
     }
-    predictor = export_predictor(data, m, final_elo, best_k, best_C, best_mC, val_scores)
+    predictor = export_predictor(
+        data, m, final_elo, best_k, args.features, best_C, best_mC, val_scores
+    )
+    predictor["rolling_validation"] = {
+        str(r["model"]): {k: round(float(r[k]), 4) for k in ("log_loss", "accuracy", "auc")}
+        for _, r in comparison.iterrows()
+        if r["fights"] == "all"
+    }
     out_json = WEB_DATA_DIR / "predictor.json"
     out_json.write_text(json.dumps(predictor, ensure_ascii=False, separators=(",", ":")))
     print(f"wrote {len(predictor['fighters'])} fighters to {out_json}")
@@ -385,6 +459,134 @@ def main() -> None:
     model_artifact.add_file(str(out_json))
     run.log_artifact(model_artifact)
     run.finish()
+
+
+PLOT_PATH = Path(__file__).resolve().parents[2] / "docs" / "model-comparison.png"
+NICE = {"p_v1": "v1 (career stats + Elo)", "p_v2": "v2 (+ form, age, Glicko, schedule)",
+        "p_elo": "Elo only", "p_market": "Betting market"}  # fmt: skip
+
+
+def compare_feature_sets(
+    m: pd.DataFrame,
+) -> tuple[pd.DataFrame, dict[str, float], dict[str, list[float]]]:
+    """Out-of-fold predictions of every feature set on the rolling validation years.
+
+    C is tuned per feature set on mean rolling log loss. Returns the fights of
+    ``CV_YEARS`` with ``p_<version>`` columns (plus Elo and market), the best C per set,
+    and the loss curve over ``LR_CS`` per set.
+    """
+    folds = rolling_folds(m)
+    oof = pd.concat([te for _, te in folds])
+    best: dict[str, float] = {}
+    sweeps: dict[str, list[float]] = {}
+    for version in FEATURE_SETS:
+        x = lr_inputs(version)
+        losses = []
+        for C in LR_CS:
+            per_year = [
+                metrics(te["y"], logistic(C).fit(tr[x], tr["y"]).predict_proba(te[x])[:, 1])
+                for tr, te in folds
+            ]
+            losses.append(float(np.mean([s["log_loss"] for s in per_year])))
+        best[version] = LR_CS[int(np.argmin(losses))]
+        sweeps[version] = losses
+        oof[f"p_{version}"] = np.concatenate(
+            [
+                logistic(best[version]).fit(tr[x], tr["y"]).predict_proba(te[x])[:, 1]
+                for tr, te in folds
+            ]
+        )
+    return oof, best, sweeps
+
+
+def comparison_table(oof: pd.DataFrame) -> pd.DataFrame:
+    """Every model's scores on all rolling-validation fights, and on those with odds."""
+    rows = []
+    with_odds = oof[oof["p_market"].notna()]
+    for fights, d in (("all", oof), ("with odds", with_odds)):
+        for col in [c for c in NICE if c in d]:
+            if col == "p_market" and fights == "all":
+                continue
+            rows.append(
+                {
+                    "model": col.removeprefix("p_"),
+                    "fights": fights,
+                    **metrics(d["y"], d[col]),
+                    "auc": float(roc_auc_score(d["y"], d[col])),
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def log_comparison_curves(run: Any, oof: pd.DataFrame) -> None:
+    """Calibration, ROC and accuracy-vs-coverage curves per model, to W&B."""
+    d = oof[oof["p_market"].notna()]
+    cols = [c for c in NICE if c in d]
+    curves: dict[str, tuple[list[list[float]], list[list[float]]]] = {
+        "calibration": ([], []),
+        "roc": ([], []),
+        "coverage": ([], []),
+    }
+    for col in cols:
+        cal = calibration_table(d["y"], d[col])
+        curves["calibration"][0].append(cal["predicted"].tolist())
+        curves["calibration"][1].append(cal["observed"].tolist())
+        fpr, tpr, _ = roc_curve(d["y"], d[col])
+        curves["roc"][0].append(fpr[::5].tolist())
+        curves["roc"][1].append(tpr[::5].tolist())
+        cov = coverage_curve(d["y"], d[col])
+        curves["coverage"][0].append(cov["coverage"].tolist())
+        curves["coverage"][1].append(cov["accuracy"].tolist())
+    titles = {
+        "calibration": ("Calibration (predicted vs observed)", "predicted P(A wins)"),
+        "roc": ("ROC", "false positive rate"),
+        "coverage": ("Accuracy vs share of fights picked", "coverage"),
+    }
+    for key, (xs, ys) in curves.items():
+        title, xname = titles[key]
+        run.log(
+            {
+                f"compare/{key}": wandb.plot.line_series(
+                    xs=xs, ys=ys, keys=[NICE[c] for c in cols], title=title, xname=xname
+                )
+            }
+        )
+
+
+def plot_comparison(oof: pd.DataFrame, path: Path) -> None:
+    """Calibration, accuracy-vs-coverage and ROC side by side, on fights with odds."""
+    d = oof[oof["p_market"].notna()]
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4.6))
+    styles = {"p_v1": "C0", "p_v2": "C3", "p_elo": "C7", "p_market": "k"}
+    for col, color in styles.items():
+        label = NICE[col]
+        cal = calibration_table(d["y"], d[col], bins=8)
+        axes[0].plot(cal["predicted"], cal["observed"], "o-", color=color, label=label, ms=4)
+        cov = coverage_curve(d["y"], d[col])
+        axes[1].plot(cov["coverage"], cov["accuracy"], "o-", color=color, label=label, ms=4)
+        fpr, tpr, _ = roc_curve(d["y"], d[col])
+        auc = roc_auc_score(d["y"], d[col])
+        axes[2].plot(fpr, tpr, color=color, label=f"{label} (AUC {auc:.3f})")
+    axes[0].plot([0, 1], [0, 1], ":", color="grey")
+    axes[0].set(title="Calibration", xlabel="predicted P(A wins)", ylabel="A actually won")
+    axes[1].set(
+        title="Accuracy when the model is at least 50, 55, ... 85% sure",
+        xlabel="share of fights picked",
+        ylabel="favourite won",
+    )
+    axes[1].invert_xaxis()
+    axes[2].plot([0, 1], [0, 1], ":", color="grey")
+    axes[2].set(title="ROC", xlabel="false positive rate", ylabel="true positive rate")
+    for ax in axes:
+        ax.grid(alpha=0.3)
+    axes[2].legend(loc="lower right", fontsize=8)
+    fig.suptitle(
+        f"Rolling validation {CV_YEARS[0]}-{CV_YEARS[-1]}, {len(d)} fights with betting odds",
+        fontsize=11,
+    )
+    fig.tight_layout()
+    fig.savefig(path, dpi=110)
+    plt.close(fig)
 
 
 FEATURE_LABELS = {
@@ -417,6 +619,24 @@ FEATURE_LABELS = {
     "kd15": "Knockdowns / 15 min",
     "kd_absorbed15": "Knocked down / 15 min",
     "elo": "Elo rating",
+    "ew_won": "Recent results",
+    "ew_sig_diff": "Recent striking edge",
+    "ew_td_diff": "Recent takedown edge",
+    "ew_ctrl_diff": "Recent control edge",
+    "ew_kd_diff": "Recent knockdown edge",
+    "ew_finished": "Recently finished",
+    "l3_won": "Last 3: results",
+    "l3_sig_diff": "Last 3: striking edge",
+    "l3_td_diff": "Last 3: takedown edge",
+    "l3_ctrl_diff": "Last 3: control edge",
+    "l3_kd_diff": "Last 3: knockdown edge",
+    "l3_finished": "Last 3: finished",
+    "age_past32": "Age past 32",
+    "age_sq": "Age away from 30",
+    "glicko": "Glicko rating",
+    "glicko_rd": "Rating uncertainty",
+    "sos": "Strength of schedule",
+    "off_peak": "Below career peak",
 }
 
 
@@ -425,6 +645,7 @@ def export_predictor(
     m: pd.DataFrame,
     final_elo: dict[str, float],
     elo_k: float,
+    version: str,
     lr_C: float,
     method_C: float,
     scores: dict[str, Any],
@@ -435,15 +656,23 @@ def export_predictor(
     The win model is antisymmetric: P(A wins) = sigmoid(sum(w * (a - b) / scale)).
     """
     deploy = m[m["date"] < TEST_START]  # matchups with Elo columns
-    win = logistic(lr_C).fit(deploy[LR_INPUTS], deploy["y"])
+    inputs = FEATURE_SETS[version]
+    win = logistic(lr_C).fit(deploy[lr_inputs(version)], deploy["y"])
     x_m, y_m = winner_view(deploy)
     meth = method_model(method_C).fit(x_m, y_m)
     order = [list(meth.classes_).index(c) for c in METHODS]
 
     as_of = data.fights["date"].max() + pd.Timedelta(days=1)
-    now = current_features(data.app, data.prior, as_of, data.profiles[["wins", "losses", "draws"]])
+    record = data.profiles[["wins", "losses", "draws"]]
+    now = current_features(data.app, data.prior, as_of, record)
     now = now[now["last_fight"] >= as_of - pd.DateOffset(years=PREDICTOR_YEARS)]
-    now["elo"] = [final_elo.get(str(i), 1500.0) / 400 for i in now.index]
+    now["elo"] = [final_elo.get(str(i), START) / 400 for i in now.index]
+    # Ratings going into a hypothetical fight today, computed like any historical fight.
+    feats_now = pre_fight_features(with_upcoming(data.app, as_of), data.prior, record)
+    ratings_now = rating_features(feats_now)
+    upcoming = feats_now["fight"].str.startswith("next-")
+    ratings_now = ratings_now[upcoming].set_axis(feats_now.loc[upcoming, "id"])
+    now = now.join(ratings_now)
 
     # For the Elo ladder: rating a year ago (None if they hadn't fought yet) and career peak.
     _, year_ago = elo(data.feats[data.feats["date"] < as_of - pd.Timedelta(days=365)], elo_k)
@@ -459,7 +688,6 @@ def export_predictor(
         if c["fighter"]
     }
     photos = photos_by_id(data.profiles, [str(i) for i in now.index])
-    inputs = [*FEATURES, "elo"]
     records: dict[str, dict[str, int]] = {
         str(f): {str(k): int(v) for k, v in rec.items()}
         for f, rec in data.profiles[["wins", "losses", "draws"]].fillna(0).to_dict("index").items()
@@ -470,6 +698,7 @@ def export_predictor(
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "fights_until": str(data.fights["date"].max().date()),
         "trained_until": str((TEST_START - pd.Timedelta(days=1)).date()),
+        "feature_set": version,
         "rankings_as_of": rankings_date,
         "validation": scores,
         "feature_labels": FEATURE_LABELS,

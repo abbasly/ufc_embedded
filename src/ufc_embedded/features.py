@@ -64,6 +64,15 @@ FEATURES = [
     "kd_absorbed15",
 ]
 
+# v2 extras. Recent form: per-fight margins over the opponent, as an exponentially weighted
+# average of earlier fights (half-life two fights) and as the plain mean of the last three.
+FORM_STATS = ["won", "sig_diff", "td_diff", "ctrl_diff", "kd_diff", "finished"]
+FORM_HALF_LIFE = 2.0
+FORM = [f"ew_{c}" for c in FORM_STATS] + [f"l3_{c}" for c in FORM_STATS]
+# Age curve: fighters tend to peak around 30 and decline faster after their early thirties.
+AGE_CURVE = ["age_past32", "age_sq"]
+FEATURES_V2 = FEATURES + FORM + AGE_CURVE
+
 
 def appearances(raw: pd.DataFrame) -> pd.DataFrame:
     """One row per fighter per fight: outcome, bio, and both sides' stats in that fight.
@@ -131,6 +140,31 @@ def _streaks(day: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=["id", "date", "win_streak", "loss_streak"]).set_index(
         ["id", "date"]
     )
+
+
+def _form(app: pd.DataFrame) -> pd.DataFrame:
+    """Recent form going into each date, from earlier dates only (see ``FORM``)."""
+    mins = app["minutes"].clip(lower=0.5)
+    per_fight = pd.DataFrame(
+        {
+            "id": app["id"],
+            "date": app["date"],
+            "won": app["won"],
+            "sig_diff": (app["sig_succ"] - app["opp_sig_succ"]) / mins,
+            "td_diff": (app["td_succ"] - app["opp_td_succ"]) * 15 / mins,
+            "ctrl_diff": (app["ctrl_sec"] - app["opp_ctrl_sec"]) / 60 / mins,
+            "kd_diff": (app["kd"] - app["opp_kd"]) * 15 / mins,
+            "finished": ((app["won"] == 0) & app["method"].isin(["KO/TKO", "SUB"])).astype(float),
+        }
+    )
+    day = per_fight.groupby(["id", "date"])[FORM_STATS].mean()
+    earlier = day.groupby(level="id").shift(1)  # strictly earlier dates
+    by_id = earlier.groupby(level="id")
+    ew = by_id.transform(lambda s: s.ewm(halflife=FORM_HALF_LIFE).mean())
+    l3 = by_id.transform(lambda s: s.rolling(3, min_periods=1).mean())
+    out = pd.concat([ew.add_prefix("ew_"), l3.add_prefix("l3_")], axis=1)
+    # No earlier fights: an even record and zero margins.
+    return out.fillna({"ew_won": 0.5, "l3_won": 0.5}).fillna(0.0)
 
 
 def priors(app: pd.DataFrame, before: pd.Timestamp) -> dict[str, float]:
@@ -224,7 +258,13 @@ def pre_fight_features(
     out["age"] = out["age"].fillna(out["age"].median())
     out["height"] = out["height"].fillna(out["height"].median())
     out["reach"] = out["reach"].fillna(out["height"])
-    return pd.concat([app[["fight", "side", "id", "name", "date", "won"]], out[FEATURES]], axis=1)
+    out["age_past32"] = (out["age"] - 32).clip(lower=0)
+    out["age_sq"] = (out["age"] - 30) ** 2 / 10
+    form = _form(app).reindex(pd.MultiIndex.from_frame(f[["id", "date"]]))
+    out[FORM] = form.to_numpy()
+    return pd.concat(
+        [app[["fight", "side", "id", "name", "date", "won"]], out[FEATURES_V2]], axis=1
+    )
 
 
 def matchups(
@@ -267,7 +307,7 @@ def matchups(
     m["method"] = info["method"].to_numpy()
     m["weight_class"] = info["weight_class"].to_numpy()
     m["title"] = info["title"].to_numpy()
-    for col in FEATURES:
+    for col in FEATURES_V2:
         m[f"a_{col}"] = a[col].astype(float)
         m[f"b_{col}"] = b[col].astype(float)
         m[f"d_{col}"] = m[f"a_{col}"] - m[f"b_{col}"]
@@ -275,16 +315,11 @@ def matchups(
     return m.reset_index().sort_values("date", kind="stable").reset_index(drop=True)
 
 
-def current_features(
-    app: pd.DataFrame,
-    prior: dict[str, float],
-    as_of: pd.Timestamp,
-    final_record: pd.DataFrame | None = None,
-) -> pd.DataFrame:
-    """Every fighter's features going into a hypothetical fight on ``as_of``.
+def with_upcoming(app: pd.DataFrame, as_of: pd.Timestamp) -> pd.DataFrame:
+    """``app`` plus one empty appearance per fighter on ``as_of`` (fight ``next-<id>``).
 
-    Adds one empty appearance per fighter on that date and reads off its pre-fight
-    features, so "today" is computed exactly like any historical fight.
+    Features for that appearance are every fighter's features going into a hypothetical
+    fight on ``as_of``, computed exactly like any historical fight.
     """
     latest = app.sort_values("date").groupby("id").tail(1)
     upcoming = latest.assign(
@@ -299,7 +334,21 @@ def current_features(
         **{c: 0 for c in COUNTS},
         **{f"opp_{c}": 0 for c in COUNTS},
     )
-    feats = pre_fight_features(pd.concat([app, upcoming], ignore_index=True), prior, final_record)
+    return pd.concat([app, upcoming], ignore_index=True)
+
+
+def current_features(
+    app: pd.DataFrame,
+    prior: dict[str, float],
+    as_of: pd.Timestamp,
+    final_record: pd.DataFrame | None = None,
+) -> pd.DataFrame:
+    """Every fighter's features going into a hypothetical fight on ``as_of``.
+
+    See ``with_upcoming``.
+    """
+    latest = app.sort_values("date").groupby("id").tail(1)
+    feats = pre_fight_features(with_upcoming(app, as_of), prior, final_record)
     now = feats[feats["fight"].str.startswith("next-")].set_index("id")
     now["last_fight"] = latest.set_index("id")["date"].reindex(now.index)
     now["weight_class"] = latest.set_index("id")["weight_class"].reindex(now.index)

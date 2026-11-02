@@ -7,6 +7,8 @@ import pandas as pd
 # test years untouched until a final run (``train.py --final``).
 VAL_START = pd.Timestamp("2022-01-01")
 TEST_START = pd.Timestamp("2024-01-01")
+# Rolling validation for comparing models: predict each year from all earlier years.
+CV_YEARS = [2019, 2020, 2021, 2022, 2023]
 
 
 def split(m: pd.DataFrame) -> dict[str, pd.DataFrame]:
@@ -15,6 +17,14 @@ def split(m: pd.DataFrame) -> dict[str, pd.DataFrame]:
         "val": m[(m["date"] >= VAL_START) & (m["date"] < TEST_START)],
         "test": m[m["date"] >= TEST_START],
     }
+
+
+def rolling_folds(
+    m: pd.DataFrame, years: list[int] = CV_YEARS
+) -> list[tuple[pd.DataFrame, pd.DataFrame]]:
+    """(train, test) per year: train on every earlier fight, test on that year's fights."""
+    year = m["date"].dt.year
+    return [(m[year < y], m[year == y]) for y in years]
 
 
 def implied_prob(american: pd.Series) -> pd.Series:
@@ -65,3 +75,20 @@ def multiclass_log_loss(y: pd.Series, p: pd.DataFrame) -> float:
     cols = {c: i for i, c in enumerate(p.columns)}
     picked = p.to_numpy()[np.arange(len(y)), [cols[c] for c in y]]
     return float(-np.mean(np.log(np.clip(picked, 1e-9, 1))))
+
+
+def coverage_curve(
+    y: np.ndarray | pd.Series, p: np.ndarray | pd.Series, thresholds: list[float] | None = None
+) -> pd.DataFrame:
+    """How often the favourite wins when the model is at least ``t`` sure, and how many
+    fights that covers: the precision/recall trade-off for picking winners."""
+    y_ = np.asarray(y, float)
+    p_ = np.asarray(p, float)
+    conf = np.maximum(p_, 1 - p_)
+    right = (p_ > 0.5) == (y_ == 1)
+    rows = []
+    for t in thresholds or [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85]:
+        sure = conf >= t
+        if sure.any():
+            rows.append({"threshold": t, "coverage": sure.mean(), "accuracy": right[sure].mean()})
+    return pd.DataFrame(rows)

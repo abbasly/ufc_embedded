@@ -1,7 +1,14 @@
 import numpy as np
 import pandas as pd
 
-from ufc_embedded.evaluate import implied_prob, market_prob, metrics, multiclass_log_loss
+from ufc_embedded.evaluate import (
+    coverage_curve,
+    implied_prob,
+    market_prob,
+    metrics,
+    multiclass_log_loss,
+    rolling_folds,
+)
 
 
 def test_american_odds_to_probability() -> None:
@@ -29,3 +36,19 @@ def test_multiclass_log_loss_reads_columns_by_name() -> None:
     p = pd.DataFrame({"SUB": [0.2, 0.5], "KO/TKO": [0.8, 0.5]})
     y = pd.Series(["KO/TKO", "SUB"])
     assert np.isclose(multiclass_log_loss(y, p), -(np.log(0.8) + np.log(0.5)) / 2)
+
+
+def test_coverage_curve_counts_confident_picks() -> None:
+    # Picks at 90% (right), 80% (wrong) and 55% (right); y is whether A won.
+    y = np.array([1, 1, 1])
+    p = np.array([0.9, 0.2, 0.55])
+    cov = coverage_curve(y, p, [0.5, 0.75, 0.85])
+    np.testing.assert_allclose(cov["coverage"], [1, 2 / 3, 1 / 3])
+    np.testing.assert_allclose(cov["accuracy"], [2 / 3, 0.5, 1])
+
+
+def test_rolling_folds_train_only_on_earlier_years() -> None:
+    m = pd.DataFrame({"date": pd.to_datetime(["2018-05-01", "2019-03-01", "2020-07-01"])})
+    folds = rolling_folds(m, [2019, 2020])
+    assert [len(tr) for tr, _ in folds] == [1, 2]
+    assert all(tr["date"].max() < te["date"].min() for tr, te in folds)
