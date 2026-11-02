@@ -16,12 +16,11 @@ import {
   Title,
   Tooltip,
 } from "@mantine/core";
-import { useMemo } from "react";
+import { type ReactNode, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { useMmaMath, usePredictor } from "../../data/client";
 import type { MmaMathData, PredictorData, PredictorFighter } from "../../data/types";
-import { GOLD } from "../style-map/model";
 import { FighterTradingCard } from "./FighterTradingCard";
 import { commonOpponents, contributions, headToHead, outcomes, winProb } from "./model";
 import { canFight, defaultOpponent } from "./matchup";
@@ -305,47 +304,96 @@ function TaleOfTheTape({ data, a, b }: { data: PredictorData; a: PredictorFighte
 }
 
 function Notes({ data, mma, a, b }: { data: PredictorData; mma?: MmaMathData; a: PredictorFighter; b: PredictorFighter }) {
-  const notes: [string, string][] = []; // [icon, text]
-  const name = (id: string) => (id === a.id ? a.name : b.name);
+  const last = (f: PredictorFighter) => f.name.split(" ").at(-1) ?? f.name;
+  const corner = (f: PredictorFighter) => <Text span inherit fw={700} c={f.id === a.id ? A_COLOR : B_COLOR}>{last(f)}</Text>;
+  const byId = (id: string) => (id === a.id ? a : b);
+  const meetings = mma ? headToHead(mma, a.id, b.id) : [];
+  const common = mma ? commonOpponents(mma, a.id, b.id) : [];
 
-  if (mma) {
-    for (const f of headToHead(mma, a.id, b.id)) {
-      notes.push(["🔁", `They've met before: ${name(f.winnerId)} won by ${f.method}${f.round ? ` in round ${f.round}` : ""} (${f.date.slice(0, 4)}).`]);
-    }
-    const common = commonOpponents(mma, a.id, b.id);
-    if (common.length) {
-      const last = (f: PredictorFighter) => f.name.split(" ").at(-1);
-      const shown = common.slice(0, 4).map((c) => `${c.name} (${last(a)} ${c.a}, ${last(b)} ${c.b})`);
-      notes.push(["👥", `${common.length} common opponent${common.length > 1 ? "s" : ""}: ${shown.join("; ")}${common.length > 4 ? "…" : ""}.`]);
-    }
+  // Facts as label + value rows, like the notes in a fight programme.
+  const rows: [string, ReactNode][] = [];
+  if (meetings.length) {
+    rows.push([
+      "History",
+      <Stack gap={2}>
+        {meetings.map((f) => (
+          <span key={f.date}>
+            {f.date.slice(0, 4)} · {corner(byId(f.winnerId))} by {f.method}
+            {f.round ? `, R${f.round}` : ""}
+          </span>
+        ))}
+      </Stack>,
+    ]);
   }
-  if (a.weight_class !== b.weight_class) notes.push(["⚖️", `Cross-division: ${a.name} fights at ${a.weight_class}, ${b.name} at ${b.weight_class}.`]);
-  for (const f of [a, b]) if (f.champion) notes.push(["🏆", `${f.name} is the ${f.champion} champion.`]);
+  for (const f of [a, b]) if (f.champion) rows.push(["Title", <>{corner(f)}, {f.champion} champion</>]);
+  if (a.weight_class !== b.weight_class) rows.push(["Divisions", <>{corner(a)} {a.weight_class} · {corner(b)} {b.weight_class}</>]);
   const ageGap = value(data, a, "age") - value(data, b, "age");
-  if (Math.abs(ageGap) >= 6) notes.push(["🎂", `${ageGap > 0 ? b.name : a.name} is ${Math.round(Math.abs(ageGap))} years younger.`]);
+  if (Math.abs(ageGap) >= 6) rows.push(["Age", <>{corner(ageGap > 0 ? b : a)} {Math.round(Math.abs(ageGap))} years younger</>]);
   const reachGap = value(data, a, "reach") - value(data, b, "reach");
-  if (Math.abs(reachGap) >= 8) notes.push(["📏", `${reachGap > 0 ? a.name : b.name} has a ${Math.round(Math.abs(reachGap))} cm reach advantage.`]);
+  if (Math.abs(reachGap) >= 8) rows.push(["Reach", <>{corner(reachGap > 0 ? a : b)} +{Math.round(Math.abs(reachGap))} cm</>]);
   for (const f of [a, b]) {
     const off = value(data, f, "layoff_years");
-    if (off >= 1.5) notes.push(["⏳", `${f.name} hasn't fought in ${off.toFixed(1)} years.`]);
+    if (off >= 1.5) rows.push(["Layoff", <>{corner(f)} out {off.toFixed(1)} years</>]);
   }
-  if (!notes.length) notes.push(["🆕", "First meeting, no common opponents, and similar size and age."]);
+
+  const result = (r: "W" | "L") => (
+    <Text span fw={800} c={r === "W" ? "green.5" : "red.5"}>
+      {r}
+    </Text>
+  );
 
   return (
-    <Paper withBorder p="md" radius="md" h="100%" bg="rgba(245, 197, 24, 0.06)" style={{ borderLeft: `4px solid ${GOLD}` }}>
-      <Title order={4} mb="sm">
-        💡 Worth knowing
+    <Paper withBorder p="lg" h="100%">
+      <Title order={4} mb="md">
+        Matchup notes
       </Title>
-      <Stack gap="xs">
-        {notes.map(([icon, text]) => (
-          <Group key={text} gap="sm" wrap="nowrap" align="flex-start">
-            <Text fz="lg" lh={1.3}>
-              {icon}
+      {rows.length > 0 && (
+        <Stack gap={8}>
+          {rows.map(([label, content], i) => (
+            <Group key={i} gap="md" wrap="nowrap" align="baseline">
+              <Text size="xs" tt="uppercase" fw={700} c="dimmed" w={84} style={{ flexShrink: 0, letterSpacing: "0.06em" }}>
+                {label}
+              </Text>
+              <Text size="sm" component="div">{content}</Text>
+            </Group>
+          ))}
+        </Stack>
+      )}
+      {common.length > 0 && (
+        <Box mt={rows.length ? "lg" : 0}>
+          <Text size="xs" tt="uppercase" fw={700} c="dimmed" mb={6} style={{ letterSpacing: "0.06em" }}>
+            Common opponents
+          </Text>
+          <Table fz="sm" verticalSpacing={4} horizontalSpacing={6}>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th />
+                <Table.Th ta="center" w={90}>{corner(a)}</Table.Th>
+                <Table.Th ta="center" w={90}>{corner(b)}</Table.Th>
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {common.slice(0, 6).map((c) => (
+                <Table.Tr key={c.name}>
+                  <Table.Td>{c.name}</Table.Td>
+                  <Table.Td ta="center">{result(c.a)}</Table.Td>
+                  <Table.Td ta="center">{result(c.b)}</Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+          {common.length > 6 && (
+            <Text size="xs" c="dimmed" mt={4}>
+              and {common.length - 6} more
             </Text>
-            <Text size="md">{text}</Text>
-          </Group>
-        ))}
-      </Stack>
+          )}
+        </Box>
+      )}
+      {!rows.length && !common.length && (
+        <Text size="sm" c="dimmed">
+          First meeting, no common opponents, similar age and reach.
+        </Text>
+      )}
     </Paper>
   );
 }
