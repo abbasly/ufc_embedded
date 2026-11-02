@@ -100,13 +100,14 @@ export interface StyleMapData {
 
 // ---- MMA math (written by ufc_embedded.mma_math) ----
 
-export const MMA_MATH_SCHEMA_VERSION = 2;
+export const MMA_MATH_SCHEMA_VERSION = 3;
 
 export interface MmaFighter {
   id: string; // same slug as the style map, when the fighter is on it
   name: string;
   record: FightRecord;
   champion: string | null;
+  rank: number | null; // current divisional rank (0 = champion), null if unranked
   image: Photo | null;
 }
 

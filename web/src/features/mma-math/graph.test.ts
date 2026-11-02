@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { FightRow } from "../../data/types";
 import { ordinal } from "../style-map/model";
-import { fighterOptions, shortestChain, toFight, winsByFighter } from "./graph";
+import { fighterOptions, notablePool, shortestChain, toFight, winsByFighter } from "./graph";
 
 // 0 beat 1, 1 beat 2, 2 beat 0 (a loop), 2 beat 3; 3 never beat anyone.
 const rows: FightRow[] = [
@@ -53,5 +53,19 @@ describe("fighterOptions", () => {
       toFight([w, l, "2020-01-01", "U-DEC", 3, false, null, "Lightweight"], k),
     );
     expect(fighterOptions(fighters, fights).map((o) => o.label)).toEqual(["Champ", "Busy", "Dave", "Aaron"]);
+  });
+});
+
+describe("notablePool", () => {
+  it("includes ranked fighters, champions and the busiest veterans, once each", () => {
+    const fighters = [
+      { rank: null, champion: null }, // 0: unranked, 3 fights
+      { rank: 7, champion: null }, // 1: ranked, 1 fight
+      { rank: null, champion: "Flyweight" }, // 2: champion
+      { rank: null, champion: null }, // 3: unranked, 1 fight
+    ];
+    const pairs: [number, number][] = [[0, 1], [0, 3], [0, 2]];
+    const fights = pairs.map(([w, l], k) => toFight([w, l, "2020-01-01", "SUB", 1, false, null, "Flyweight"], k));
+    expect(notablePool(fighters, fights, 1).sort()).toEqual([0, 1, 2]);
   });
 });

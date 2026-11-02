@@ -20,7 +20,7 @@ import { useMemo, useState } from "react";
 import { useMmaMath, useStyleMap } from "../../data/client";
 import { Chain, type Lookup } from "./Chain";
 import { CircleChain } from "./CircleChain";
-import { type Fight, fighterOptions, shortestChain, toFight, winsByFighter } from "./graph";
+import { type Fight, fighterOptions, notablePool, shortestChain, toFight, winsByFighter } from "./graph";
 
 const PAGE_SIZE = 12;
 const PICKER_LIMIT = 200; // rendering all ~2,800 fighters makes the dropdown laggy on phones
@@ -33,6 +33,7 @@ export default function MmaMathPage() {
 
   const fights = useMemo(() => data?.fights.map(toFight) ?? [], [data]);
   const wins = useMemo(() => winsByFighter(fights), [fights]);
+  const pool = useMemo(() => (data ? notablePool(data.fighters, fights) : []), [data, fights]);
   const lookup: Lookup | null = useMemo(
     () =>
       data
@@ -58,12 +59,11 @@ export default function MmaMathPage() {
   const placeholder = `Type to search ${data.fighters.length.toLocaleString()} fighters`;
 
   const randomPair = () => {
-    // Pick two experienced fighters where MMA math works in both directions.
-    const pool = data.fighters.flatMap((f, i) => (f.record.wins + f.record.losses >= 12 ? [i] : []));
+    // Two fighters people recognise, where a chain of wins exists in the shown direction.
     for (let tries = 0; tries < 200; tries++) {
       const x = pool[Math.floor(Math.random() * pool.length)]!;
       const y = pool[Math.floor(Math.random() * pool.length)]!;
-      if (x !== y && shortestChain(wins, x, y) && shortestChain(wins, y, x)) {
+      if (x !== y && shortestChain(wins, x, y)) {
         setPair([String(x), String(y)]);
         return;
       }
@@ -75,20 +75,12 @@ export default function MmaMathPage() {
   return (
     <Container size="lg" py="md">
       <Stack gap="xl">
-        <Stack gap={4}>
-          <Title order={1}>MMA math doesn't work</Title>
-          <Text c="dimmed">
-            "A beat B and B beat C, so A beats C." Every fan has heard it. Here are the loops that
-            break it: fighters who beat each other in a circle. {data.giant_loop_size.toLocaleString()}{" "}
-            UFC fighters since 1994 form one giant loop, so within it you can "prove" anyone beats
-            anyone.
-          </Text>
-        </Stack>
+        <Title order={1}>MMA math doesn't work</Title>
 
         <Paper withBorder p="lg">
           <Stack gap="md">
             <Title order={3}>Settle any argument</Title>
-            <Group align="flex-end">
+            <Group align="flex-end" justify="center">
               <Select label="Winner" searchable limit={PICKER_LIMIT} placeholder={placeholder} data={options} value={a} onChange={(v) => setPair([v, b])} w={240} />
               <Tooltip label="Swap: prove it the other way round" withArrow>
                 <ActionIcon variant="light" size="lg" mb={2} onClick={() => setPair([b, a])} aria-label="Swap fighters">

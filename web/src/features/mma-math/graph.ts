@@ -78,3 +78,23 @@ export function fighterOptions(
     )
     .map(({ i, f }) => ({ value: String(i), label: f.name }));
 }
+
+/** Fighters people recognise: everyone currently ranked (champions included) plus the
+ * `veterans` with the most UFC fights. */
+export function notablePool(
+  fighters: { rank: number | null; champion: string | null }[],
+  fights: Fight[],
+  veterans = 100,
+): number[] {
+  const count = new Array<number>(fighters.length).fill(0);
+  for (const f of fights) {
+    count[f.winner]! += 1;
+    count[f.loser]! += 1;
+  }
+  const ranked = fighters.flatMap((f, i) => (f.rank !== null || f.champion !== null ? [i] : []));
+  const busiest = fighters
+    .map((_, i) => i)
+    .sort((a, b) => count[b]! - count[a]!)
+    .slice(0, veterans);
+  return [...new Set([...ranked, ...busiest])];
+}
