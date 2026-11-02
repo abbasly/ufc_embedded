@@ -159,3 +159,10 @@ def test_schedule_averages_earlier_opponents() -> None:
     a = sched[feats["name"] == "A"]
     assert a["sos"].iloc[0] == 1500  # no earlier opponents
     assert a["sos"].iloc[1] == 1700  # A's only earlier opponent was B
+
+
+def test_current_division_skips_catchweight_bouts() -> None:
+    raw = make_raw()
+    raw.loc[raw.index[-2], "weight_class"] = "Catch Weight"  # A's last fight (A vs B, Jul)
+    now = current_features(appearances(raw), PRIOR, pd.Timestamp("2021-01-01"))
+    assert now.loc["A", "weight_class"] == "Lightweight"

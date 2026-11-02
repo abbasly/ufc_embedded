@@ -73,6 +73,8 @@ FORM = [f"ew_{c}" for c in FORM_STATS] + [f"l3_{c}" for c in FORM_STATS]
 AGE_CURVE = ["age_past32", "age_sq"]
 FEATURES_V2 = FEATURES + FORM + AGE_CURVE
 
+NOT_A_DIVISION = ["Catch Weight", "Open Weight"]
+
 
 def appearances(raw: pd.DataFrame) -> pd.DataFrame:
     """One row per fighter per fight: outcome, bio, and both sides' stats in that fight.
@@ -351,5 +353,9 @@ def current_features(
     feats = pre_fight_features(with_upcoming(app, as_of), prior, final_record)
     now = feats[feats["fight"].str.startswith("next-")].set_index("id")
     now["last_fight"] = latest.set_index("id")["date"].reindex(now.index)
-    now["weight_class"] = latest.set_index("id")["weight_class"].reindex(now.index)
+    # Division: the last real one, so a one-off catchweight bout doesn't hide it.
+    real = app[~app["weight_class"].isin(NOT_A_DIVISION)].sort_values("date")
+    division = real.groupby("id")["weight_class"].last()
+    last_any = latest.set_index("id")["weight_class"]
+    now["weight_class"] = division.reindex(now.index).fillna(last_any.reindex(now.index))
     return now.drop(columns=["fight", "side", "won", "date"])
