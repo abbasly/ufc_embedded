@@ -154,6 +154,8 @@ what career averages miss (rematches, decline with age, short UFC records).
 **In the browser.** `train.py --features v1|v2` (default v2) exports the deployed weights (fit
 on fights before 2024) and every active fighter's features as of today to `predictor.json`;
 the page evaluates both models client-side, no server needed.
+Opponents are limited to the same gender and at most one division apart: the UFC has never had
+bigger gaps, so the model has learned nothing about size beyond that.
 
 ## Architecture
 

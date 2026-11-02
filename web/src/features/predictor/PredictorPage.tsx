@@ -24,6 +24,7 @@ import type { MmaMathData, PredictorData, PredictorFighter } from "../../data/ty
 import { GOLD } from "../style-map/model";
 import { FighterTradingCard } from "./FighterTradingCard";
 import { commonOpponents, contributions, headToHead, outcomes, winProb } from "./model";
+import { canFight, defaultOpponent } from "./matchup";
 import { OutcomeReveal } from "./OutcomeReveal";
 import { useCountUp } from "./useCountUp";
 import "./Verdict.css";
@@ -57,25 +58,34 @@ export default function PredictorPage() {
   const [params, setParams] = useSearchParams();
 
   const byId = useMemo(() => new Map(data?.fighters.map((f) => [f.id, f])), [data]);
-  const options = useMemo(
-    () =>
-      // Champions and ranked fighters first, then by Elo, so the list opens on names people know.
-      [...(data?.fighters ?? [])]
-        .sort((x, y) => (x.rank ?? 99) - (y.rank ?? 99) || y.elo - x.elo)
-        .map((f) => ({ value: f.id, label: f.name })),
+  // Champions and ranked fighters first, then by Elo, so the lists open on names people know.
+  const sorted = useMemo(
+    () => [...(data?.fighters ?? [])].sort((x, y) => (x.rank ?? 99) - (y.rank ?? 99) || y.elo - x.elo),
     [data],
   );
+  const toOption = (f: PredictorFighter) => ({ value: f.id, label: f.name });
 
   if (isPending) return <Center h="60vh"><Loader /></Center>;
   if (error) return <Alert color="red" title="Could not load the predictor">{error.message}</Alert>;
 
   const aId = params.get("a") ?? DEFAULT[0]!;
-  const bId = params.get("b") ?? DEFAULT[1]!;
   const a = byId.get(aId);
-  const b = byId.get(bId);
+  // B must be a realistic opponent for A (see matchup.ts); otherwise suggest one.
+  const asked = byId.get(params.get("b") ?? DEFAULT[1]!);
+  const b =
+    a && (!asked || !canFight(a.weight_class, asked.weight_class)) ? (defaultOpponent(a, sorted) ?? asked) : asked;
+  const bId = b?.id ?? "";
+  const options = sorted.map(toOption);
+  // Anyone can be picked in either corner; if the other corner no longer fits (other gender,
+  // or more than one division away), it switches to a fitting opponent.
   const set = (side: "a" | "b", id: string | null) => {
-    if (!id) return;
-    setParams({ a: side === "a" ? id : aId, b: side === "b" ? id : bId }, { replace: true });
+    const picked = id ? byId.get(id) : undefined;
+    if (!picked) return;
+    const other = side === "a" ? b : a;
+    const fits = other && other.id !== picked.id && canFight(picked.weight_class, other.weight_class);
+    const opponent = fits ? other : defaultOpponent(picked, sorted);
+    const otherId = opponent?.id ?? (side === "a" ? bId : aId);
+    setParams(side === "a" ? { a: picked.id, b: otherId } : { a: otherId, b: picked.id }, { replace: true });
   };
 
   return (
@@ -121,8 +131,9 @@ export default function PredictorPage() {
         )}
 
         <Text size="xs" c="dimmed">
-          Logistic regression on pre-fight stats and Elo, trained on fights up to {data.trained_until}; fighter
-          stats as of {data.fights_until}. On 2022–23 fights it picked{" "}
+          Logistic regression on pre-fight stats and ratings, trained on fights up to {data.trained_until};
+          fighter stats as of {data.fights_until}. Opponents are limited to the same gender and at most one
+          division apart: the UFC has never had bigger gaps, so the model has nothing to go on there. On 2022–23 fights it picked{" "}
           {Math.round((data.validation.logistic?.accuracy ?? 0) * 100)}% of winners (betting market:{" "}
           {Math.round((data.validation.market?.accuracy ?? 0) * 100)}%). Just for fun, not betting advice.
         </Text>
