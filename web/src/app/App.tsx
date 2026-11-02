@@ -8,12 +8,14 @@ import { AboutPage } from "../pages/AboutPage";
 const StyleMapPage = lazy(() => import("../features/style-map/StyleMapPage"));
 const MmaMathPage = lazy(() => import("../features/mma-math/MmaMathPage"));
 const PredictorPage = lazy(() => import("../features/predictor/PredictorPage"));
+const LadderPage = lazy(() => import("../features/ladder/LadderPage"));
 
 // `short` labels are used on phones so all tabs fit next to the logo.
 const NAV: { to: string; label: string; short?: string; beta?: boolean }[] = [
   { to: "/", label: "Style Map", short: "Map" },
   { to: "/mma-math", label: "MMA Math", short: "Math" },
-  { to: "/predictor", label: "Predictor", beta: true },
+  { to: "/predictor", label: "Predictor", short: "Predict", beta: true },
+  { to: "/ladder", label: "Ladder" },
   { to: "/about", label: "About" },
 ];
 
@@ -21,6 +23,7 @@ const NAV: { to: string; label: string; short?: string; beta?: boolean }[] = [
 const TITLES: Record<string, string> = {
   "/mma-math": "UFC Embedded: MMA math",
   "/predictor": "UFC Embedded: fight predictor",
+  "/ladder": "UFC Embedded: Elo ladder",
   "/about": "UFC Embedded: about",
 };
 
@@ -55,7 +58,8 @@ export function App() {
                 px={{ base: 6, sm: "sm" }}
                 rightSection={
                   item.beta && (
-                    <Badge size="xs" variant={pathname === item.to ? "white" : "light"} color="red" px={4}>
+                    // Too wide for the phone header; desktop only.
+                    <Badge size="xs" variant={pathname === item.to ? "white" : "light"} color="red" px={4} visibleFrom="xs">
                       Beta
                     </Badge>
                   )
@@ -85,6 +89,7 @@ export function App() {
             <Route path="/" element={<StyleMapPage />} />
             <Route path="/mma-math" element={<MmaMathPage />} />
             <Route path="/predictor" element={<PredictorPage />} />
+            <Route path="/ladder" element={<LadderPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/style-map" element={<Navigate to="/" replace />} />
             <Route path="*" element={<Text>Page not found.</Text>} />

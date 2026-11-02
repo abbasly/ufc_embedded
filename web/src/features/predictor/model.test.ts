@@ -13,6 +13,8 @@ const fighter = (id: string, x: number[], weight_class = "Lightweight"): Predict
   champion: null,
   image: null,
   elo: 1600,
+  elo_year_ago: 1550,
+  elo_peak: 1600,
   x,
 });
 

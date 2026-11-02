@@ -125,7 +125,7 @@ export interface MmaMathData {
 
 // ---- Fight predictor (written by ufc_embedded.train) ----
 
-export const PREDICTOR_SCHEMA_VERSION = 1;
+export const PREDICTOR_SCHEMA_VERSION = 2;
 
 export interface PredictorFighter {
   id: string; // same public id as the style map / MMA math
@@ -137,6 +137,8 @@ export interface PredictorFighter {
   champion: string | null;
   image: Photo | null;
   elo: number;
+  elo_year_ago: number | null; // null if they hadn't fought in the UFC a year ago
+  elo_peak: number;
   x: number[]; // feature values, in win_model.inputs order
 }
 

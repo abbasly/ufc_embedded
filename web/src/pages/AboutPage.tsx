@@ -22,6 +22,12 @@ const PRODUCTS: Product[] = [
     text: 'Loops of fighters who beat each other in a circle, plus a calculator that "proves" anyone beats anyone.',
   },
   {
+    title: "Elo Ladder",
+    status: "Live",
+    to: "/ladder",
+    text: "Every fighter rated chess-style from every UFC fight since 1994, next to their official rank, with the year's biggest climbers and drops.",
+  },
+  {
     title: "Fight Predictor",
     status: "Beta",
     to: "/predictor",
@@ -78,7 +84,7 @@ export function AboutPage() {
           </Group>
         </Stack>
 
-        <SimpleGrid cols={{ base: 1, sm: 3 }}>
+        <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }}>
           {PRODUCTS.map((p) => (
             <ProductCard key={p.title} p={p} />
           ))}
