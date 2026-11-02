@@ -83,26 +83,29 @@ export default function PredictorPage() {
         <Title order={2}>Fight predictor</Title>
 
         <Grid align="stretch">
-          <Grid.Col span={{ base: 12, sm: 5.5 }}>
+          <Grid.Col span={{ base: 12, md: 4 }}>
             <FighterCard data={data} styleMap={styleMap} mma={mma} fighter={a} options={options} value={aId} onChange={(v) => set("a", v)} color={A_COLOR} />
           </Grid.Col>
-          <Grid.Col span={{ base: 12, sm: 1 }}>
-            <Center h="100%">
-              <Tooltip label="Swap corners" withArrow>
-                <ActionIcon variant="light" size="lg" onClick={() => setParams({ a: bId, b: aId }, { replace: true })} aria-label="Swap fighters">
-                  ⇄
-                </ActionIcon>
-              </Tooltip>
-            </Center>
+          <Grid.Col span={{ base: 12, md: 4 }}>
+            <Stack h="100%" justify="center" gap="md" py="md">
+              {a && b && a.id !== b.id && <Verdict data={data} a={a} b={b} />}
+              <Center>
+                <Tooltip label="Swap corners" withArrow>
+                  <ActionIcon variant="light" size="lg" onClick={() => setParams({ a: bId, b: aId }, { replace: true })} aria-label="Swap fighters">
+                    ⇄
+                  </ActionIcon>
+                </Tooltip>
+              </Center>
+            </Stack>
           </Grid.Col>
-          <Grid.Col span={{ base: 12, sm: 5.5 }}>
+          <Grid.Col span={{ base: 12, md: 4 }}>
             <FighterCard data={data} styleMap={styleMap} mma={mma} fighter={b} options={options} value={bId} onChange={(v) => set("b", v)} color={B_COLOR} />
           </Grid.Col>
         </Grid>
 
         {a && b && a.id !== b.id ? (
           <>
-            <Prediction data={data} a={a} b={b} />
+            <Breakdown data={data} a={a} b={b} />
             <Notes data={data} mma={mma} a={a} b={b} />
             <TaleOfTheTape data={data} a={a} b={b} />
           </>
@@ -155,10 +158,60 @@ function FighterCard({ data, styleMap, mma, fighter, options, value: id, onChang
   );
 }
 
-function Prediction({ data, a, b }: { data: PredictorData; a: PredictorFighter; b: PredictorFighter }) {
+const methodName = (m: string) => ({ "KO/TKO": "KO/TKO", SUB: "submission", DEC: "decision" })[m] ?? m;
+
+/** The headline, between the two cards: win probabilities and the single most likely outcome. */
+function Verdict({ data, a, b }: { data: PredictorData; a: PredictorFighter; b: PredictorFighter }) {
   const pA = winProb(data.win_model, a, b);
+  const best = outcomes(data, a, b)[0]!;
+  const bestColor = best.winner.id === a.id ? A_COLOR : B_COLOR;
+  return (
+    <Stack gap="sm">
+      <Group justify="space-between" align="flex-end" wrap="nowrap">
+        <Text fw={800} fz={40} lh={1} c={A_COLOR}>
+          {Math.round(pA * 100)}%
+        </Text>
+        <Text size="xs" tt="uppercase" fw={700} c="dimmed" ta="center" style={{ letterSpacing: 1 }}>
+          Win chance
+        </Text>
+        <Text fw={800} fz={40} lh={1} c={B_COLOR}>
+          {Math.round((1 - pA) * 100)}%
+        </Text>
+      </Group>
+      <Progress.Root size={12}>
+        <Progress.Section value={pA * 100} color={A_COLOR} />
+        <Progress.Section value={(1 - pA) * 100} color={B_COLOR} />
+      </Progress.Root>
+      <Paper
+        p="md"
+        radius="md"
+        ta="center"
+        bg={best.winner.id === a.id ? "rgba(250, 82, 82, 0.12)" : "rgba(34, 139, 230, 0.12)"}
+        style={{ border: `2px solid var(--mantine-color-${bestColor.replace(".", "-")})` }}
+      >
+        <Text size="xs" tt="uppercase" fw={700} c="dimmed" style={{ letterSpacing: 1 }}>
+          Most likely outcome
+        </Text>
+        <Text fz={30} lh={1.2} mt={6}>
+          {METHOD_ICON[best.method]}
+        </Text>
+        <Text fz={22} fw={800} lh={1.2}>
+          {best.winner.name}
+        </Text>
+        <Text fz={16} fw={700}>
+          by {methodName(best.method)}
+        </Text>
+        <Text size="sm" c="dimmed" mt={4}>
+          {Math.round(best.p * 100)}% chance
+        </Text>
+      </Paper>
+    </Stack>
+  );
+}
+
+/** Details below the cards: every outcome and the stats behind the call. */
+function Breakdown({ data, a, b }: { data: PredictorData; a: PredictorFighter; b: PredictorFighter }) {
   const all = outcomes(data, a, b);
-  const best = all[0]!;
   const labels = data.feature_labels;
   const contrib = contributions(data.win_model, a, b).map((c, i) => ({ c, label: labels[data.win_model.inputs[i]!] ?? "" }));
   const edges = (sign: 1 | -1) =>
@@ -167,49 +220,11 @@ function Prediction({ data, a, b }: { data: PredictorData; a: PredictorFighter; 
       .sort((x, y) => y.c * sign - x.c * sign)
       .slice(0, 3)
       .map((x) => x.label);
-  const methodName = (m: string) => ({ "KO/TKO": "KO/TKO", SUB: "submission", DEC: "decision" })[m] ?? m;
 
   return (
     <Paper withBorder p="lg">
       <Stack gap="md">
-        <Group justify="space-between" align="baseline">
-          <Text fw={700} size="xl" c={A_COLOR}>
-            {Math.round(pA * 100)}%
-          </Text>
-          <Text size="sm" c="dimmed">
-            Win probability
-          </Text>
-          <Text fw={700} size="xl" c={B_COLOR}>
-            {Math.round((1 - pA) * 100)}%
-          </Text>
-        </Group>
-        <Progress.Root size={18}>
-          <Progress.Section value={pA * 100} color={A_COLOR}>
-            <Progress.Label>{a.name}</Progress.Label>
-          </Progress.Section>
-          <Progress.Section value={(1 - pA) * 100} color={B_COLOR}>
-            <Progress.Label>{b.name}</Progress.Label>
-          </Progress.Section>
-        </Progress.Root>
-
-        <Paper
-          p="md"
-          radius="md"
-          ta="center"
-          bg={best.winner.id === a.id ? "rgba(250, 82, 82, 0.12)" : "rgba(34, 139, 230, 0.12)"}
-          style={{ border: `2px solid var(--mantine-color-${(best.winner.id === a.id ? A_COLOR : B_COLOR).replace(".", "-")})` }}
-        >
-          <Text size="xs" tt="uppercase" fw={700} c="dimmed" style={{ letterSpacing: 1 }}>
-            Most likely outcome
-          </Text>
-          <Text fz={{ base: 22, sm: 28 }} fw={800} lh={1.2} mt={4}>
-            {METHOD_ICON[best.method]} {best.winner.name} by {methodName(best.method)}
-          </Text>
-          <Text size="sm" c="dimmed">
-            {Math.round(best.p * 100)}% chance
-          </Text>
-        </Paper>
-
+        <Title order={4}>Breakdown</Title>
         <Grid>
           <Grid.Col span={{ base: 12, md: 6 }}>
             <Stack gap={6}>
@@ -257,8 +272,8 @@ function Prediction({ data, a, b }: { data: PredictorData; a: PredictorFighter; 
 function TaleOfTheTape({ data, a, b }: { data: PredictorData; a: PredictorFighter; b: PredictorFighter }) {
   const fmtRecord = (f: PredictorFighter) => `${f.record.wins}-${f.record.losses}-${f.record.draws}`;
   return (
-    <Paper withBorder p="md">
-      <Title order={4} mb="xs">
+    <Paper withBorder p="md" maw={620} w="100%" mx="auto">
+      <Title order={4} mb="xs" ta="center">
         Tale of the tape
       </Title>
       <Table striped withRowBorders={false} fz="sm">
