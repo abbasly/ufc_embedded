@@ -18,7 +18,7 @@ Data is current to the latest UFC event (fights, records and rankings from UFCSt
 Works on desktop and phone.
 
 Planned next: a probabilistic **fight predictor** (Bayesian skill ratings with uncertainty,
-checked against betting odds) and, as a stretch, a browser **shadowboxing coach**.
+checked against betting odds).
 
 ## How the style map works
 

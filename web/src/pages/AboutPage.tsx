@@ -26,11 +26,6 @@ const PRODUCTS: Product[] = [
     status: "Planned",
     text: "Bayesian skill ratings that evolve over time, predicting win probability and method with honest uncertainty, checked against the betting market.",
   },
-  {
-    title: "Shadowboxing Coach",
-    status: "Stretch",
-    text: "Webcam pose estimation in the browser that recognises punches and counts combos.",
-  },
 ];
 
 function ProductCard({ p }: { p: Product }) {
@@ -82,7 +77,7 @@ export function AboutPage() {
           </Group>
         </Stack>
 
-        <SimpleGrid cols={{ base: 1, sm: 2 }}>
+        <SimpleGrid cols={{ base: 1, sm: 3 }}>
           {PRODUCTS.map((p) => (
             <ProductCard key={p.title} p={p} />
           ))}
