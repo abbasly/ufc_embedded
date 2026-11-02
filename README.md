@@ -5,18 +5,24 @@ Every active UFC fighter, mapped by how they fight.
 **Live:** https://abbasly.github.io/ufc_embedded/
 
 A personal ML engineering project: turn fight statistics into interactive, explorable models.
-The first product is the **Style Map**, a 3D embedding of ~500 active fighters where similar
-styles sit close together. Click a fighter to see their profile and the fighters most like them.
 
-**MMA Math** finds loops of fighters who beat each other in a circle (A beat B, B beat C, C beat A)
-and "proves" any fighter beats any other with a chain of wins. Hover anyone to see their style profile.
+- **[Style Map](https://abbasly.github.io/ufc_embedded/)**: ~700 active fighters placed in 3D by
+  how they fight. Click anyone for their W-L-D record, stats, current ranking and closest
+  look-alikes. Switch between readable style axes and a t-SNE similarity view, filter by style,
+  weight class, champions or ranked fighters.
+- **[MMA Math](https://abbasly.github.io/ufc_embedded/mma-math)**: loops of fighters who beat each
+  other in a circle (A beat B, B beat C, C beat A), and a calculator that "proves" any fighter
+  beats any other with a chain of wins. Hover anyone to see their style profile.
+
+Data is current to the latest UFC event (fights, records and rankings from UFCStats via Kaggle).
+Works on desktop and phone.
 
 Planned next: a probabilistic **fight predictor** (Bayesian skill ratings with uncertainty,
 checked against betting odds) and, as a stretch, a browser **shadowboxing coach**.
 
 ## How the style map works
 
-1. Take fighters active in the last 3 years with at least 3 UFC fights.
+1. Take fighters active in the last 3 years with at least 3 UFC fights (~700).
 2. Use 8 UFCStats career rates (strikes landed/absorbed, accuracy, defence, takedowns,
    takedown accuracy/defence, submission attempts).
 3. **Shrink** noisy stats toward the average, more for fighters with little cage time or few
@@ -29,9 +35,20 @@ checked against betting odds) and, as a stretch, a browser **shadowboxing coach*
    - **Similarity:** t-SNE, which keeps far more true neighbours together but has meaningless axes.
 
    Each layout reports how many of every fighter's 10 nearest neighbours (in the full 8-stat
-   space) it keeps: about 25% for style axes vs 52% for t-SNE in 3D.
+   space) it keeps: about 21% for style axes vs 51% for t-SNE in 3D.
 5. k-means for style groups, nearest neighbours in the full stat space for "most similar".
-6. Current champions and fighter photos (free licences only, ~40% of fighters) come from Wikipedia.
+6. Current champions and rankings come from the official rankings; fighter photos (free licences
+   only, about a third of fighters) from Wikipedia.
+
+## How MMA math works
+
+1. Every decisive UFC fight since 1994 is an edge from winner to loser (draws and no contests
+   are skipped). Fighters are identified by their UFCStats id, so namesakes stay apart.
+2. Simple cycles of 3 to 5 fighters are found with networkx and ranked by the "fame" of the
+   least known fighter in the loop (UFC fights, title wins, current belt).
+3. The calculator runs a breadth-first search in the browser for the shortest chain of wins in
+   each direction. Over 1,200 fighters form one strongly connected component, so within it
+   anyone "beats" anyone.
 
 ## Architecture
 
@@ -43,10 +60,12 @@ flowchart LR
     subgraph py["Python pipeline (src/ufc_embedded)"]
         raw[("Kaggle CSVs (UFCStats)<br/>data/raw")] --> data["data.py<br/>fights, profiles, rankings"]
         data --> sm["style_map.py<br/>shrink, style axes, t-SNE, k-means, kNN"]
-        wiki(["Wikipedia API"]) --> champs["champions.py + wikipedia.py<br/>current champs, photos"]
+        data --> champs["champions.py<br/>champions + ranks"]
+        wiki(["Wikipedia API"]) --> photos["wikipedia.py<br/>fighter photos"]
         data --> mma["mma_math.py<br/>win graph + cycles"]
         sm --> export["export.py"]
         champs --> export
+        photos --> export
         mma --> export
     end
 
@@ -100,7 +119,7 @@ for ds in scarekrow/ufc-data valihameed/ufc-stats jerzyszocik/ufc-rankings-histo
 done
 ```
 
-Fighter photos are cached in `data/processed/fighter_photos.json`; delete it to refresh.
+Fighter photos are cached in `data/processed/fighter_photos*.json`; delete them to refresh.
 
 ## Limitations
 
