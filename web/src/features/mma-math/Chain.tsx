@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 import type { Fighter as StyleFighter, MmaFighter, StyleMapData } from "../../data/types";
 import { RecordText } from "../../components/RecordText";
+import { FighterTradingCard } from "../predictor/FighterTradingCard";
 import { GOLD, STYLE_COLORS, ordinal } from "../style-map/model";
 import { type Fight, isUpset } from "./graph";
 
@@ -69,26 +70,8 @@ export function FighterChip({ fighter, lookup, faded }: { fighter: MmaFighter; l
   const color = cluster ? STYLE_COLORS[cluster.name] : undefined;
   const initials = fighter.name.split(" ").map((w) => w[0]).slice(0, 2).join("");
 
-  return (
-    <HoverCard openDelay={120} withArrow shadow="md" width={260}>
-      <HoverCard.Target>
-        <Stack gap={2} align="center" w={70} style={{ opacity: faded ? 0.5 : 1, cursor: "default" }}>
-          <Avatar
-            src={fighter.image?.url}
-            size={48}
-            radius="xl"
-            color="gray"
-            style={{ border: `2px solid ${fighter.champion ? GOLD : (color ?? "#555")}` }}
-          >
-            {initials}
-          </Avatar>
-          <Text size="xs" ta="center" lh={1.2} lineClamp={2}>
-            {fighter.champion && "🏆 "}
-            {fighter.name}
-          </Text>
-        </Stack>
-      </HoverCard.Target>
-      <HoverCard.Dropdown>
+  // Shown instead of the trading card for fighters outside the predictor's data (legends).
+  const details = (
         <Stack gap={6}>
           <Text fw={600}>{fighter.name}</Text>
           <RecordText record={fighter.record} size="xs" />
@@ -120,6 +103,39 @@ export function FighterChip({ fighter, lookup, faded }: { fighter: MmaFighter; l
             </Text>
           )}
         </Stack>
+  );
+
+  return (
+    <HoverCard openDelay={120} withArrow shadow="md" width={280}>
+      <HoverCard.Target>
+        <Stack gap={2} align="center" w={70} style={{ opacity: faded ? 0.5 : 1, cursor: "default" }}>
+          <Avatar
+            src={fighter.image?.url}
+            size={48}
+            radius="xl"
+            color="gray"
+            style={{ border: `2px solid ${fighter.champion ? GOLD : (color ?? "#555")}` }}
+          >
+            {initials}
+          </Avatar>
+          <Text size="xs" ta="center" lh={1.2} lineClamp={2}>
+            {fighter.champion && "🏆 "}
+            {fighter.name}
+          </Text>
+        </Stack>
+      </HoverCard.Target>
+      <HoverCard.Dropdown p={6}>
+        <FighterTradingCard id={fighter.id} fallback={details} />
+        <Group justify="space-between" mt={6} px={4}>
+          {style && (
+            <Anchor component={Link} to={`/?fighter=${fighter.id}`} size="xs">
+              Style map →
+            </Anchor>
+          )}
+          <Anchor component={Link} to={`/predictor?a=${fighter.id}`} size="xs">
+            Predict a fight →
+          </Anchor>
+        </Group>
       </HoverCard.Dropdown>
     </HoverCard>
   );

@@ -52,6 +52,9 @@ const UNKNOWN: CardType = { label: "Fighter", icon: "🥊", color: "#868e96", li
 const DESIGN_WIDTH = 320; // px the card was designed at
 const PHOTO_HEIGHT = 140; // design px
 
+/** Long names shrink so they fit next to the Elo instead of being cut off. */
+const nameSize = (name: string) => (name.length <= 15 ? 17 : name.length <= 19 ? 15 : 13);
+
 /** Design pixels -> a share of the card's width, so the card scales as a whole. */
 const u = (px: number) => `${((px / DESIGN_WIDTH) * 100).toFixed(3)}cqw`;
 
@@ -126,7 +129,7 @@ export function TradingCard({ fighter, cluster, stat, recent }: Props) {
 
           {/* Header: name, then "HP" (Elo) and the type icon */}
           <Group justify="space-between" wrap="nowrap" gap={u(4)}>
-            <Text fw={800} fz={u(17)} lh={1.1} lineClamp={1}>
+            <Text fw={800} fz={u(nameSize(fighter.name))} lh={1.1} lineClamp={1}>
               {fighter.name}
             </Text>
             <Group gap={u(4)} wrap="nowrap">

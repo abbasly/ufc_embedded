@@ -19,11 +19,11 @@ import {
 import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import { useMmaMath, usePredictor, useStyleMap } from "../../data/client";
-import type { MmaMathData, PredictorData, PredictorFighter, StyleMapData } from "../../data/types";
+import { useMmaMath, usePredictor } from "../../data/client";
+import type { MmaMathData, PredictorData, PredictorFighter } from "../../data/types";
 import { GOLD } from "../style-map/model";
-import { commonOpponents, contributions, headToHead, outcomes, recentResults, winProb } from "./model";
-import { TradingCard } from "./TradingCard";
+import { FighterTradingCard } from "./FighterTradingCard";
+import { commonOpponents, contributions, headToHead, outcomes, winProb } from "./model";
 
 const DEFAULT = ["islam-makhachev", "ilia-topuria"];
 const METHOD_ICON: Record<string, string> = { "KO/TKO": "💥", SUB: "🔒", DEC: "⚖️" };
@@ -52,7 +52,6 @@ const TAPE: [string, string, (v: number) => string, "high" | "low" | null][] = [
 export default function PredictorPage() {
   const { data, error, isPending } = usePredictor();
   const mma = useMmaMath().data;
-  const styleMap = useStyleMap().data;
   const [params, setParams] = useSearchParams();
 
   const byId = useMemo(() => new Map(data?.fighters.map((f) => [f.id, f])), [data]);
@@ -84,7 +83,7 @@ export default function PredictorPage() {
 
         <Grid align="stretch">
           <Grid.Col span={{ base: 12, md: 4 }}>
-            <FighterCard data={data} styleMap={styleMap} mma={mma} fighter={a} options={options} value={aId} onChange={(v) => set("a", v)} color={A_COLOR} />
+            <FighterCard fighter={a} options={options} value={aId} onChange={(v) => set("a", v)} />
           </Grid.Col>
           <Grid.Col span={{ base: 12, md: 4 }}>
             <Stack h="100%" justify="center" gap="md" py="md">
@@ -99,7 +98,7 @@ export default function PredictorPage() {
             </Stack>
           </Grid.Col>
           <Grid.Col span={{ base: 12, md: 4 }}>
-            <FighterCard data={data} styleMap={styleMap} mma={mma} fighter={b} options={options} value={bId} onChange={(v) => set("b", v)} color={B_COLOR} />
+            <FighterCard fighter={b} options={options} value={bId} onChange={(v) => set("b", v)} />
           </Grid.Col>
         </Grid>
 
@@ -135,31 +134,17 @@ function value(data: PredictorData, f: PredictorFighter, feature: string): numbe
 }
 
 interface CardProps {
-  data: PredictorData;
-  styleMap?: StyleMapData;
-  mma?: MmaMathData;
   fighter?: PredictorFighter;
   options: { value: string; label: string }[];
   value: string;
   onChange: (id: string | null) => void;
-  color: string;
 }
 
-function FighterCard({ data, styleMap, mma, fighter, options, value: id, onChange }: CardProps) {
-  const style = styleMap?.fighters.find((f) => f.id === id);
-  const cluster = style && styleMap?.clusters.find((c) => c.id === style.cluster);
+function FighterCard({ fighter, options, value: id, onChange }: CardProps) {
   return (
     <Stack gap="sm" maw={320} mx="auto" w="100%">
       <Select searchable limit={200} data={options} value={id} onChange={onChange} placeholder="Pick a fighter" />
-      {fighter && (
-        <TradingCard
-          key={fighter.id} // a new fighter starts face up
-          fighter={fighter}
-          cluster={cluster}
-          stat={(k) => value(data, fighter, k)}
-          recent={mma ? recentResults(mma, fighter.id) : []}
-        />
-      )}
+      {fighter && <FighterTradingCard id={fighter.id} />}
     </Stack>
   );
 }

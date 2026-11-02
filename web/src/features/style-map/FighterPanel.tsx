@@ -1,7 +1,9 @@
-import { Anchor, Avatar, Badge, CloseButton, Group, Progress, Stack, Text, Title, UnstyledButton } from "@mantine/core";
+import { Anchor, Avatar, Badge, Button, CloseButton, Group, Progress, Stack, Text, Title, UnstyledButton } from "@mantine/core";
+import { Link } from "react-router-dom";
 
 import type { Fighter, StyleMapData } from "../../data/types";
 import { RecordText } from "../../components/RecordText";
+import { FighterTradingCard } from "../predictor/FighterTradingCard";
 import { ordinal } from "./model";
 
 interface Props {
@@ -16,8 +18,8 @@ export function FighterPanel({ data, fighter, onSelect }: Props) {
   const byId = new Map(data.fighters.map((f) => [f.id, f]));
   const style = data.clusters.find((c) => c.id === fighter.cluster);
 
-  return (
-    <Stack gap="sm">
+  const header = (
+    <>
       <Group justify="space-between" align="flex-start" wrap="nowrap">
         <Group wrap="nowrap" align="flex-start">
           <FighterAvatar fighter={fighter} size={64} />
@@ -33,7 +35,6 @@ export function FighterPanel({ data, fighter, onSelect }: Props) {
             </Text>
           </div>
         </Group>
-        <CloseButton onClick={() => onSelect(null)} aria-label="Clear selection" />
       </Group>
       <Group gap="xs">
         {fighter.champion && (
@@ -43,6 +44,18 @@ export function FighterPanel({ data, fighter, onSelect }: Props) {
         )}
         {style && <Badge variant="light">{style.name}</Badge>}
       </Group>
+    </>
+  );
+
+  return (
+    <Stack gap="sm">
+      <Group justify="flex-end" mb={-8}>
+        <CloseButton onClick={() => onSelect(null)} aria-label="Clear selection" />
+      </Group>
+      <FighterTradingCard id={fighter.id} fallback={header} />
+      <Button component={Link} to={`/predictor?a=${fighter.id}`} variant="light" leftSection="🥊">
+        Predict a fight with {fighter.name.split(" ").at(-1)}
+      </Button>
 
       <Text fw={600} size="sm" mt="xs">
         Percentile among mapped fighters

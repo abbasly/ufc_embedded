@@ -42,10 +42,15 @@ export function Scene({ data, layout, dims, colorOf, label, isShown, highlightCh
   const byId = useMemo(() => new Map(data.fighters.map((f) => [f.id, f])), [data]);
   const selected = selectedId ? byId.get(selectedId) : undefined;
   const neighbourIds = new Set(selected?.neighbours.map((n) => n.id));
+  const labels = useRef<HTMLDivElement>(null!);
   const position = (f: Fighter): Vec3 => positionOf(f, layout, dims);
   const interpretable = data.layouts.find((l) => l.id === layout)?.interpretable ?? false;
 
   return (
+    // Labels render into `labels`, a React-owned layer over the canvas. drei's default target
+    // (the canvas wrapper) is torn down first when the page unmounts, which made React throw
+    // "removeChild: not a child" on every navigation away from this page.
+    <div style={{ position: "relative", width: "100%", height: "100%" }}>
     <Canvas
       camera={{ position: CAMERA[dims], fov: 45 }}
       onPointerDown={spin.pause}
@@ -62,7 +67,7 @@ export function Scene({ data, layout, dims, colorOf, label, isShown, highlightCh
         mouseButtons={dims === 3 ? undefined : { LEFT: MOUSE.PAN, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.PAN }}
       />
       {/* Hidden rather than unmounted: unmounting drei <Html> here trips a React DOM error. */}
-      <Axes data={data} dims={dims} hidden={!interpretable} />
+      <Axes data={data} dims={dims} hidden={!interpretable} portal={labels} />
 
       {data.fighters.map((f) => {
         const isSelected = f.id === selectedId;
@@ -127,20 +132,20 @@ export function Scene({ data, layout, dims, colorOf, label, isShown, highlightCh
         .map((f) => {
           const visible = highlightChampions && f.id !== selectedId && isShown(f);
           return (
-            <Html key={f.id} position={position(f)} zIndexRange={LABEL_Z} style={{ display: visible ? "block" : "none" }}>
+            <Html portal={labels} key={f.id} position={position(f)} zIndexRange={LABEL_Z} style={{ display: visible ? "block" : "none", pointerEvents: "auto" }}>
               <ChampionLabel fighter={f} onClick={() => onSelect(f.id)} compact />
             </Html>
           );
         })}
 
       {selected && (
-        <Html position={position(selected)} zIndexRange={LABEL_Z}>
+        <Html portal={labels} position={position(selected)} zIndexRange={LABEL_Z} style={{ pointerEvents: "auto" }}>
           <ChampionLabel fighter={selected} onClick={() => undefined} selected />
         </Html>
       )}
 
       {hovered && hovered.id !== selectedId && (
-        <Html position={position(hovered)} zIndexRange={LABEL_Z} style={{ pointerEvents: "none" }}>
+        <Html portal={labels} position={position(hovered)} zIndexRange={LABEL_Z} style={{ pointerEvents: "none" }}>
           <div style={tooltipStyle}>
             {hovered.image && <img src={hovered.image.url} alt="" style={tooltipPhotoStyle} />}
             <div>
@@ -155,6 +160,8 @@ export function Scene({ data, layout, dims, colorOf, label, isShown, highlightCh
         </Html>
       )}
     </Canvas>
+    <div ref={labels} style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden" }} />
+    </div>
   );
 }
 
@@ -242,7 +249,14 @@ function ChampionLabel({ fighter, onClick, selected, compact }: LabelProps) {
   );
 }
 
-function Axes({ data, dims, hidden }: { data: StyleMapData; dims: Dims; hidden: boolean }) {
+interface AxesProps {
+  data: StyleMapData;
+  dims: Dims;
+  hidden: boolean;
+  portal: React.RefObject<HTMLDivElement>;
+}
+
+function Axes({ data, dims, hidden, portal }: AxesProps) {
   const labelStyle = { ...axisLabelStyle, display: hidden ? "none" : "block" };
   const dirs: Vec3[] = [
     [1, 0, 0],
@@ -257,10 +271,10 @@ function Axes({ data, dims, hidden }: { data: StyleMapData; dims: Dims; hidden: 
         return (
           <group key={axis.label} visible={!hidden}>
             <Line points={[end(-1), end(1)]} color="#444" lineWidth={1} />
-            <Html position={end(1.08)} center zIndexRange={LABEL_Z} style={labelStyle}>
+            <Html portal={portal} position={end(1.08)} center zIndexRange={LABEL_Z} style={labelStyle}>
               {axis.high} →
             </Html>
-            <Html position={end(-1.08)} center zIndexRange={LABEL_Z} style={labelStyle}>
+            <Html portal={portal} position={end(-1.08)} center zIndexRange={LABEL_Z} style={labelStyle}>
               ← {axis.low}
             </Html>
           </group>
