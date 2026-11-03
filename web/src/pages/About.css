@@ -1,0 +1,203 @@
+/* The "how it fits together" diagram on the About page: data sources, the Python pipeline and
+   the site's pages in three columns, joined by thin rails with a dot travelling along them. */
+
+.flow {
+  display: grid;
+  grid-template-columns: 1fr 40px 1.15fr 40px 1fr;
+  align-items: stretch;
+}
+
+.flow-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.flow-label {
+  margin-bottom: 4px;
+  color: var(--mantine-color-dimmed);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.flow-item {
+  display: block;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+  color: inherit;
+  text-decoration: none;
+}
+.flow-item b {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+.flow-item span {
+  display: block;
+  color: var(--mantine-color-dimmed);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+/* The pipeline in the middle is the heart of it: a faint red wash. */
+.flow-core .flow-item {
+  background: rgba(250, 82, 82, 0.07);
+}
+
+/* Pages link to themselves. */
+a.flow-item {
+  transition: background 0.15s, transform 0.15s;
+}
+a.flow-item:hover {
+  background: rgba(250, 82, 82, 0.14);
+  transform: translateX(3px);
+}
+a.flow-item b::after {
+  content: " →";
+  color: var(--mantine-color-red-5);
+}
+
+/* Rails between the columns. */
+.flow-rail {
+  position: relative;
+  margin-top: 28px; /* below the column labels */
+}
+.flow-rail::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 6px;
+  right: 6px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.3));
+}
+.flow-rail::after {
+  content: "";
+  position: absolute;
+  top: calc(50% - 3px);
+  left: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--mantine-color-red-5);
+  box-shadow: 0 0 8px var(--mantine-color-red-5);
+  animation: flow-dot 2.4s ease-in-out infinite;
+}
+.flow-rail:nth-of-type(4)::after {
+  animation-delay: 1.2s;
+}
+
+@keyframes flow-dot {
+  0% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  15%,
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(22px);
+    opacity: 0;
+  }
+}
+
+/* Phones: one column, rails turn vertical. */
+@media (max-width: 48em) {
+  .flow {
+    grid-template-columns: 1fr;
+  }
+  .flow-rail {
+    height: 34px;
+    margin: 0;
+  }
+  .flow-rail::before {
+    top: 6px;
+    bottom: 6px;
+    left: 50%;
+    right: auto;
+    width: 1px;
+    height: auto;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.3));
+  }
+  .flow-rail::after {
+    top: 6px;
+    left: calc(50% - 3px);
+    animation-name: flow-dot-down;
+  }
+}
+
+@keyframes flow-dot-down {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  15%,
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+}
+
+/* The headline numbers under the diagram. */
+.about-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px 24px;
+}
+@media (max-width: 48em) {
+  .about-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.about-stats b {
+  display: block;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.about-stats span {
+  color: var(--mantine-color-dimmed);
+  font-size: 12px;
+}
+
+/* GitHub button: GitHub's own dark style, so it reads as "the code" at a glance. */
+.github-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: #0d1117;
+  color: #f0f6fc;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+.github-button:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+  background: #161b22;
+}
+.github-button small {
+  color: #8b949e;
+  font-weight: 400;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flow-rail::after {
+    animation: none;
+    opacity: 0;
+  }
+  a.flow-item {
+    transition: none;
+  }
+}
