@@ -1,6 +1,6 @@
 import { Anchor, AppShell, Button, Center, Group, Loader, Text, Title } from "@mantine/core";
 import { Suspense, useEffect } from "react";
-import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { Link, Navigate, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
 
 import { AboutPage } from "../pages/AboutPage";
 import { PrivacyPage } from "../pages/PrivacyPage";
@@ -16,21 +16,28 @@ const LadderPage = lazyPage(() => import("../features/ladder/LadderPage"));
 // `short` labels are used on phones so all tabs fit next to the logo; `fresh` tabs get a
 // "NEW" tag.
 const NAV: { to: string; label: string; short?: string; fresh?: boolean }[] = [
-  { to: "/", label: "Style Map", short: "Map" },
+  { to: "/style-map", label: "Style Map", short: "Map" },
   { to: "/predictor", label: "Predictor", short: "Predict", fresh: true },
   { to: "/ladder", label: "Ladder" },
   { to: "/mma-math", label: "MMA Math", short: "Math" },
-  { to: "/about", label: "About" },
+  { to: "/", label: "About" }, // the landing page
 ];
 
 // Browser tab titles; keep in sync with scripts/route-previews.mjs.
 const TITLES: Record<string, string> = {
+  "/style-map": "UFC Embedded: style map",
   "/mma-math": "UFC Embedded: MMA math",
   "/predictor": "UFC Embedded: fight predictor",
   "/ladder": "UFC Embedded: Elo ladder",
   "/privacy": "UFC Embedded: privacy",
-  "/about": "UFC Embedded: about",
 };
+
+/** The landing page is About. Style-map links from when the map was the home page
+ * (/?fighter=islam-makhachev) still open the map on that fighter. */
+function Home() {
+  const [params] = useSearchParams();
+  return params.has("fighter") ? <Navigate to={`/style-map?${params}`} replace /> : <AboutPage />;
+}
 
 export function App() {
   // GitHub Pages serves the pages that have their own link-preview file as a folder, so a
@@ -94,13 +101,13 @@ export function App() {
       <AppShell.Main>
         <Suspense fallback={<Center h="60vh"><Loader /></Center>}>
           <Routes>
-            <Route path="/" element={<StyleMapPage />} />
+            <Route path="/" element={<Home />} />
+            <Route path="/style-map" element={<StyleMapPage />} />
             <Route path="/mma-math" element={<MmaMathPage />} />
             <Route path="/predictor" element={<PredictorPage />} />
             <Route path="/ladder" element={<LadderPage />} />
-            <Route path="/about" element={<AboutPage />} />
+            <Route path="/about" element={<Navigate to="/" replace />} />
             <Route path="/privacy" element={<PrivacyPage />} />
-            <Route path="/style-map" element={<Navigate to="/" replace />} />
             <Route path="*" element={<Text>Page not found.</Text>} />
           </Routes>
         </Suspense>

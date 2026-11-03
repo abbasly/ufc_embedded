@@ -93,7 +93,7 @@ export function FighterChip({ fighter, lookup, faded }: { fighter: MmaFighter; l
                   {t}
                 </Text>
               ))}
-              <Anchor component={Link} to={`/?fighter=${fighter.id}`} size="xs">
+              <Anchor component={Link} to={`/style-map?fighter=${fighter.id}`} size="xs">
                 Show on the style map →
               </Anchor>
             </>
@@ -128,7 +128,7 @@ export function FighterChip({ fighter, lookup, faded }: { fighter: MmaFighter; l
         <FighterTradingCard id={fighter.id} fallback={details} />
         <Group justify="space-between" mt={6} px={4}>
           {style && (
-            <Anchor component={Link} to={`/?fighter=${fighter.id}`} size="xs">
+            <Anchor component={Link} to={`/style-map?fighter=${fighter.id}`} size="xs">
               Style map →
             </Anchor>
           )}

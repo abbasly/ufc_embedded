@@ -41,7 +41,7 @@ const FLOW: { label: string; hint?: string; core?: boolean; items: FlowItem[] }[
     hint: "open one",
     // Same order as the navigation bar.
     items: [
-      { title: "Style Map", text: "Fighters in 3D by how they fight", to: "/" },
+      { title: "Style Map", text: "Fighters in 3D by how they fight", to: "/style-map" },
       { title: "Fight Predictor", text: "Win chance and how it ends", to: "/predictor" },
       { title: "Elo Ladder", text: "Chess-style ratings vs official ranks", to: "/ladder" },
       { title: "MMA Math", text: "Anyone beats anyone, in circles", to: "/mma-math" },
@@ -167,8 +167,7 @@ export function AboutPage() {
             Made by Anar Abbasli
           </Text>
           <Text size="sm" c="dimmed">
-            Full-time student, part-time fight fan. Built to take machine learning from raw data all
-            the way to something people can use, on a sport I'd be watching anyway.
+            Full-time student, part-time fight fan.
           </Text>
         </div>
         <a className="github-button" href={REPO} target="_blank" rel="noreferrer">

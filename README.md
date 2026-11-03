@@ -11,7 +11,7 @@ bookmakers, via Kaggle). Works on desktop and phone; fully static, hosted free o
 <table>
   <tr>
     <td width="50%" valign="top">
-      <a href="https://abbasly.github.io/ufc_embedded/"><img src="docs/screenshots/style-map.png" alt="Style map"></a><br>
+      <a href="https://abbasly.github.io/ufc_embedded/style-map"><img src="docs/screenshots/style-map.png" alt="Style map"></a><br>
       <sub><b>Style Map</b>: 3D map of fighting styles</sub>
     </td>
     <td width="50%" valign="top">
@@ -43,7 +43,7 @@ bookmakers, via Kaggle). Works on desktop and phone; fully static, hosted free o
 
 ## Features
 
-- **[Style Map](https://abbasly.github.io/ufc_embedded/)**: ~700 active fighters placed in 3D by how they fight. Click anyone and the camera
+- **[Style Map](https://abbasly.github.io/ufc_embedded/style-map)**: ~700 active fighters placed in 3D by how they fight. Click anyone and the camera
   flies to them, with lines and photo labels out to their most similar fighters (across the map
   or in their own division), a match score, what they share ("Leg kicks · Top control") and a
   stat-by-stat comparison. Readable style axes or a t-SNE similarity view; filter by style,

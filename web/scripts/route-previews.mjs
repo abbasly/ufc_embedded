@@ -7,6 +7,12 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 const ROUTES = [
   {
+    path: "style-map",
+    title: "UFC Embedded: the fighter style map",
+    description: "Every active UFC fighter, mapped by how they fight. Find who fights most like your favourite.",
+    image: "og.png",
+  },
+  {
     path: "predictor",
     title: "UFC Embedded: fight predictor",
     description: "Pick any two UFC fighters: who wins, how it ends, and what drives the call.",
