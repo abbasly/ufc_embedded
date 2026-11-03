@@ -15,6 +15,7 @@ interface Props {
   onScope: (scope: Scope) => void;
   focusId: string | null; // the similar fighter being looked at (also lit up on the map)
   onFocus: (id: string | null) => void;
+  onShowOnMap?: () => void; // set when the map's top-5 view was closed, to open it again
 }
 
 export function FighterPanel(props: Props) {
@@ -83,7 +84,14 @@ function SimilarFighters(props: Props & { fighter: Fighter; byId: Map<string, Fi
   return (
     <div>
       <Group justify="space-between" align="center" mt="xs" mb={4} gap="xs">
-        <Text fw={700}>Most similar fighters</Text>
+        <Group gap={8} align="baseline">
+          <Text fw={700}>Most similar fighters</Text>
+          {props.onShowOnMap && (
+            <Anchor component="button" size="xs" onClick={props.onShowOnMap}>
+              Show on map
+            </Anchor>
+          )}
+        </Group>
         <SegmentedControl
           size="xs"
           value={scope}

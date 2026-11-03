@@ -26,7 +26,7 @@ interface Props {
   highlightChampions: boolean;
   selectedId: string | null;
   onSelect: (id: string) => void;
-  neighbours: Neighbour[]; // the selected fighter's most similar fighters
+  neighbours: Neighbour[]; // the selected fighter's most similar fighters; empty: view closed
   focusId: string | null; // a neighbour being looked at (hovered here or in the panel)
   onFocus: (id: string | null) => void;
 }
@@ -41,7 +41,7 @@ const noRaycast = () => null;
 const AXIS_LENGTH = 4.5;
 const LABEL_Z = [100, 0]; // keep HTML labels below the app's own overlays
 const FLY_SECONDS = 1.1;
-const DIMMED = 0.16; // opacity of fighters outside the selection's neighbourhood
+const GHOST = 0.05; // opacity of everyone else in the similar-fighters view
 
 export function Scene(props: Props) {
   const { data, layout, dims, colorOf, label, isShown, highlightChampions, selectedId, onSelect } = props;
@@ -71,7 +71,9 @@ export function Scene(props: Props) {
   const select = useCallback((id: string) => onSelect(id), [onSelect]);
 
   // Where the camera should look: the selection and its neighbours, or the whole map.
-  const flyTarget = selected ? position(selected) : null;
+  // The similar-fighters view: just the selection and its neighbours, up close.
+  const similarView = selected !== undefined && neighbours.length > 0;
+  const flyTarget = similarView ? position(selected) : null;
   // How far out the neighbours are: the median one, so a single outlier doesn't zoom out the view.
   const spread = selected
     ? neighbours
@@ -95,12 +97,12 @@ export function Scene(props: Props) {
       onPointerMissed={() => onFocus(null)}
     >
       <CameraReset resetKey={`${layout}-${dims}`} dims={dims} />
-      <FlyTo flyKey={`${selectedId}-${layout}-${dims}`} target={flyTarget} reach={reach} dims={dims} />
+      <FlyTo flyKey={`${similarView ? selectedId : ""}-${layout}-${dims}`} target={flyTarget} reach={reach} dims={dims} />
       <OrbitControls
         makeDefault
         enableDamping
         enableRotate={dims === 3}
-        autoRotate={dims === 3 && spin.on && !selected} // hold still while a fighter is selected, so labels stay put
+        autoRotate={dims === 3 && spin.on && !similarView} // hold still in the similar view, so labels stay put
         autoRotateSpeed={SPIN_SPEED}
         mouseButtons={dims === 3 ? undefined : { LEFT: MOUSE.PAN, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.PAN }}
       />
@@ -113,7 +115,8 @@ export function Scene(props: Props) {
         const isFocused = f.id === focusId;
         const shown = isShown(f) || isSelected || isNeighbour;
         const scale = isSelected ? 2.6 : isFocused ? 2.4 : isNeighbour ? 1.8 : f.champion && highlightChampions ? 1.7 : 1;
-        const opacity = !shown ? 0.1 : selected && !isSelected && !isNeighbour ? DIMMED : 0.9;
+        const ghost = similarView && !isSelected && !isNeighbour;
+        const opacity = ghost ? GHOST : !shown ? 0.1 : 0.9;
         return (
           <Dot
             key={f.id}
@@ -123,7 +126,7 @@ export function Scene(props: Props) {
             color={shown ? colorOf(f) : "#666"}
             opacity={opacity}
             scale={scale}
-            pickable={shown}
+            pickable={shown && !ghost}
             onSelect={select}
             onHover={hover}
           />
@@ -143,9 +146,9 @@ export function Scene(props: Props) {
               from={position(selected)}
               to={position(f)}
               delay={lineDelay(i)}
-              color={focused ? colorOf(f) : "white"}
-              opacity={focused ? 1 : focusId ? 0.12 : 0.22 + 0.3 * closeness(n.similarity)}
-              width={focused ? 3 : 1 + closeness(n.similarity)}
+              color={colorOf(f)}
+              opacity={focused ? 1 : focusId ? 0.25 : 0.6 + 0.35 * closeness(n.similarity)}
+              width={focused ? 4 : 1.8 + 1.8 * closeness(n.similarity)}
             />
           );
         })}
@@ -154,7 +157,7 @@ export function Scene(props: Props) {
       {data.fighters
         .filter((f) => f.champion)
         .map((f) => {
-          const visible = highlightChampions && !selected && isShown(f);
+          const visible = highlightChampions && !similarView && f.id !== selectedId && isShown(f);
           return (
             <Html portal={labels} key={f.id} position={position(f)} zIndexRange={LABEL_Z} style={{ display: visible ? "block" : "none", pointerEvents: "auto" }}>
               <ChampionLabel fighter={f} onClick={() => onSelect(f.id)} compact />
@@ -375,8 +378,10 @@ function GrowLine({ from, to, delay, color, opacity, width }: GrowLineProps) {
     const tip = from.map((v, i) => v + (to[i]! - v) * k);
     (line.current.geometry as LineSegmentsGeometry).setPositions([...from, ...tip]);
   });
-  const start = reduceMotion ? to : from; // before the first frame: nothing to see yet
-  return <Line ref={line} points={[from, start]} color={color} transparent opacity={opacity} lineWidth={width} />;
+  // Re-renders reset the line to these points: the full line once it has grown, else nothing yet.
+  const start = t.current >= 1 ? to : from;
+  // Drawn over the dots (no depth test), so the threads never disappear behind them.
+  return <Line ref={line} points={[from, start]} color={color} transparent opacity={opacity} lineWidth={width} depthTest={false} renderOrder={1} />;
 }
 
 /** A soft ring that keeps pulsing out from the selected fighter. */

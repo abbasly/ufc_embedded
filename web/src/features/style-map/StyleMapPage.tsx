@@ -1,4 +1,4 @@
-import { Alert, Box, Center, Grid, Group, Loader, MultiSelect, Paper, SegmentedControl, Select, Stack, Switch, Text, UnstyledButton } from "@mantine/core";
+import { Alert, Box, Center, CloseButton, Grid, Group, Loader, MultiSelect, Paper, SegmentedControl, Select, Stack, Switch, Text, UnstyledButton } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import "./StyleMap.css";
 
@@ -31,6 +31,7 @@ export default function StyleMapPage() {
   const [highlightChampions, setHighlightChampions] = useState(true);
   const [scope, setScope] = useState<Scope>("all"); // similar fighters: anyone, or same division
   const [focusId, setFocusId] = useState<string | null>(null); // a similar fighter being hovered
+  const [similarView, setSimilarView] = useState(true); // map shows only the selection's top 5
   const narrow = useMediaQuery("(max-width: 480px)");
 
   // Selected fighter lives in the URL (?fighter=islam-makhachev) so it can be shared.
@@ -38,6 +39,7 @@ export default function StyleMapPage() {
   const select = useCallback(
     (id: string | null) => {
       setFocusId(null);
+      setSimilarView(true); // picking a fighter always opens their top 5; × closes it
       setParams(id ? { fighter: id } : {}, { replace: true });
     },
     [setParams],
@@ -48,6 +50,7 @@ export default function StyleMapPage() {
 
   const selected = data.fighters.find((f) => f.id === selectedId) ?? null;
   const neighbours = similarTo(selected, scope);
+  const showSimilar = similarView && selected !== null;
   const present = new Set(data.fighters.map((f) => f.weight_class));
   const isShown = (f: Fighter) =>
     SHOW_OPTIONS[show].test(f) &&
@@ -147,7 +150,7 @@ export default function StyleMapPage() {
             highlightChampions={highlightChampions}
             selectedId={selectedId}
             onSelect={select}
-            neighbours={neighbours}
+            neighbours={showSimilar ? neighbours : []}
             focusId={focusId}
             onFocus={setFocusId}
           />
@@ -166,16 +169,19 @@ export default function StyleMapPage() {
               );
             })}
           </Group>
-          {selected && neighbours.length > 0 && (
-            <Box ta="right" style={{ alignSelf: "flex-end" }}>
-              <Text size="xs" fw={600}>
-                {neighbours.length} most similar to {selected.name}
-                {scope === "division" && ` in ${selected.weight_class}`}
-              </Text>
-              <Text size="xs" c="dimmed">
-                ranked 1–{neighbours.length} · similarity out of 100
-              </Text>
-            </Box>
+          {selected && showSimilar && (
+            <Group gap={6} wrap="nowrap" align="flex-start" style={{ alignSelf: "flex-end", pointerEvents: "auto" }}>
+              <Box ta="right">
+                <Text size="xs" fw={600}>
+                  {neighbours.length} most similar to {selected.name}
+                  {scope === "division" && ` in ${selected.weight_class}`}
+                </Text>
+                <Text size="xs" c="dimmed">
+                  ranked 1–{neighbours.length} · similarity out of 100
+                </Text>
+              </Box>
+              <CloseButton size="sm" onClick={() => setSimilarView(false)} aria-label="Back to the full map" title="Back to the full map" />
+            </Group>
           )}
           </Stack>
           <Text pos="absolute" bottom={8} left={10} size="xs" c="dimmed" style={{ pointerEvents: "none" }}>
@@ -194,6 +200,7 @@ export default function StyleMapPage() {
           onScope={setScope}
           focusId={focusId}
           onFocus={setFocusId}
+          onShowOnMap={showSimilar ? undefined : () => setSimilarView(true)}
         />
       </Grid.Col>
     </Grid>
