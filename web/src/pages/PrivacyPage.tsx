@@ -30,7 +30,8 @@ export function PrivacyPage() {
             ).
           </List.Item>
           <List.Item>
-            <b>Cloudflare</b> provides the domain's DNS (
+            <b>Cloudflare</b> provides the domain's DNS and counts visits with Cloudflare Web Analytics: no
+            cookies and no tracking across sites, just page views, countries and where visitors came from (
             <Anchor href="https://www.cloudflare.com/privacypolicy/">Cloudflare privacy policy</Anchor>).
           </List.Item>
           <List.Item>

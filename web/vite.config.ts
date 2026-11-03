@@ -37,9 +37,38 @@ function adsense(client: string | undefined): Plugin {
   };
 }
 
+/**
+ * Cloudflare Web Analytics, switched by one env var (the CF_ANALYTICS_TOKEN repo variable in CI):
+ * a cookie-free visitor counter (page views, countries, referrers). It follows the app's route
+ * changes on its own. Empty: no beacon at all.
+ */
+function cloudflareAnalytics(token: string | undefined): Plugin {
+  return {
+    name: "cloudflare-analytics",
+    transformIndexHtml() {
+      if (!token) return [];
+      return [
+        {
+          tag: "script",
+          attrs: {
+            defer: true,
+            src: "https://static.cloudflareinsights.com/beacon.min.js",
+            "data-cf-beacon": JSON.stringify({ token }),
+          },
+          injectTo: "body",
+        },
+      ];
+    },
+  };
+}
+
 // BASE_PATH lets the same build live at "/" locally and at "/<repo>/" on GitHub Pages.
 export default defineConfig({
   base: process.env.BASE_PATH ?? "/",
-  plugins: [react(), adsense(process.env.VITE_ADSENSE_CLIENT)],
+  plugins: [
+    react(),
+    adsense(process.env.VITE_ADSENSE_CLIENT),
+    cloudflareAnalytics(process.env.VITE_CF_ANALYTICS_TOKEN),
+  ],
   build: { chunkSizeWarningLimit: 6000 }, // Plotly is big but lazy-loaded on the style map only
 });
