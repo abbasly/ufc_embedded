@@ -1,6 +1,6 @@
 import "./About.css";
 
-import { Anchor, Container, Text, Title } from "@mantine/core";
+import { Anchor, Container, Text } from "@mantine/core";
 import { useReducedMotion } from "@mantine/hooks";
 import { type CSSProperties, Fragment, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -126,16 +126,14 @@ function GitHubMark({ size = 20 }: { size?: number }) {
 }
 
 export function AboutPage() {
-  const flowStart = 2;
+  const flowStart = 1;
   const statsStart = flowStart + 18; // after the diagram's labels, rails and items
   return (
-    <Container size="md" py="xl" className="about">
-      <Title order={1} className="reveal" style={step(0)}>
-        Every UFC fighter, mapped by how they fight.
-      </Title>
-      <Text size="lg" c="dimmed" mt="xs" className="reveal" style={step(1)}>
-        A personal machine learning project: three decades of fight statistics turned into
-        interactive, explorable models. Fun on the surface, careful modelling underneath.
+    // Everything but the disclaimer fits on one laptop screen, so there's no big title.
+    <Container size="md" py="lg" className="about">
+      <Text size="lg" fw={500} className="about-lead reveal" style={step(0)}>
+        A personal machine learning project: <b>three decades of UFC fights</b>, turned into
+        interactive models.
       </Text>
 
       <div className="about-section">

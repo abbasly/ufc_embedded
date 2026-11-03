@@ -16,12 +16,22 @@
   }
 }
 
+/* The one-line intro: bright, with the key phrase in the site's red. */
+.about-lead {
+  color: var(--mantine-color-gray-3);
+  text-wrap: balance;
+}
+.about-lead b {
+  color: var(--mantine-color-red-4);
+  font-weight: 700;
+}
+
 /* Credit bar, under the numbers. */
 .credit {
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-top: 36px;
+  margin-top: 22px;
   padding: 14px 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
@@ -78,7 +88,7 @@
 }
 
 .about-section {
-  margin-top: 36px;
+  margin-top: 20px;
 }
 
 /* The diagram. */
@@ -223,11 +233,11 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px 24px;
-  margin-top: 28px;
+  margin-top: 20px;
 }
 .about-stats b {
   display: block;
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 800;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
