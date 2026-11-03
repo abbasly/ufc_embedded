@@ -30,8 +30,8 @@
 /* A small print of the photo: legs in full splits, so it's landscape. */
 .credit-photo {
   flex-shrink: 0;
-  width: 156px;
-  height: 120px;
+  width: 112px;
+  height: 86px;
   border: 3px solid #f1ece2;
   border-radius: 4px;
   object-fit: cover;
@@ -43,7 +43,7 @@
 .credit-photo:hover {
   position: relative;
   z-index: 1;
-  transform: rotate(0deg) scale(1.9);
+  transform: rotate(0deg) scale(2.4);
 }
 
 .credit-text {
@@ -272,8 +272,15 @@
   .credit {
     flex-wrap: wrap;
   }
+  .credit {
+    align-items: flex-start;
+  }
+  .credit-photo {
+    width: 88px;
+    height: 68px;
+  }
   .credit-text {
-    flex-basis: 100%;
+    flex-basis: calc(100% - 104px);
   }
   .github-button {
     width: 100%;

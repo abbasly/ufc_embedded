@@ -161,8 +161,8 @@ export function AboutPage() {
           src={`${import.meta.env.BASE_URL}anar-taekwondo.jpg`}
           alt="Anar as a kid, doing the splits in a taekwondo uniform"
           title="Me, doing taekwondo as a kid"
-          width={156}
-          height={120}
+          width={112}
+          height={86}
         />
         <div className="credit-text">
           <Text fw={700}>
