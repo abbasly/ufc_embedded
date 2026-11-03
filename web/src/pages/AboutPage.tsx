@@ -1,7 +1,8 @@
 import "./About.css";
 
-import { Anchor, Container, Divider, Group, Stack, Text, Title } from "@mantine/core";
-import { Fragment } from "react";
+import { Anchor, Container, Text, Title } from "@mantine/core";
+import { useReducedMotion } from "@mantine/hooks";
+import { type CSSProperties, Fragment, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 const REPO = "https://github.com/abbasly/ufc_embedded";
@@ -14,63 +15,95 @@ interface FlowItem {
 
 // How the site fits together: where the data comes from, what the Python side does with it,
 // and the pages that come out.
-const FLOW: { label: string; core?: boolean; items: FlowItem[] }[] = [
+const FLOW: { label: string; hint?: string; core?: boolean; items: FlowItem[] }[] = [
   {
     label: "Data",
     items: [
-      { title: "UFCStats", text: "Every UFC fight since 1994, round by round" },
-      { title: "Betting odds", text: "Bookmakers' lines, past fights and upcoming cards" },
-      { title: "Official rankings", text: "Champions and the top 15 per division" },
-      { title: "Wikipedia", text: "Fighter photos and scheduled events" },
+      { title: "UFCStats", text: "Every fight since 1994, round by round" },
+      { title: "Betting odds", text: "Past fights and upcoming cards" },
+      { title: "Official rankings", text: "Champions and top 15s" },
+      { title: "Wikipedia", text: "Photos and scheduled events" },
     ],
   },
   {
     label: "Python pipeline",
     core: true,
     items: [
-      { title: "Point-in-time features", text: "Built only from fights before the one in question" },
-      { title: "Style embedding", text: "14 stats per fighter, shrunk and stability-weighted" },
-      { title: "Ratings", text: "Elo and Glicko, replayed fight by fight" },
-      { title: "Fight models", text: "Logistic regressions for the winner and the method" },
-      { title: "Win graph", text: "Who beat whom, for loops and chains" },
+      { title: "Point-in-time features", text: "Only fights before the one in question" },
+      { title: "Style embedding", text: "14 stats, shrunk and stability-weighted" },
+      { title: "Ratings", text: "Elo and Glicko, fight by fight" },
+      { title: "Fight models", text: "Who wins, and how" },
+      { title: "Win graph", text: "Who beat whom" },
     ],
   },
   {
     label: "On the site",
+    hint: "open one",
     // Same order as the navigation bar.
     items: [
-      { title: "Style Map", text: "Fighters in 3D by how they fight, with look-alikes", to: "/" },
-      { title: "Fight Predictor", text: "Win chance and how it ends, for any matchup", to: "/predictor" },
-      { title: "Elo Ladder", text: "Chess-style ratings next to the official ranks", to: "/ladder" },
-      { title: "MMA Math", text: "Proof that anyone beats anyone, in circles", to: "/mma-math" },
+      { title: "Style Map", text: "Fighters in 3D by how they fight", to: "/" },
+      { title: "Fight Predictor", text: "Win chance and how it ends", to: "/predictor" },
+      { title: "Elo Ladder", text: "Chess-style ratings vs official ranks", to: "/ladder" },
+      { title: "MMA Math", text: "Anyone beats anyone, in circles", to: "/mma-math" },
     ],
   },
 ];
 
 const STATS = [
-  { value: "~9,000", label: "UFC fights" },
-  { value: "2,700+", label: "fighters" },
-  { value: "790+", label: "events" },
-  { value: "1994", label: "back to UFC 1" },
+  { value: 9000, prefix: "~", suffix: "", label: "UFC fights" },
+  { value: 2700, prefix: "", suffix: "+", label: "fighters" },
+  { value: 790, prefix: "", suffix: "+", label: "events" },
+  { value: 1994, prefix: "", suffix: "", label: "back to UFC 1", year: true },
 ];
 
+/** Staggered entrance: element ``i`` of the page comes in ``i`` steps after the first. */
+const step = (i: number) => ({ "--i": i }) as CSSProperties;
+
+/** Counts up from 0 once the page has come in (years just appear). */
+function CountUp({ to, start, year }: { to: number; start: number; year?: boolean }) {
+  const reduceMotion = useReducedMotion();
+  const [n, setN] = useState(reduceMotion || year ? to : 0);
+  useEffect(() => {
+    if (reduceMotion || year) return;
+    let frame = 0;
+    const t0 = performance.now() + start;
+    const tick = (now: number) => {
+      const t = Math.min(1, Math.max(0, (now - t0) / 1100));
+      setN(Math.round(to * (1 - (1 - t) ** 3)));
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [to, start, year, reduceMotion]);
+  return <>{year ? n : n.toLocaleString("en-US")}</>;
+}
+
 /** Data -> pipeline -> pages, in three columns joined by rails (stacked on phones). */
-function HowItFits() {
+function HowItFits({ first }: { first: number }) {
+  let i = first;
   return (
     <div className="flow" role="list" aria-label="How the site is built">
-      {FLOW.map((col, i) => (
+      {FLOW.map((col, c) => (
         <Fragment key={col.label}>
-          {i > 0 && <div className="flow-rail" aria-hidden />}
+          {c > 0 && <div className="flow-rail reveal" style={step(i++)} aria-hidden />}
           <div className={`flow-col${col.core ? " flow-core" : ""}`} role="listitem">
-            <div className="flow-label">{col.label}</div>
+            <div className="flow-label reveal" style={step(i++)}>
+              {col.label}
+              {col.hint && <span className="flow-hint"> · {col.hint}</span>}
+            </div>
             {col.items.map((item) =>
               item.to ? (
-                <Link key={item.title} to={item.to} className="flow-item">
-                  <b>{item.title}</b>
-                  <span>{item.text}</span>
+                <Link key={item.title} to={item.to} className="flow-item flow-link reveal" style={step(i++)}>
+                  <div>
+                    <b>{item.title}</b>
+                    <span>{item.text}</span>
+                  </div>
+                  <span className="flow-arrow" aria-hidden>
+                    →
+                  </span>
                 </Link>
               ) : (
-                <div key={item.title} className="flow-item">
+                <div key={item.title} className="flow-item reveal" style={step(i++)}>
                   <b>{item.title}</b>
                   <span>{item.text}</span>
                 </div>
@@ -93,70 +126,76 @@ function GitHubMark({ size = 20 }: { size?: number }) {
 }
 
 export function AboutPage() {
+  const flowStart = 2;
+  const statsStart = flowStart + 18; // after the diagram's labels, rails and items
   return (
-    <Container size="md" py="xl">
-      <Stack gap="xl">
-        <Stack gap="xs">
-          <Title order={1}>Every UFC fighter, mapped by how they fight.</Title>
-          <Text size="lg" c="dimmed">
-            A personal machine learning project: two decades of fight statistics turned into
-            interactive, explorable models. Fun on the surface, careful modelling underneath.
-          </Text>
-        </Stack>
+    <Container size="md" py="xl" className="about">
+      <Title order={1} className="reveal" style={step(0)}>
+        Every UFC fighter, mapped by how they fight.
+      </Title>
+      <Text size="lg" c="dimmed" mt="xs" className="reveal" style={step(1)}>
+        A personal machine learning project: three decades of fight statistics turned into
+        interactive, explorable models. Fun on the surface, careful modelling underneath.
+      </Text>
 
-        <Stack gap="lg">
-          <HowItFits />
-          <div className="about-stats">
-            {STATS.map((s) => (
-              <div key={s.label}>
-                <b>{s.value}</b>
-                <span>{s.label}</span>
-              </div>
-            ))}
+      <div className="about-section">
+        <HowItFits first={flowStart} />
+      </div>
+
+      <div className="about-stats">
+        {STATS.map((s, k) => (
+          <div key={s.label} className="reveal" style={step(statsStart + k)}>
+            <b>
+              {s.prefix}
+              <CountUp to={s.value} start={(statsStart + k) * 70} year={s.year} />
+              {s.suffix}
+            </b>
+            <span>{s.label}</span>
           </div>
-        </Stack>
+        ))}
+      </div>
 
-
-        <Divider />
-
-        <Stack gap="sm">
-          <Text size="xs" fw={700} c="dimmed" tt="uppercase" style={{ letterSpacing: "0.12em" }}>
-            Made by
-          </Text>
-          <Title order={2}>Anar Abbasli</Title>
-          <Text>
-            Full-time student, part-time fight fan. I built this to take machine learning all the
-            way from raw data to something people can actually use, on a sport I'd be watching
-            anyway.
+      <div className="credit reveal" style={step(statsStart + 4)}>
+        <img
+          className="credit-photo"
+          src={`${import.meta.env.BASE_URL}anar-taekwondo.jpg`}
+          alt="Anar as a kid, doing the splits in a taekwondo uniform"
+          title="Me, doing taekwondo as a kid"
+          width={156}
+          height={120}
+        />
+        <div className="credit-text">
+          <Text fw={700}>
+            Made by Anar Abbasli
           </Text>
           <Text size="sm" c="dimmed">
-            Python, pandas, scikit-learn and Weights &amp; Biases on the modelling side; React,
-            three.js and Rapier physics in the browser. All the code, and how each model works, is
-            on GitHub:
+            Full-time student, part-time fight fan. Built to take machine learning from raw data all
+            the way to something people can use, on a sport I'd be watching anyway.
           </Text>
-          <Group>
-            <a className="github-button" href={REPO} target="_blank" rel="noreferrer">
-              <GitHubMark />
-              abbasly/ufc_embedded <small>on GitHub</small>
-            </a>
-          </Group>
-        </Stack>
+        </div>
+        <a className="github-button" href={REPO} target="_blank" rel="noreferrer">
+          <GitHubMark />
+          <span>
+            abbasly/ufc_embedded <small>on GitHub</small>
+          </span>
+        </a>
+      </div>
 
-        <Stack gap={6}>
-          <Text size="sm" fw={600}>
-            Not an official UFC product.
-          </Text>
-          <Text size="xs" c="dimmed">
-            UFC Embedded is an independent fan project. It is not affiliated with, endorsed or
-            sponsored by the UFC, Zuffa or TKO Group; UFC and related marks belong to their owners.
-            Predictions are for fun, not betting advice. Fighter photos from Wikimedia Commons /
-            Wikipedia under free licences, credited on each fighter.{" "}
-            <Anchor component={Link} to="/privacy" size="xs">
-              Privacy
-            </Anchor>
-          </Text>
-        </Stack>
-      </Stack>
+      <div className="disclaimer reveal" style={step(statsStart + 5)}>
+        <Text size="sm" fw={600}>
+          Not an official UFC product.
+        </Text>
+        <Text size="xs" c="dimmed">
+          UFC Embedded is an independent fan project. It is not affiliated with, endorsed or
+          sponsored by the UFC, Zuffa or TKO Group; UFC and related marks belong to their owners.
+          Predictions are for fun, not betting advice. Fighter photos from Wikimedia Commons /
+          Wikipedia under free licences, credited on each fighter. How each model works is in the
+          README on GitHub.{" "}
+          <Anchor component={Link} to="/privacy" size="xs">
+            Privacy
+          </Anchor>
+        </Text>
+      </div>
     </Container>
   );
 }
