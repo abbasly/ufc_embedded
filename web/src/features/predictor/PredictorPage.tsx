@@ -146,11 +146,11 @@ export default function PredictorPage() {
     <>
       <Box component="section" className="chapter" pos="relative" ref={fightRef} pt={cards.length ? 62 : undefined}>
         {cards.length > 0 && (
-          <Box pos="absolute" top={0} left={0} right={0} style={{ zIndex: 2 }} data-content>
+          <Box pos="absolute" top={0} left={0} right={0} style={{ zIndex: 3 }} data-content>
             <UpcomingTicker cards={cards} onPick={pickFight} />
           </Box>
         )}
-        {/* Punchable heavy bags in the empty space either side of the fight (wide screens only). */}
+        {/* Punchable heavy bags either side of the fight, in front of it (wide screens only). */}
         {wide && (
           <Suspense fallback={null}>
             <HeavyBag eventSource={fightRef} at={[1 - bagAt, bagAt]} />

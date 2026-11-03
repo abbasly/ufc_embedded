@@ -1,10 +1,11 @@
-// A heavy bag you can punch, drawn as a background layer behind a page section: a 40 kg bag
+// A heavy bag you can punch, drawn as a layer in front of a page section: a 40 kg bag
 // on a rope, simulated with Rapier (via @react-three/rapier). A click applies an
 // impulse at the exact point hit, so off-centre punches spin it as well as swing it. Punch
 // power comes from how fast the pointer was moving into the click.
 //
-// The canvas itself ignores the pointer; events come from the section it sits behind, and
-// clicks on the section's content (marked data-content) never reach the bag.
+// The canvas itself ignores the pointer, so the content under it stays usable; events come
+// from the section, and a click that hits a bag punches it. A bag swinging in front of the
+// section's content (marked data-content) takes the click, so the content under it doesn't.
 
 import { ActionIcon, Box, Group, Text } from "@mantine/core";
 import { Billboard } from "@react-three/drei";
@@ -73,8 +74,19 @@ function useRope(a: RefObject<RapierRigidBody | null>, b: RefObject<RapierRigidB
   );
 }
 
-/** Whether a pointer event landed on the background rather than on the page's content. */
-const onBackground = (e: ThreeEvent<PointerEvent>) => !(e.nativeEvent.target as Element | null)?.closest("[data-content]");
+/** Whether a pointer event landed on the page's content (behind the bag) rather than empty space. */
+const overContent = (e: ThreeEvent<PointerEvent>) => !!(e.nativeEvent.target as Element | null)?.closest("[data-content]");
+
+/** Swallow the click that follows a punch, so a card or button behind the bag doesn't get it. */
+function swallowNextClick() {
+  const stop = (e: Event) => {
+    e.stopPropagation();
+    e.preventDefault();
+  };
+  window.addEventListener("click", stop, { capture: true, once: true });
+  // A drag ends without a click: don't eat the next real one.
+  setTimeout(() => window.removeEventListener("click", stop, { capture: true }), 600);
+}
 
 interface BagProps {
   x: number; // where the bag hangs, in world units across the scene
@@ -122,8 +134,12 @@ function Bag({ x, onPunch, pointerSpeed }: BagProps) {
   );
 
   const punch = (e: ThreeEvent<PointerEvent>) => {
-    if (!bag.current || !onBackground(e)) return;
+    if (!bag.current) return;
     e.stopPropagation();
+    if (overContent(e)) {
+      e.nativeEvent.preventDefault(); // no focus or text selection behind the bag
+      swallowNextClick();
+    }
     // Faster pointer into the click = harder punch (a tap is a medium punch).
     const power = Math.min(1, 0.35 + pointerSpeed() / 2500);
     const dir = e.ray.direction.clone().setY(e.ray.direction.y * 0.3).normalize();
@@ -191,7 +207,7 @@ function Bag({ x, onPunch, pointerSpeed }: BagProps) {
         <group
           ref={body}
           onPointerDown={punch}
-          onPointerMove={(e) => (document.body.style.cursor = onBackground(e) ? "pointer" : "")}
+          onPointerMove={() => (document.body.style.cursor = "pointer")}
           onPointerOut={() => (document.body.style.cursor = "")}
         >
           <mesh castShadow geometry={geometry}>
@@ -260,7 +276,7 @@ function Scene({ at, onPunch, pointerSpeed }: { at: number[]; onPunch: (power: n
   );
 }
 
-/** Heavy bags behind `eventSource`, hanging at the given shares of its width. */
+/** Heavy bags in front of `eventSource`, hanging at the given shares of its width. */
 export default function HeavyBag({ eventSource, at }: { eventSource: RefObject<HTMLElement | null>; at: number[] }) {
   const [punched, setPunched] = useState(false);
   const [ready, setReady] = useState(false);
@@ -297,7 +313,8 @@ export default function HeavyBag({ eventSource, at }: { eventSource: RefObject<H
       <Box
         pos="absolute"
         inset={0}
-        style={{ zIndex: 0, pointerEvents: "none", opacity: ready ? 1 : 0, transition: "opacity 0.8s ease-out" }}
+        // In front of the section's content (z-index 1), under its ticker (3).
+        style={{ zIndex: 2, pointerEvents: "none", opacity: ready ? 1 : 0, transition: "opacity 0.8s ease-out" }}
         aria-hidden
       >
         <Canvas
@@ -346,7 +363,7 @@ export default function HeavyBag({ eventSource, at }: { eventSource: RefObject<H
       <Group
         pos="absolute"
         bottom={12}
-        style={{ zIndex: 1, left: `${Math.max(...at) * 100}%`, transform: "translateX(-50%)" }}
+        style={{ zIndex: 2, left: `${Math.max(...at) * 100}%`, transform: "translateX(-50%)" }}
         gap={6}
         wrap="nowrap"
       >
