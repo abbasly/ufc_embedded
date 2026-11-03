@@ -152,7 +152,8 @@ export default function StyleMapPage() {
             onFocus={setFocusId}
           />
           </ErrorBoundary>
-          <Group pos="absolute" top={8} left={10} right={10} gap="sm">
+          <Stack pos="absolute" top={8} left={10} right={10} gap={6} style={{ pointerEvents: "none" }}>
+          <Group gap="sm" style={{ pointerEvents: "auto" }}>
             {legend(data, colorBy).map((g) => {
               const off = hiddenGroups.includes(g.name);
               return (
@@ -165,6 +166,18 @@ export default function StyleMapPage() {
               );
             })}
           </Group>
+          {selected && neighbours.length > 0 && (
+            <Box ta="right" style={{ alignSelf: "flex-end" }}>
+              <Text size="xs" fw={600}>
+                {neighbours.length} most similar to {selected.name}
+                {scope === "division" && ` in ${selected.weight_class}`}
+              </Text>
+              <Text size="xs" c="dimmed">
+                ranked 1–{neighbours.length} · similarity out of 100
+              </Text>
+            </Box>
+          )}
+          </Stack>
           <Text pos="absolute" bottom={8} left={10} size="xs" c="dimmed" style={{ pointerEvents: "none" }}>
             {shownCount} of {data.fighters.length} fighters · {dims === 3 ? "drag to rotate, " : "drag to pan, "}{narrow ? "pinch" : "scroll"} to zoom
           </Text>

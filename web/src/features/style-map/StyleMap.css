@@ -13,6 +13,11 @@
   transition: opacity 0.15s, background 0.15s;
   border-radius: 8px;
 }
+/* The closest match: a faint wash of its style colour. */
+.similar-row[data-top] {
+  background: color-mix(in srgb, var(--style-color) 10%, transparent);
+  box-shadow: inset 2px 0 0 var(--style-color);
+}
 .similar-row[data-focused] {
   background: rgba(255, 255, 255, 0.06);
 }

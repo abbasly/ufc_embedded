@@ -114,6 +114,8 @@ function SimilarFighters(props: Props & { fighter: Fighter; byId: Map<string, Fi
               key={n.id}
               className="similar-row"
               data-focused={focusId === n.id ? "" : undefined}
+              data-top={i === 0 ? "" : undefined}
+              style={{ "--style-color": color } as React.CSSProperties}
               gap={10}
               wrap="nowrap"
               px={6}
@@ -122,7 +124,7 @@ function SimilarFighters(props: Props & { fighter: Fighter; byId: Map<string, Fi
             >
               <UnstyledButton onClick={() => onSelect(n.id)} style={{ flex: 1, minWidth: 0 }} aria-label={`Show ${f.name}`}>
                 <Group gap={10} wrap="nowrap">
-                  <Text size="xs" fw={700} c="dimmed" w={12} ta="right" style={{ flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>
+                  <Text size="xs" fw={700} c={i === 0 ? color : "dimmed"} w={12} ta="right" style={{ flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>
                     {i + 1}
                   </Text>
                   <Box pos="relative" style={{ flexShrink: 0 }}>

@@ -49,8 +49,8 @@ ACTIVE_YEARS = 3
 RECORD_COLS = ["wins", "losses", "draws"]
 MIN_FIGHTS = 3
 N_CLUSTERS = 5
-N_NEIGHBOURS = 8
-N_DIVISION_NEIGHBOURS = 6
+N_NEIGHBOURS = 5
+N_DIVISION_NEIGHBOURS = 5
 
 # Label, unit and group of each style stat, in the order the fighter panel shows them.
 FEATURE_INFO: dict[str, tuple[str, str, str]] = {

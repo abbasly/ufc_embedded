@@ -504,7 +504,8 @@ interface NeighbourLabelProps {
 
 /** Photo, surname and similarity score of one of the selected fighter's most similar fighters. */
 function NeighbourLabel({ fighter, rank, similarity, color, focused, faded, delay, onClick, onFocus }: NeighbourLabelProps) {
-  const photo = focused ? 26 : 18;
+  const top = rank === 1; // the closest match stands out a little
+  const photo = focused ? 26 : top ? 22 : 18;
   return (
     <button
       onClick={onClick}
@@ -517,12 +518,13 @@ function NeighbourLabel({ fighter, rank, similarity, color, focused, faded, dela
         gap: 5,
         transition: "opacity 0.15s, border-color 0.15s",
         opacity: faded ? 0.45 : 1,
-        background: "rgba(16,16,18,0.85)",
-        border: `1px solid ${focused ? color : "rgba(255,255,255,0.18)"}`,
+        background: top ? `color-mix(in srgb, ${color} 18%, rgb(16,16,18) 82%)` : "rgba(16,16,18,0.85)",
+        border: `1px solid ${focused || top ? color : "rgba(255,255,255,0.18)"}`,
+        boxShadow: top ? `0 0 12px color-mix(in srgb, ${color} 45%, transparent)` : undefined,
         borderRadius: 999,
         padding: fighter.image ? "1px 7px 1px 1px" : "2px 7px",
         color: "#e9ecef",
-        fontSize: focused ? 12 : 10.5,
+        fontSize: focused || top ? 12 : 10.5,
         whiteSpace: "nowrap",
         cursor: "pointer",
         animation: `nb-in 0.4s ease-out ${delay}s backwards`,
@@ -535,7 +537,7 @@ function NeighbourLabel({ fighter, rank, similarity, color, focused, faded, dela
           style={{ width: photo, height: photo, borderRadius: "50%", objectFit: "cover", objectPosition: "top", transition: "width 0.15s, height 0.15s" }}
         />
       )}
-      <span style={{ color: "#868e96", fontWeight: 700, fontSize: "0.9em", fontVariantNumeric: "tabular-nums" }}>{rank}</span>
+      <span style={{ color: top ? color : "#868e96", fontWeight: 700, fontSize: "0.9em", fontVariantNumeric: "tabular-nums" }}>{rank}</span>
       <span style={{ fontWeight: 600 }}>{focused ? fighter.name : fighter.name.split(" ").at(-1)}</span>
       <span style={{ color, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{similarity}</span>
     </button>
