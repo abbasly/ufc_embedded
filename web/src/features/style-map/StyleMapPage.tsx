@@ -1,6 +1,8 @@
 import { Alert, Box, Center, Grid, Group, Loader, MultiSelect, Paper, SegmentedControl, Select, Stack, Switch, Text, UnstyledButton } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { useState } from "react";
+import "./StyleMap.css";
+
+import { useCallback, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { useSearchParams } from "react-router-dom";
 
@@ -8,7 +10,7 @@ import { useStyleMap } from "../../data/client";
 import type { Fighter, LayoutId, StyleMapData } from "../../data/types";
 import { ChampionsStrip } from "./ChampionsStrip";
 import { FighterPanel } from "./FighterPanel";
-import { type ColorBy, type Dims, SHOW_OPTIONS, type Show, WEIGHT_CLASSES, colorOfGroup, groupOf, legend } from "./model";
+import { type ColorBy, type Dims, SHOW_OPTIONS, type Scope, type Show, WEIGHT_CLASSES, colorOfGroup, groupOf, legend, similarTo } from "./model";
 import { Scene } from "./Scene";
 
 // What the current layout is, shown next to the plot.
@@ -27,16 +29,25 @@ export default function StyleMapPage() {
   const [weightClasses, setWeightClasses] = useState<string[]>([]);
   const [hiddenGroups, setHiddenGroups] = useState<string[]>([]); // toggled via the legend
   const [highlightChampions, setHighlightChampions] = useState(true);
+  const [scope, setScope] = useState<Scope>("all"); // similar fighters: anyone, or same division
+  const [focusId, setFocusId] = useState<string | null>(null); // a similar fighter being hovered
   const narrow = useMediaQuery("(max-width: 480px)");
 
   // Selected fighter lives in the URL (?fighter=islam-makhachev) so it can be shared.
   const selectedId = params.get("fighter");
-  const select = (id: string | null) => setParams(id ? { fighter: id } : {}, { replace: true });
+  const select = useCallback(
+    (id: string | null) => {
+      setFocusId(null);
+      setParams(id ? { fighter: id } : {}, { replace: true });
+    },
+    [setParams],
+  );
 
   if (isPending) return <Center h="60vh"><Loader /></Center>;
   if (error) return <Alert color="red" title="Could not load the style map">{error.message}</Alert>;
 
   const selected = data.fighters.find((f) => f.id === selectedId) ?? null;
+  const neighbours = similarTo(selected, scope);
   const present = new Set(data.fighters.map((f) => f.weight_class));
   const isShown = (f: Fighter) =>
     SHOW_OPTIONS[show].test(f) &&
@@ -136,6 +147,9 @@ export default function StyleMapPage() {
             highlightChampions={highlightChampions}
             selectedId={selectedId}
             onSelect={select}
+            neighbours={neighbours}
+            focusId={focusId}
+            onFocus={setFocusId}
           />
           </ErrorBoundary>
           <Group pos="absolute" top={8} left={10} right={10} gap="sm">
@@ -158,7 +172,16 @@ export default function StyleMapPage() {
       </Grid.Col>
 
       <Grid.Col span={{ base: 12, md: 3 }} order={3}>
-        <FighterPanel data={data} fighter={selected} onSelect={select} />
+        <FighterPanel
+          data={data}
+          fighter={selected}
+          onSelect={select}
+          neighbours={neighbours}
+          scope={scope}
+          onScope={setScope}
+          focusId={focusId}
+          onFocus={setFocusId}
+        />
       </Grid.Col>
     </Grid>
   );
@@ -187,7 +210,7 @@ function LayoutInfo({ data, layout, dims }: { data: StyleMapData; layout: Layout
           </Text>
         ))}
       <Text size="xs" c="dimmed">
-        Keeps {kept}% of each fighter's 10 most similar fighters (by all 8 stats) nearby in this view.
+        Keeps {kept}% of each fighter's 10 most similar fighters (by all {data.features.length} stats) nearby in this view.
       </Text>
     </Stack>
   );

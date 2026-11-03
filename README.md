@@ -43,9 +43,11 @@ bookmakers, via Kaggle). Works on desktop and phone; fully static, hosted free o
 
 ## Features
 
-- **[Style Map](https://abbasly.github.io/ufc_embedded/)**: ~700 active fighters placed in 3D by how they fight. Click anyone for
-  their card, stats, ranking and closest look-alikes. Readable style axes or a t-SNE similarity
-  view; filter by style, weight class, champions or ranked fighters.
+- **[Style Map](https://abbasly.github.io/ufc_embedded/)**: ~700 active fighters placed in 3D by how they fight. Click anyone and the camera
+  flies to them, with lines and photo labels out to their most similar fighters (across the map
+  or in their own division), a match score, what they share ("Leg kicks · Top control") and a
+  stat-by-stat comparison. Readable style axes or a t-SNE similarity view; filter by style,
+  weight class, champions or ranked fighters.
 - **[Fight Predictor](https://abbasly.github.io/ufc_embedded/predictor)**: pick two fighters for the win chance and the most
   likely outcome (who, and by KO / submission / decision), what drives the call, past meetings
   and common opponents, and a tale of the tape. Upcoming UFC cards scroll past in a ticker
@@ -61,21 +63,37 @@ bookmakers, via Kaggle). Works on desktop and phone; fully static, hosted free o
 ## How the style map works
 
 1. Take fighters active in the last 3 years with at least 3 UFC fights (~700).
-2. Use 8 UFCStats career rates (strikes landed/absorbed, accuracy, defence, takedowns,
-   takedown accuracy/defence, submission attempts).
-3. **Shrink** noisy stats toward the average, more for fighters with little cage time or few
-   attempts (a 100% takedown accuracy from 1 attempt shouldn't count), then log-transform the
-   skewed rates and standardise.
-4. Two layouts:
+2. Rebuild 14 style stats from every fight's totals: output, accuracy, knockdowns, strikes
+   absorbed and defence; where strikes land (body, legs) and where they're thrown from (clinch,
+   ground); takedowns, takedown accuracy/defence, control time and submission attempts.
+3. **Shrink** noisy stats toward the average using real counts (minutes, attempts), so a 100%
+   takedown accuracy from 1 attempt doesn't count, then log-transform the skewed rates and
+   standardise.
+4. **Weight** each stat by how steady it is over a career: the correlation between a fighter's
+   first and second half of fights (body strikes 0.64, takedowns 0.59 ... takedown accuracy 0.04,
+   which is mostly noise).
+5. **Test** the embedding: split each fighter's fights alternately into two halves and look for
+   one half's profile among everyone's other halves (517 fighters with 6+ fights).
+
+   | Embedding | Own other half in top 10 | Top 1 | Median rank |
+   |---|---|---|---|
+   | 8 UFCStats career averages | 17.8% | 3.9% | 70 |
+   | 14 stats | 28.2% | 10.1% | 38 |
+   | 14 stats, stability-weighted (deployed) | **32.9%** | **10.8%** | **27** |
+
+   `uv run python -m ufc_embedded.style_map` reproduces this.
+6. Two layouts:
    - **Style axes:** hand-defined Grappling, Striking and Defence scores (weighted stat averages),
      readable by construction. PCA/varimax axes were tried first, but the data's strongest
      pattern is "accuracy", which made them hard to name.
    - **Similarity:** t-SNE, which keeps far more true neighbours together but has meaningless axes.
 
-   Each layout reports how many of every fighter's 10 nearest neighbours (in the full 8-stat
-   space) it keeps: about 21% for style axes vs 51% for t-SNE in 3D.
-5. k-means for style groups, nearest neighbours in the full stat space for "most similar".
-6. Current champions and rankings come from the official rankings; fighter photos (free licences
+   Each layout reports how many of every fighter's 10 nearest neighbours (in the full embedding)
+   it keeps: about 15% for style axes vs 47% for t-SNE in 3D.
+7. k-means for five styles (kickboxers, volume boxers, dominant wrestlers, clinch fighters,
+   low-volume all-rounders), nearest neighbours in the embedding for "most similar". The match
+   score is the share of all fighter pairs that are less alike.
+8. Current champions and rankings come from the official rankings; fighter photos (free licences
    only, about a third of fighters) from Wikipedia.
 
 ## How MMA math works
@@ -167,7 +185,7 @@ that only reads them. No server needed, so it hosts for free on GitHub Pages.
 flowchart LR
     subgraph py["Python pipeline (src/ufc_embedded)"]
         raw[("Kaggle CSVs (UFCStats)<br/>data/raw")] --> data["data.py<br/>fights, profiles, rankings"]
-        data --> sm["style_map.py<br/>shrink, style axes, t-SNE, k-means, kNN"]
+        data --> sm["style_map.py<br/>14 stats, shrink, stability weights, style axes, t-SNE, k-means, kNN"]
         data --> champs["champions.py<br/>champions + ranks"]
         wiki(["Wikipedia API"]) --> photos["wikipedia.py<br/>fighter photos"]
         data --> mma["mma_math.py<br/>win graph + cycles"]

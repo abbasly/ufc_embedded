@@ -16,7 +16,7 @@ def make_table(n: int = 40) -> pd.DataFrame:
     )
     table["name"] = [f"Fighter {i}" for i in range(n)]
     table[["wins", "losses", "draws"]] = [10, 2, 0]
-    table["weight_class"] = "Lightweight"
+    table["weight_class"] = ["Lightweight", "Welterweight"] * (n // 2)
     table["last_fight"] = pd.Timestamp("2025-01-01")
     table["n_fights"] = 5
     table["minutes"] = 60.0
@@ -48,9 +48,9 @@ def test_payload_matches_contract() -> None:
     assert sorted(c["name"] for c in payload["clusters"]) == sorted(
         {
             "Dominant wrestlers",
-            "Pure strikers",
-            "Scrambly grapplers",
-            "Volume mixers",
+            "Kickboxers",
+            "Clinch fighters",
+            "Volume boxers",
             "Low-volume all-rounders",
         }
     )
@@ -63,6 +63,11 @@ def test_payload_matches_contract() -> None:
     assert set(fighter["stats"]) == set(STYLE_FEATURES)
     assert all(0 < p <= 1 for p in fighter["percentiles"].values())
     assert all(n["id"] in public and n["id"] != fighter["id"] for n in fighter["neighbours"])
+    assert all(0 <= n["similarity"] <= 100 for n in fighter["neighbours"])
+    division = {f["id"]: f["weight_class"] for f in payload["fighters"]}
+    assert all(division[n["id"]] == fighter["weight_class"] for n in fighter["division_neighbours"])
+    assert [f["key"] for f in payload["features"]] != []
+    assert {f["key"] for f in payload["features"]} == set(STYLE_FEATURES)
 
     by_id = {f["id"]: f for f in payload["fighters"]}
     assert by_id["fighter-id1"]["champion"] == "Lightweight"

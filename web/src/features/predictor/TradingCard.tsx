@@ -46,8 +46,8 @@ const metal = (dark: string, mid: string, shine: string) =>
 // Faces: a light top running into a saturated bottom; the deepest stop sits past the edge so
 // the dark text along the bottom stays readable.
 const TYPES: Record<string, CardType> = {
-  "Pure strikers": {
-    label: "Striker", icon: "💥", color: "#e8590c", light: "#ffc078",
+  Kickboxers: {
+    label: "Kickboxer", icon: "💥", color: "#e8590c", light: "#ffc078",
     face: "linear-gradient(160deg, #fff4e6 0%, #ffd8a8 28%, #ff922b 72%, #d9480f 125%)",
     frame: metal("#7a2805", "#f76707", "#ffd8a8"),
     moves: [MOVES.combo, MOVES.power],
@@ -58,17 +58,17 @@ const TYPES: Record<string, CardType> = {
     frame: metal("#1e2a78", "#5c7cfa", "#e5ebff"),
     moves: [MOVES.takedown, MOVES.control],
   },
-  "Scrambly grapplers": {
-    label: "Grappler", icon: "🌀", color: "#ae3ec9", light: "#eebefa",
+  "Clinch fighters": {
+    label: "Clinch", icon: "🌀", color: "#ae3ec9", light: "#eebefa",
     face: "linear-gradient(160deg, #fdf4ff 0%, #f3d9fa 28%, #da77f2 70%, #862e9c 125%)",
     frame: metal("#5a1a6b", "#be4bdb", "#f8e1fd"),
-    moves: [MOVES.sub, MOVES.takedown],
+    moves: [MOVES.control, MOVES.takedown],
   },
-  "Volume mixers": {
-    label: "Volume", icon: "⚡", color: "#0c8599", light: "#99e9f2",
+  "Volume boxers": {
+    label: "Boxer", icon: "⚡", color: "#0c8599", light: "#99e9f2",
     face: "linear-gradient(160deg, #f0fdff 0%, #c5f6fa 28%, #3bc9db 70%, #0b7285 125%)",
     frame: metal("#08454f", "#15aabf", "#d8fbff"),
-    moves: [MOVES.combo, MOVES.takedown],
+    moves: [MOVES.combo, MOVES.power],
   },
   "Low-volume all-rounders": {
     label: "All-rounder", icon: "🌿", color: "#2f9e44", light: "#b2f2bb",

@@ -30,36 +30,54 @@ from ufc_embedded.data import (
 from ufc_embedded.mma_math import mma_math_payload, win_edges
 from ufc_embedded.style_map import (
     AXIS_WEIGHTS,
+    CAREER_FEATURES,
     STYLE_FEATURES,
     StyleMap,
     build_feature_table,
+    career_stats,
     fit_style_map,
+    reliability,
+    self_match,
+    style_appearances,
 )
 from ufc_embedded.wikipedia import Photo, fighter_photos
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 WEB_DATA_DIR = PROJECT_ROOT / "web" / "public" / "data"
 
 ACTIVE_YEARS = 3
+RECORD_COLS = ["wins", "losses", "draws"]
 MIN_FIGHTS = 3
 N_CLUSTERS = 5
 N_NEIGHBOURS = 8
+N_DIVISION_NEIGHBOURS = 6
 
-FEATURE_INFO: dict[str, tuple[str, str]] = {
-    "significant_strikes_landed_per_minute": ("Strikes landed / min", "per min"),
-    "significant_strikes_absorbed_per_minute": ("Strikes absorbed / min", "per min"),
-    "average_takedowns_landed_per_15_minutes": ("Takedowns / 15 min", "per 15 min"),
-    "average_submissions_attempted_per_15_minutes": ("Sub attempts / 15 min", "per 15 min"),
-    "significant_striking_accuracy": ("Striking accuracy", "%"),
-    "significant_strike_defence": ("Strike defence", "%"),
-    "takedown_accuracy": ("Takedown accuracy", "%"),
-    "takedown_defense": ("Takedown defence", "%"),
+# Label, unit and group of each style stat, in the order the fighter panel shows them.
+FEATURE_INFO: dict[str, tuple[str, str, str]] = {
+    "significant_strikes_landed_per_minute": ("Strikes landed / min", "per min", "Striking"),
+    "significant_striking_accuracy": ("Striking accuracy", "%", "Striking"),
+    "knockdowns_per_15_minutes": ("Knockdowns / 15 min", "per 15 min", "Striking"),
+    "significant_strikes_absorbed_per_minute": ("Strikes absorbed / min", "per min", "Striking"),
+    "significant_strike_defence": ("Strike defence", "%", "Striking"),
+    "body_strikes": ("Body strikes", "% of strikes", "Shot selection"),
+    "leg_strikes": ("Leg strikes", "% of strikes", "Shot selection"),
+    "clinch_strikes": ("Strikes in the clinch", "% of strikes", "Shot selection"),
+    "ground_strikes": ("Strikes on the ground", "% of strikes", "Shot selection"),
+    "average_takedowns_landed_per_15_minutes": ("Takedowns / 15 min", "per 15 min", "Grappling"),
+    "takedown_accuracy": ("Takedown accuracy", "%", "Grappling"),
+    "control_time": ("Control time", "% of fight", "Grappling"),
+    "average_submissions_attempted_per_15_minutes": (
+        "Sub attempts / 15 min",
+        "per 15 min",
+        "Grappling",
+    ),
+    "takedown_defense": ("Takedown defence", "%", "Grappling"),
 }
 
 # Display text for style_map.AXIS_WEIGHTS, in the same order.
 AXES = [
     {"label": "Grappling", "low": "Stays standing", "high": "Wrestling & submissions"},
-    {"label": "Striking", "low": "Low output", "high": "High volume & accuracy"},
+    {"label": "Striking", "low": "Low output", "high": "High volume, accuracy & power"},
     {"label": "Defence", "low": "Hittable", "high": "Hard to hit / take down"},
 ]
 
@@ -79,29 +97,29 @@ LAYOUTS = [
 ]
 
 STYLE_DESCRIPTIONS = {
-    "Dominant wrestlers": "Most takedowns, least damage taken. Control fights on the mat.",
-    "Pure strikers": "High striking output and almost never shoot for takedowns.",
-    "Scrambly grapplers": "Hunt submissions and scramble, but get taken down a lot themselves.",
-    "Volume mixers": "High-volume strikers who mix in takedowns.",
-    "Low-volume all-rounders": "Moderate at everything with lower output.",
+    "Dominant wrestlers": "Most takedowns and control time; do their damage on the ground.",
+    "Kickboxers": "Kick-heavy strikers: lots of leg and body kicks, rarely shoot for takedowns.",
+    "Clinch fighters": "Fight in the clinch and to the body, mix in takedowns.",
+    "Volume boxers": "High-output strikers who head-hunt with their hands; the most knockdowns.",
+    "Low-volume all-rounders": "Lower striking output; mix in takedowns and some control.",
 }
 
 
 def name_clusters(table: pd.DataFrame, labels: Any) -> dict[int, str]:
-    """Name k=5 clusters from their median stats, so names don't depend on k-means ids."""
+    """Name k=5 clusters from their median stats, so names don't depend on k-means ids.
+    Each rule picks from the clusters not yet named."""
     med = table[STYLE_FEATURES].groupby(labels).median()
     if len(med) != len(STYLE_DESCRIPTIONS):
         return {int(c): f"Style {int(c) + 1}" for c in med.index}
-    td = "average_takedowns_landed_per_15_minutes"
     names: dict[int, str] = {}
     remaining = med
-    for name, col, pick in [
-        ("Dominant wrestlers", td, "idxmax"),
-        ("Pure strikers", td, "idxmin"),
-        ("Scrambly grapplers", "takedown_defense", "idxmin"),
-        ("Volume mixers", "significant_strikes_landed_per_minute", "idxmax"),
+    for name, col in [
+        ("Dominant wrestlers", "control_time"),
+        ("Kickboxers", "leg_strikes"),
+        ("Clinch fighters", "clinch_strikes"),
+        ("Volume boxers", "significant_strikes_landed_per_minute"),
     ]:
-        c = int(getattr(remaining[col], pick)())
+        c = int(remaining.index.to_numpy()[remaining[col].to_numpy().argmax()])
         names[c] = name
         remaining = remaining.drop(index=c)
     names[int(remaining.index[0])] = "Low-volume all-rounders"
@@ -122,11 +140,14 @@ def style_map_payload(
     ranks: dict[str, int] | None = None,
     rankings_date: str | None = None,
     photos: dict[str, Photo] | None = None,
+    weights: pd.Series | None = None,
+    check: dict[str, dict[str, float]] | None = None,
 ) -> dict[str, Any]:
     """Build the JSON payload.
 
     ``table`` is indexed by UFCStats fighter id; ``ids`` maps those to public URL ids.
-    ``ranks`` and ``photos`` are keyed by fighter id too.
+    ``ranks`` and ``photos`` are keyed by fighter id too. ``weights`` are the embedding's
+    stat weights, and ``check`` the self-match test of each embedding version.
     """
     champions, ranks, photos = champions or [], ranks or {}, photos or {}
     belt = {c["fighter"]: c["division"] for c in champions if c["fighter"]}
@@ -135,6 +156,15 @@ def style_map_payload(
     rows = records(table)
     pct = records(table[STYLE_FEATURES].rank(pct=True))
     neighbours = sm.all_neighbours(N_NEIGHBOURS)
+    division = sm.all_neighbours(N_DIVISION_NEIGHBOURS, among=table["weight_class"])
+
+    def similar(nb: pd.Series) -> list[dict[str, Any]]:
+        score = sm.similarity_score(nb.to_numpy())
+        return [
+            {"id": ids[str(n)], "distance": round(float(d), 3), "similarity": round(float(s))}
+            for (n, d), s in zip(nb.items(), score, strict=True)
+        ]
+
     labels = pd.Series(sm.labels, index=table.index)
     cluster_of = {str(k): int(v) for k, v in labels.items()}
 
@@ -160,10 +190,8 @@ def style_map_payload(
             },
             "stats": {f: round(float(row[f]), 2) for f in STYLE_FEATURES},
             "percentiles": {f: round(float(pct[fid][f]), 3) for f in STYLE_FEATURES},
-            "neighbours": [
-                {"id": ids[str(n)], "distance": round(float(d), 3)}
-                for n, d in neighbours[fid].items()
-            ],
+            "neighbours": similar(neighbours[fid]),
+            "division_neighbours": similar(division[fid]),
         }
         for i, (fid, row) in enumerate(rows.items())
     ]
@@ -219,9 +247,18 @@ def style_map_payload(
             for c in champions
         ],
         "features": [
-            {"key": f, "label": FEATURE_INFO[f][0], "unit": FEATURE_INFO[f][1]}
-            for f in STYLE_FEATURES
+            {
+                "key": f,
+                "label": label,
+                "unit": unit,
+                "group": group,
+                "weight": round(float(weights[f]), 3) if weights is not None else 1.0,
+            }
+            for f, (label, unit, group) in FEATURE_INFO.items()
         ],
+        # How well the embedding recognises a fighter from half their fights (see
+        # style_map.self_match), for the old 8-stat embedding and the one on the map.
+        "embedding_check": check or {},
         "axes": axes,
         "layouts": layouts,
         "clusters": clusters,
@@ -254,13 +291,23 @@ def main() -> None:
     champions = current_champions(rankings, profiles)
     ranks = current_ranks(rankings, profiles)
 
-    table = build_feature_table(profiles, active_fighters(fights, ACTIVE_YEARS), MIN_FIGHTS)
-    sm = fit_style_map(table, n_clusters=N_CLUSTERS)
+    active = active_fighters(fights, ACTIVE_YEARS)
+    app = style_appearances(raw)
+    app = app[app["id"].isin(active.index)]
+    table = build_feature_table(app, active, MIN_FIGHTS).join(profiles[["name", *RECORD_COLS]])
+    weights = reliability(app)
+    sm = fit_style_map(career_stats(app).loc[table.index], N_CLUSTERS, weights=weights)
+    check = {
+        "career_stats": self_match(app, CAREER_FEATURES),
+        "style_stats": self_match(app, STYLE_FEATURES, weights),
+    }
+    print(f"embedding self-match: {check}")
     champ_ids = [c["fighter"] for c in champions if c["fighter"]]
     photos = photos_by_id(profiles, sorted(set(table.index) | set(champ_ids)), search=True)
     payload = style_map_payload(
-        table, sm, ids, fights["date"].max(), champions, ranks, rankings_date, photos
-    )
+        table, sm, ids, fights["date"].max(), champions, ranks, rankings_date, photos,
+        weights, check,
+    )  # fmt: skip
     out = WEB_DATA_DIR / "style_map.json"
     write_json(payload, out)
     print(

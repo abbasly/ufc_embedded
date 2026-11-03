@@ -1,12 +1,14 @@
 // TypeScript mirror of the JSON written by `ufc_embedded.export` (Python).
 // Keep in sync with SCHEMA_VERSION there.
 
-export const STYLE_MAP_SCHEMA_VERSION = 5;
+export const STYLE_MAP_SCHEMA_VERSION = 6;
 
 export interface Feature {
   key: string;
   label: string;
   unit: string;
+  group: string; // "Striking", "Shot selection" or "Grappling"
+  weight: number; // how much the stat counts in the similarity embedding (0..1)
 }
 
 export interface Axis {
@@ -42,6 +44,15 @@ export interface Cluster {
 export interface Neighbour {
   id: string;
   distance: number;
+  similarity: number; // 0-100: 100 the same style, 0 as different as a typical pair
+}
+
+/** How often the embedding recognises a fighter from the other half of their fights. */
+export interface SelfMatch {
+  n: number;
+  top1: number;
+  top10: number;
+  median_rank: number;
 }
 
 export interface Photo {
@@ -72,6 +83,7 @@ export interface Fighter {
   stats: Record<string, number>;
   percentiles: Record<string, number>; // 0..1 within the map population
   neighbours: Neighbour[];
+  division_neighbours: Neighbour[]; // most similar in the same weight class
 }
 
 export interface Champion {
@@ -92,6 +104,8 @@ export interface StyleMapData {
   champions_as_of: string | null;
   champions: Champion[];
   features: Feature[];
+  // Self-match test of the old 8-stat embedding and of the one on the map.
+  embedding_check: { career_stats?: SelfMatch; style_stats?: SelfMatch };
   axes: Axis[];
   layouts: Layout[];
   clusters: Cluster[];

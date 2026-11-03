@@ -1,0 +1,24 @@
+/* Neighbour labels on the map fade in as their line reaches them. */
+@keyframes nb-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Similar-fighter rows in the panel: the row being looked at lifts, the rest step back. */
+.similar-list[data-focus] .similar-row:not([data-focused]) {
+  opacity: 0.55;
+}
+.similar-row {
+  transition: opacity 0.15s, background 0.15s;
+  border-radius: 8px;
+}
+.similar-row[data-focused] {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .similar-row {
+    transition: none;
+  }
+}
