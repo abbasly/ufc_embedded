@@ -95,7 +95,11 @@ function Visits({ i }: { i: number }) {
   return (
     <div className="visits reveal" style={step(i)}>
       <span className="visits-dot" aria-hidden />
-      <b>{visits.visits.toLocaleString("en-US")}</b> visits in the last {visits.days} days
+      {/* Counts up like the numbers above, once the count has arrived. */}
+      <b>
+        <CountUp to={visits.visits} start={150} />
+      </b>{" "}
+      visits in the last {visits.days} days
     </div>
   );
 }
