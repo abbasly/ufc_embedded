@@ -18,9 +18,9 @@ const LadderPage = lazyPage(() => import("../features/ladder/LadderPage"));
 // "NEW" tag.
 const NAV: { to: string; label: string; short?: string; fresh?: boolean }[] = [
   { to: "/style-map", label: "Style Map", short: "Map" },
-  { to: "/predictor", label: "Predictor", short: "Predict", fresh: true },
+  { to: "/predictor", label: "Predictor", short: "Predict" },
   { to: "/ladder", label: "Ladder" },
-  { to: "/mma-math", label: "MMA Math", short: "Math" },
+  { to: "/mma-math", label: "MMA Math", short: "Math", fresh: true },
   { to: "/", label: "About" }, // the landing page
 ];
 
@@ -79,6 +79,8 @@ export function App() {
                 size="compact-sm"
                 px={{ base: 6, sm: "sm" }}
                 style={item.fresh ? { overflow: "visible" } : undefined}
+                // Room for the NEW tag, which sticks out past the tab's right edge.
+                mr={item.fresh ? { base: 0, xs: 10 } : undefined}
               >
                 {item.fresh && (
                   <>
