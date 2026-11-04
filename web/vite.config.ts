@@ -62,34 +62,6 @@ function cloudflareAnalytics(token: string | undefined): Plugin {
   };
 }
 
-/**
- * GoatCounter, switched by one env var (the GOATCOUNTER_CODE repo variable in CI: the "code"
- * part of https://<code>.goatcounter.com): a cookie-free visit counter whose total can be shown
- * publicly on the site. The script counts the first page; the app counts the rest (App.tsx).
- */
-function goatcounter(code: string | undefined): Plugin {
-  return {
-    name: "goatcounter",
-    transformIndexHtml() {
-      if (!code) return [];
-      return [
-        {
-          // Record "/predictor/" (how GitHub Pages serves a page on reload) as "/predictor", like
-          // the app does, so each page has one count. Must be set before count.js loads.
-          tag: "script",
-          children: `window.goatcounter = { path: function (p) { return p.replace(/(.)\\/$/, "$1"); } };`,
-          injectTo: "body",
-        },
-        {
-          tag: "script",
-          attrs: { "data-goatcounter": `https://${code}.goatcounter.com/count`, async: true, src: "https://gc.zgo.at/count.js" },
-          injectTo: "body",
-        },
-      ];
-    },
-  };
-}
-
 // BASE_PATH lets the same build live at "/" locally and at "/<repo>/" on GitHub Pages.
 export default defineConfig({
   base: process.env.BASE_PATH ?? "/",
@@ -97,7 +69,6 @@ export default defineConfig({
     react(),
     adsense(process.env.VITE_ADSENSE_CLIENT),
     cloudflareAnalytics(process.env.VITE_CF_ANALYTICS_TOKEN),
-    goatcounter(process.env.VITE_GOATCOUNTER),
   ],
   build: { chunkSizeWarningLimit: 6000 }, // Plotly is big but lazy-loaded on the style map only
 });

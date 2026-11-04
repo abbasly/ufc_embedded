@@ -5,7 +5,7 @@ import { useReducedMotion } from "@mantine/hooks";
 import { type CSSProperties, Fragment, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { totalVisits } from "../app/goatcounter";
+import { type RecentVisits, recentVisits } from "../app/visits";
 
 const REPO = "https://github.com/abbasly/ufc_embedded";
 
@@ -80,12 +80,13 @@ function CountUp({ to, start, year }: { to: number; start: number; year?: boolea
   return <>{year ? n : n.toLocaleString("en-US")}</>;
 }
 
-/** "1,234 visits so far" from GoatCounter; nothing while loading or when counting is off. */
+/** "1,234 visits in the last 30 days" (Cloudflare Web Analytics); nothing while loading or
+ * when the count is off. */
 function Visits({ i }: { i: number }) {
-  const [visits, setVisits] = useState<number | null>(null);
+  const [visits, setVisits] = useState<RecentVisits | null>(null);
   useEffect(() => {
     let live = true;
-    totalVisits().then((n) => live && setVisits(n));
+    recentVisits().then((v) => live && setVisits(v));
     return () => {
       live = false;
     };
@@ -94,7 +95,7 @@ function Visits({ i }: { i: number }) {
   return (
     <div className="visits reveal" style={step(i)}>
       <span className="visits-dot" aria-hidden />
-      <b>{visits.toLocaleString("en-US")}</b> visits so far
+      <b>{visits.visits.toLocaleString("en-US")}</b> visits in the last {visits.days} days
     </div>
   );
 }

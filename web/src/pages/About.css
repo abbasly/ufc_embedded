@@ -16,7 +16,7 @@
   }
 }
 
-/* Live visit count under the credit (GoatCounter). */
+/* Visit count under the credit (Cloudflare Web Analytics, via worker/visits.js). */
 .visits {
   display: flex;
   align-items: center;
