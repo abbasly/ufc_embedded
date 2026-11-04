@@ -1,5 +1,6 @@
 // A chain of wins drawn around a circle: fighters on the rim, fights as arrows along it,
-// and a dashed arc from the last fighter back to the first to close the "full circle".
+// and a dashed arc from the last fighter back to the first to close the "full circle". The
+// circle sits in an octagon drawn like the UFC cage, big enough to hold the names too.
 
 import "./CircleChain.css";
 
@@ -15,6 +16,9 @@ const CHIP_MARGIN = 60; // room outside the circle for names
 const AVATAR_GAP = 30; // keep arrows clear of the avatars (px)
 const LABEL_INSET = 62; // fight labels sit this far inside the rim
 const CENTER_PAD = 40; // gap between the fight labels and the verdict in the middle
+const RAIL = 12; // thickness of the cage's padded top rail (px)
+const CAGE_GAP = 6; // between the names and the rail
+const CAGE = CAGE_GAP + RAIL + 4; // room the cage takes outside the names
 const ROOM_ABOVE_BELOW = 110; // most of the header and padding around the circle (px)
 const DRAW_MS = 1700; // the whole chain draws in about this long (CircleChain.css)
 
@@ -32,11 +36,11 @@ export function CircleChain({ fights, lookup, center }: Props) {
 
   const wanted = Math.max(MIN_RADIUS, (n * PX_PER_FIGHTER) / (2 * Math.PI));
   // Fit the width, and the window's height too, so the whole proof is on screen at once.
-  const byHeight = viewport > 0 ? viewport / 2 - ROOM_ABOVE_BELOW / 2 - CHIP_MARGIN : Infinity;
-  const fits = width === 0 || width / 2 - CHIP_MARGIN >= wanted * 0.8;
-  const r = Math.max(MIN_RADIUS * 0.9, Math.min(wanted, width / 2 - CHIP_MARGIN, byHeight));
+  const byHeight = viewport > 0 ? viewport / 2 - ROOM_ABOVE_BELOW / 2 - CHIP_MARGIN - CAGE : Infinity;
+  const fits = width === 0 || width / 2 - CHIP_MARGIN - CAGE >= wanted * 0.8;
+  const r = Math.max(MIN_RADIUS * 0.9, Math.min(wanted, width / 2 - CHIP_MARGIN - CAGE, byHeight));
 
-  const size = 2 * (r + CHIP_MARGIN);
+  const size = 2 * (r + CHIP_MARGIN + CAGE);
   const c = size / 2;
   const angle = (i: number) => -Math.PI / 2 + (2 * Math.PI * i) / n; // start at the top, clockwise
   const at = (a: number, radius = r) => [c + radius * Math.cos(a), c + radius * Math.sin(a)] as const;
@@ -68,6 +72,7 @@ export function CircleChain({ fights, lookup, center }: Props) {
           // Keyed by the chain, so the drawing replays whenever the matchup changes.
           <Box key={nodes.join("-")} pos="relative" w={size} h={size} mx="auto">
             <svg width={size} height={size} style={{ position: "absolute", inset: 0, overflow: "visible" }}>
+              <Cage c={c} apothem={r + CHIP_MARGIN + CAGE_GAP} />
               {fights.map((f, i) => (
                 <g key={f.index}>
                   <path className="cc-arc" style={timing(i)} pathLength={1} d={arc(angle(i) + gap, angle(i + 1) - gap)} fill="none" stroke="#fa5252" strokeWidth={2} />
@@ -118,5 +123,50 @@ export function CircleChain({ fights, lookup, center }: Props) {
         )
       )}
     </Box>
+  );
+}
+
+/** An octagon's corner points: flat sides facing up, down, left and right, ``apothem`` from
+ * the centre to the middle of each side. */
+function octagon(c: number, apothem: number): string {
+  const radius = apothem / Math.cos(Math.PI / 8);
+  return Array.from({ length: 8 }, (_, k) => {
+    const a = Math.PI / 8 + (k * Math.PI) / 4;
+    return `${(c + radius * Math.cos(a)).toFixed(1)},${(c + radius * Math.sin(a)).toFixed(1)}`;
+  }).join(" ");
+}
+
+/** The cage: the canvas floor with its painted line, the padded top rail, and a post at each
+ * of the eight corners. ``apothem`` is the inner edge of the rail. */
+function Cage({ c, apothem }: { c: number; apothem: number }) {
+  const rail = apothem + RAIL / 2; // the rail's centre line
+  const postRadius = rail / Math.cos(Math.PI / 8);
+  return (
+    <g aria-hidden>
+      <defs>
+        <radialGradient id="cage-canvas">
+          <stop offset="0%" stopColor="#2c2d33" />
+          <stop offset="100%" stopColor="#1f2025" />
+        </radialGradient>
+      </defs>
+      <polygon points={octagon(c, rail)} fill="url(#cage-canvas)" />
+      <polygon points={octagon(c, apothem - 14)} fill="none" stroke="rgba(255, 255, 255, 0.07)" strokeWidth={2} />
+      <polygon points={octagon(c, rail)} fill="none" stroke="#0b0c0f" strokeWidth={RAIL} strokeLinejoin="round" />
+      <polygon points={octagon(c, rail)} fill="none" stroke="rgba(255, 255, 255, 0.14)" strokeWidth={1.5} strokeLinejoin="round" />
+      {Array.from({ length: 8 }, (_, k) => {
+        const a = Math.PI / 8 + (k * Math.PI) / 4;
+        return (
+          <circle
+            key={k}
+            cx={c + postRadius * Math.cos(a)}
+            cy={c + postRadius * Math.sin(a)}
+            r={RAIL * 0.85}
+            fill="#16171b"
+            stroke="rgba(255, 255, 255, 0.22)"
+            strokeWidth={1.5}
+          />
+        );
+      })}
+    </g>
   );
 }
