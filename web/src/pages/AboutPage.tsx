@@ -80,7 +80,7 @@ function CountUp({ to, start, year }: { to: number; start: number; year?: boolea
   return <>{year ? n : n.toLocaleString("en-US")}</>;
 }
 
-/** "1,234 visits in the last 30 days" (Cloudflare Web Analytics); nothing while loading or
+/** "1,234 visits in the last 7 days" (Cloudflare Web Analytics); nothing while loading or
  * when the count is off. */
 function Visits({ i }: { i: number }) {
   const [visits, setVisits] = useState<RecentVisits | null>(null);

@@ -1,6 +1,6 @@
-// The site's visits over the last 30 days, for the About page. Counted by Cloudflare Web
-// Analytics; read through our own small Worker (worker/visits.js), which holds the API token so
-// it never reaches the browser. Off unless the site is built with VITE_VISITS_URL set.
+// The site's recent visits (the Worker sets how many days), for the About page. Counted by
+// Cloudflare Web Analytics; read through our own small Worker (worker/visits.js), which holds the
+// API token so it never reaches the browser. Off unless the site is built with VITE_VISITS_URL set.
 
 const URL_: string | undefined = import.meta.env.VITE_VISITS_URL || undefined;
 

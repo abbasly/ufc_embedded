@@ -1,5 +1,5 @@
-// Cloudflare Worker behind https://visits.anarli.com: the site's visits over the last 30 days,
-// from Cloudflare Web Analytics, for the About page ("N visits in the last 30 days").
+// Cloudflare Worker behind https://visits.anarli.com: the site's visits over the last 7 days,
+// from Cloudflare Web Analytics, for the About page ("N visits in the last 7 days").
 //
 // Cloudflare only shares analytics through its API, with a token that must never reach the
 // browser. So the token lives here, as an encrypted Worker secret, and the page only ever gets
@@ -14,13 +14,13 @@
 // and attach the custom domain visits.anarli.com (Settings -> Domains & Routes), so responses
 // can be cached (the cache doesn't work on *.workers.dev addresses).
 
-const DAYS = 30;
+const DAYS = 7;
 const CACHE_SECONDS = 600; // ask Cloudflare's API at most every 10 minutes
 const ALLOWED_ORIGINS = ["https://ufc.anarli.com", "http://localhost:5173"];
 const API = "https://api.cloudflare.com/client/v4/graphql";
 
 // The analytics API caps how long a time range one query may cover; read the cap, then ask
-// for the 30 days in pieces of that size.
+// for the days in pieces of that size.
 const SETTINGS = `query ($account: string!) {
   viewer { accounts(filter: { accountTag: $account }) {
     settings { rumPageloadEventsAdaptiveGroups { maxDuration } }
