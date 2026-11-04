@@ -64,6 +64,14 @@ function FightArrow({ fight }: { fight: Fight }) {
   );
 }
 
+/** A fighter's avatar ring: gold for champions, else their style's colour, else grey. */
+export function ringColor(fighter: MmaFighter, lookup: Lookup): string {
+  if (fighter.champion) return GOLD;
+  const style = lookup.styleById.get(fighter.id);
+  const cluster = style && lookup.styleMap?.clusters.find((c) => c.id === style.cluster);
+  return (cluster && STYLE_COLORS[cluster.name]) ?? "#555";
+}
+
 export function FighterChip({ fighter, lookup, faded }: { fighter: MmaFighter; lookup: Lookup; faded?: boolean }) {
   const style = lookup.styleById.get(fighter.id);
   const cluster = style && lookup.styleMap?.clusters.find((c) => c.id === style.cluster);
@@ -114,7 +122,7 @@ export function FighterChip({ fighter, lookup, faded }: { fighter: MmaFighter; l
             size={48}
             radius="xl"
             color="gray"
-            style={{ border: `2px solid ${fighter.champion ? GOLD : (color ?? "#555")}` }}
+            style={{ border: `2px solid ${ringColor(fighter, lookup)}` }}
           >
             {initials}
           </Avatar>

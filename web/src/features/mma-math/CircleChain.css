@@ -1,0 +1,59 @@
+/* The chain drawing itself clockwise, winner to loser: each fighter pops in, then the arrow to
+   the next one draws along the rim, then the next fighter... and the verdict last. Steps are
+   timed by --i (position in the chain) and --step (time per fight, shorter for long chains). */
+
+.cc-node {
+  animation: cc-pop 0.32s cubic-bezier(0.2, 1.4, 0.4, 1) backwards;
+  animation-delay: calc(var(--i) * var(--step));
+}
+@keyframes cc-pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -26px) scale(0.4);
+  }
+}
+
+.cc-arc {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: cc-draw var(--step) linear forwards;
+  animation-delay: calc((var(--i) + 0.6) * var(--step));
+}
+@keyframes cc-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.cc-after {
+  animation: cc-fade 0.25s ease-out backwards;
+  animation-delay: calc((var(--i) + 1.4) * var(--step));
+}
+@keyframes cc-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.cc-center {
+  animation: cc-rise 0.45s ease-out backwards;
+  animation-delay: calc((var(--i) + 0.6) * var(--step));
+}
+@keyframes cc-rise {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% + 10px)) scale(0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cc-node,
+  .cc-after,
+  .cc-center {
+    animation: none;
+  }
+  .cc-arc {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}

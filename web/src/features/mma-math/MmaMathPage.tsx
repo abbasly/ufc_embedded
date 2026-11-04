@@ -4,6 +4,7 @@ import {
   Button,
   Center,
   Container,
+  Grid,
   Group,
   Loader,
   Paper,
@@ -16,9 +17,12 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { useMmaMath, useStyleMap } from "../../data/client";
-import { Chain, type Lookup } from "./Chain";
+import { mmaMathImage } from "../share/mmaMathImage";
+import { ShareButton } from "../share/ShareButton";
+import { Chain, type Lookup, ringColor } from "./Chain";
 import { CircleChain } from "./CircleChain";
 import { type Fight, fighterOptions, notablePool, shortestChain, toFight, winsByFighter } from "./graph";
 
@@ -46,7 +50,16 @@ export default function MmaMathPage() {
     [data, styleMap],
   );
 
-  const [pair, setPair] = useState<[string | null, string | null] | null>(null);
+  // The pair lives in the URL (?winner=josh-hokit&loser=ilia-topuria), so a shared link opens
+  // the same proof. Selects work with indexes into data.fighters.
+  const [params, setParams] = useSearchParams();
+  const indexById = useMemo(() => new Map(data?.fighters.map((f, i) => [f.id, String(i)])), [data]);
+  const setPair = ([w, l]: [string | null, string | null]) => {
+    const next: Record<string, string> = {};
+    if (w) next.winner = data!.fighters[Number(w)]!.id;
+    if (l) next.loser = data!.fighters[Number(l)]!.id;
+    setParams(next, { replace: true });
+  };
   const [length, setLength] = useState("3");
   const [shown, setShown] = useState(PAGE_SIZE);
 
@@ -54,7 +67,12 @@ export default function MmaMathPage() {
   if (error || !lookup) return <Alert color="red" title="Could not load MMA math">{error?.message}</Alert>;
 
   const indexOf = (name: string) => data.fighters.findIndex((f) => f.name === name);
-  const [a, b] = pair ?? (DEFAULT_PAIR.map((n) => String(indexOf(n))) as [string, string]);
+  const fromUrl = (key: string) => {
+    const id = params.get(key);
+    return id === null ? undefined : (indexById.get(id) ?? null);
+  };
+  const a = fromUrl("winner") ?? (params.toString() ? null : String(indexOf(DEFAULT_PAIR[0]!)));
+  const b = fromUrl("loser") ?? (params.toString() ? null : String(indexOf(DEFAULT_PAIR[1]!)));
   const options = fighterOptions(data.fighters, fights);
   const placeholder = `Type to search ${data.fighters.length.toLocaleString()} fighters`;
 
@@ -71,34 +89,61 @@ export default function MmaMathPage() {
   };
 
   const cycles = data.cycles.filter((c) => c.length === Number(length));
+  const chain = a && b && a !== b ? shortestChain(wins, Number(a), Number(b)) : null;
+  const proof = chain && {
+    chain,
+    nodes: [chain[0]!.winner, ...chain.map((f) => f.loser)].map((i) => data.fighters[i]!),
+    winner: data.fighters[Number(a)]!.name,
+    loser: data.fighters[Number(b)]!.name,
+  };
 
   return (
     <Container size="lg" py="md">
       <Stack gap="xl">
-        <Title order={1}>MMA math doesn't work</Title>
-
+        {/* Pick on the left, the proof draws itself on the right (stacked on phones). */}
         <Paper withBorder p="lg">
-          <Stack gap="md">
-            <Title order={3}>Settle any argument</Title>
-            <Group align="flex-end" justify="center">
-              <Select label="Winner" searchable limit={PICKER_LIMIT} placeholder={placeholder} data={options} value={a} onChange={(v) => setPair([v, b])} w={240} />
-              <Tooltip label="Swap: prove it the other way round" withArrow>
-                <ActionIcon variant="light" size="lg" mb={2} onClick={() => setPair([b, a])} aria-label="Swap fighters">
-                  ⇄
-                </ActionIcon>
-              </Tooltip>
-              <Select label="Loser" searchable limit={PICKER_LIMIT} placeholder={placeholder} data={options} value={b} onChange={(v) => setPair([a, v])} w={240} />
-              <Button variant="light" onClick={randomPair}>Random matchup</Button>
-            </Group>
-            {a && b && a !== b && (
-              <Proof
-                chain={shortestChain(wins, Number(a), Number(b))}
-                winner={data.fighters[Number(a)]!.name}
-                loser={data.fighters[Number(b)]!.name}
-                lookup={lookup}
-              />
-            )}
-          </Stack>
+          <Grid gap="xl" align="center">
+            <Grid.Col span={{ base: 12, md: 4 }}>
+              <Stack gap="md">
+                <div>
+                  <Title order={1} fz={{ base: 30, md: 34 }} lh={1.15}>
+                    MMA math doesn't work
+                  </Title>
+                  <Text size="sm" c="dimmed" mt={8}>
+                    Settle any argument: pick a winner and a loser. If a chain of UFC wins leads
+                    from one to the other, it's proven.
+                  </Text>
+                </div>
+                <Select label="Winner" searchable limit={PICKER_LIMIT} placeholder={placeholder} data={options} value={a} onChange={(v) => setPair([v, b])} />
+                <Group justify="center" my={-8}>
+                  <Tooltip label="Swap: prove it the other way round" withArrow>
+                    <ActionIcon variant="light" size="lg" onClick={() => setPair([b, a])} aria-label="Swap fighters">
+                      ⇅
+                    </ActionIcon>
+                  </Tooltip>
+                </Group>
+                <Select label="Loser" searchable limit={PICKER_LIMIT} placeholder={placeholder} data={options} value={b} onChange={(v) => setPair([a, v])} />
+                <Button variant="light" size="xs" onClick={randomPair}>
+                  Random matchup
+                </Button>
+                {proof && (
+                  <ShareButton
+                    fullWidth
+                    label="Share this proof"
+                    make={() => mmaMathImage(proof.chain, proof.nodes.map((f) => ({ fighter: f, ring: ringColor(f, lookup) })))}
+                    fileName={`${proof.nodes[0]!.id}-beats-${proof.nodes.at(-1)!.id}`}
+                    text={`${proof.winner} beats ${proof.loser}, in ${proof.chain.length} fights of airtight MMA math.`}
+                    url={`${window.location.origin}${import.meta.env.BASE_URL}mma-math?winner=${proof.nodes[0]!.id}&loser=${proof.nodes.at(-1)!.id}`}
+                  />
+                )}
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={{ base: 12, md: 8 }}>
+              {a && b && a !== b && (
+                <Proof chain={chain} winner={data.fighters[Number(a)]!.name} loser={data.fighters[Number(b)]!.name} lookup={lookup} />
+              )}
+            </Grid.Col>
+          </Grid>
         </Paper>
 
         <Stack gap="md">
