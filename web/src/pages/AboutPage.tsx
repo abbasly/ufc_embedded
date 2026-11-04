@@ -2,7 +2,7 @@ import "./About.css";
 
 import { Anchor, Container, Text } from "@mantine/core";
 import { useReducedMotion } from "@mantine/hooks";
-import { type CSSProperties, Fragment, useEffect, useState } from "react";
+import { type CSSProperties, Fragment, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { type RecentVisits, recentVisits } from "../app/visits";
@@ -84,6 +84,7 @@ function CountUp({ to, start, year }: { to: number; start: number; year?: boolea
  * when the count is off. */
 function Visits({ i }: { i: number }) {
   const [visits, setVisits] = useState<RecentVisits | null>(null);
+  const pageShown = useRef(performance.now()); // when the About page itself appeared
   useEffect(() => {
     let live = true;
     recentVisits().then((v) => live && setVisits(v));
@@ -92,12 +93,14 @@ function Visits({ i }: { i: number }) {
     };
   }, []);
   if (visits === null) return null;
+  // Come in at this line's turn in the page's entrance, or right away if the count arrived
+  // after that; start counting as it fades in, so the count-up is actually seen.
+  const wait = Math.max(0, i * 55 - (performance.now() - pageShown.current));
   return (
-    <div className="visits reveal" style={step(i)}>
+    <div className="visits reveal" style={{ animationDelay: `${wait}ms` }}>
       <span className="visits-dot" aria-hidden />
-      {/* Counts up like the numbers above, once the count has arrived. */}
       <b>
-        <CountUp to={visits.visits} start={150} />
+        <CountUp to={visits.visits} start={wait + 250} />
       </b>{" "}
       visits in the last {visits.days} days
     </div>

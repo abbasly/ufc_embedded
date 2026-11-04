@@ -1,9 +1,10 @@
 import { Anchor, AppShell, Button, Center, Group, Loader, Text, Title } from "@mantine/core";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import { Link, Navigate, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
 
 import { AboutPage } from "../pages/AboutPage";
 import { PrivacyPage } from "../pages/PrivacyPage";
+import { countPage } from "./goatcounter";
 import { lazyPage } from "./lazyPage";
 import "./NewBadge.css";
 
@@ -46,6 +47,12 @@ export function App() {
   const pathname = useLocation().pathname.replace(/(.)\/$/, "$1");
   useEffect(() => {
     document.title = TITLES[pathname] ?? "UFC Embedded";
+  }, [pathname]);
+  // Count each page moved to within the app; GoatCounter's script counted the first one.
+  const firstPage = useRef(true);
+  useEffect(() => {
+    if (firstPage.current) firstPage.current = false;
+    else countPage(pathname);
   }, [pathname]);
 
   return (
