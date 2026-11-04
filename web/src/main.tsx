@@ -8,6 +8,7 @@ import { BrowserRouter } from "react-router-dom";
 
 import { App } from "./app/App";
 import { reloadForNewCode } from "./app/lazyPage";
+import { prefetchFor } from "./data/client";
 
 // Vite's signal that a code file from an older deploy couldn't be loaded: reload to get the
 // new version (preventDefault stops Vite from throwing the error).
@@ -17,6 +18,8 @@ window.addEventListener("vite:preloadError", (event) => {
 
 const theme = createTheme({ primaryColor: "red", defaultRadius: "md" });
 const queryClient = new QueryClient();
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+prefetchFor(queryClient, window.location.pathname.slice(base.length) || "/", window.location.search);
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

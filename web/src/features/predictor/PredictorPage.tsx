@@ -35,12 +35,10 @@ import { useCountUp } from "./useCountUp";
 import "./Chapters.css";
 import "./Verdict.css";
 
-// Loaded only on wide screens: the physics engine is the biggest download on the site. Start
-// that download as soon as this page's code runs, alongside the predictor data, rather than
-// after the data has arrived.
-const loadHeavyBag = () => import("../heavy-bag/HeavyBag");
-if (typeof window !== "undefined" && window.matchMedia("(min-width: 62em)").matches) loadHeavyBag().catch(() => {});
-const HeavyBag = lazyPage(loadHeavyBag);
+// Loaded only on wide screens, and only once the fight is on screen: the physics engine is the
+// biggest download on the site, and fetching it earlier slowed the predictor data down. The
+// bags fade in when ready.
+const HeavyBag = lazyPage(() => import("../heavy-bag/HeavyBag"));
 // px kept free on each side of the fight for a bag: narrower on smaller laptop screens.
 const bagStrip = (viewportWidth: number) => (viewportWidth >= 1280 ? 160 : 120);
 

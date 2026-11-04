@@ -173,7 +173,6 @@ export function AboutPage() {
           </div>
         ))}
       </div>
-      <Visits i={statsStart + 4} />
 
       <div className="credit reveal" style={step(statsStart + 4)}>
         <img
@@ -199,6 +198,8 @@ export function AboutPage() {
           </span>
         </a>
       </div>
+
+      <Visits i={statsStart + 5} />
 
       <div className="disclaimer reveal" style={step(statsStart + 5)}>
         <Text size="sm" fw={600}>

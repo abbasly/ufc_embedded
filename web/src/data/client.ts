@@ -1,7 +1,7 @@
 // The only module that knows where data comes from. Today that's static JSON
 // produced by the Python pipeline; swapping to an HTTP API only changes this file.
 
-import { useQuery } from "@tanstack/react-query";
+import { type QueryClient, useQuery } from "@tanstack/react-query";
 
 import {
   MMA_MATH_SCHEMA_VERSION,
@@ -42,26 +42,39 @@ function reloadOnce(file: string): boolean {
   return true;
 }
 
-export function useStyleMap() {
-  return useQuery({
-    queryKey: ["style-map"],
-    queryFn: () => fetchJson<StyleMapData>("style_map.json", STYLE_MAP_SCHEMA_VERSION),
-    staleTime: Infinity,
-  });
-}
+const styleMapQuery = {
+  queryKey: ["style-map"],
+  queryFn: () => fetchJson<StyleMapData>("style_map.json", STYLE_MAP_SCHEMA_VERSION),
+  staleTime: Infinity,
+};
+const mmaMathQuery = {
+  queryKey: ["mma-math"],
+  queryFn: () => fetchJson<MmaMathData>("mma_math.json", MMA_MATH_SCHEMA_VERSION),
+  staleTime: Infinity,
+};
+const predictorQuery = {
+  queryKey: ["predictor"],
+  queryFn: () => fetchJson<PredictorData>("predictor.json", PREDICTOR_SCHEMA_VERSION),
+  staleTime: Infinity,
+};
 
-export function useMmaMath() {
-  return useQuery({
-    queryKey: ["mma-math"],
-    queryFn: () => fetchJson<MmaMathData>("mma_math.json", MMA_MATH_SCHEMA_VERSION),
-    staleTime: Infinity,
-  });
-}
+export const useStyleMap = () => useQuery(styleMapQuery);
+export const useMmaMath = () => useQuery(mmaMathQuery);
+export const usePredictor = () => useQuery(predictorQuery);
 
-export function usePredictor() {
-  return useQuery({
-    queryKey: ["predictor"],
-    queryFn: () => fetchJson<PredictorData>("predictor.json", PREDICTOR_SCHEMA_VERSION),
-    staleTime: Infinity,
-  });
+/**
+ * Start downloading the data the first page needs as soon as the app starts, alongside that
+ * page's code, instead of after the code has loaded. ``path`` is relative to the site root.
+ */
+export function prefetchFor(client: QueryClient, path: string, search: string) {
+  const query =
+    path.startsWith("/style-map") || new URLSearchParams(search).has("fighter")
+      ? styleMapQuery
+      : path.startsWith("/predictor") || path.startsWith("/ladder")
+        ? predictorQuery
+        : path.startsWith("/mma-math")
+          ? mmaMathQuery
+          : null;
+  // The page's own useQuery picks the request up (or its result); errors show there too.
+  if (query) void client.prefetchQuery(query as Parameters<QueryClient["prefetchQuery"]>[0]);
 }
