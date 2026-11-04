@@ -2,6 +2,7 @@ import { Anchor, AppShell, Button, Center, Group, Loader, Text, Title } from "@m
 import { Suspense, useEffect, useRef } from "react";
 import { Link, Navigate, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
 
+import { ArenaBackdrop } from "../components/ArenaBackdrop";
 import { AboutPage } from "../pages/AboutPage";
 import { PrivacyPage } from "../pages/PrivacyPage";
 import { countPage } from "./goatcounter";
@@ -57,7 +58,17 @@ export function App() {
 
   return (
     <AppShell header={{ height: 56 }} padding={{ base: "xs", sm: "md" }}>
-      <AppShell.Header>
+      {/* The spotlit arena behind every page; the predictor also gets the cage fence. */}
+      <ArenaBackdrop fence={pathname === "/predictor"} />
+      {/* Dark glass rather than flat grey, so the arena's colours show through the menu. */}
+      <AppShell.Header
+        style={{
+          background: "rgba(14, 15, 18, 0.72)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
+        }}
+      >
         <Group h="100%" px={{ base: "xs", sm: "md" }} justify="space-between" wrap="nowrap">
           <Anchor component={Link} to="/" c="inherit" underline="never">
             <Group gap={8} wrap="nowrap">

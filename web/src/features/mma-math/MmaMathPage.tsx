@@ -19,7 +19,6 @@ import {
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import { ArenaBackdrop } from "../../components/ArenaBackdrop";
 import { useMmaMath, useStyleMap } from "../../data/client";
 import { mmaMathImage } from "../share/mmaMathImage";
 import { ShareButton } from "../share/ShareButton";
@@ -100,7 +99,6 @@ export default function MmaMathPage() {
 
   return (
     <Container size="lg" pt={4} pb="md">
-      <ArenaBackdrop />
       <Stack gap="xl">
         {/* Pick on the left, the proof draws itself on the right (stacked on phones). */}
         {/* No frame: the octagon and the controls sit straight on the arena backdrop. */}

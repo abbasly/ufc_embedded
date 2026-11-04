@@ -1,7 +1,7 @@
 /* A page backdrop, fixed behind everything: a warm arena spotlight from above and a red haze
    on the floor, optionally behind a faint chain-link fence like the octagon's (two sets of thin
-   diagonal lines) that fades into the dark towards the edges. Used by the predictor (with the
-   fence) and MMA math (without: its octagon is the cage). */
+   diagonal lines) that fades into the dark towards the edges. Behind every page (App.tsx);
+   only the predictor shows the fence (MMA math has its octagon). */
 
 .arena-bg {
   position: fixed;
