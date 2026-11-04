@@ -35,6 +35,11 @@ export function PrivacyPage() {
             <Anchor href="https://www.cloudflare.com/privacypolicy/">Cloudflare privacy policy</Anchor>).
           </List.Item>
           <List.Item>
+            <b>GoatCounter</b> counts visits without cookies or personal data: page, referrer, browser
+            and country, not who you are. The total visit count shown on the About page comes from it (
+            <Anchor href="https://www.goatcounter.com/help/privacy">GoatCounter privacy policy</Anchor>).
+          </List.Item>
+          <List.Item>
             <b>Wikimedia</b> serves the fighter photos directly to your browser (
             <Anchor href="https://foundation.wikimedia.org/wiki/Policy:Privacy_policy">Wikimedia privacy policy</Anchor>
             ).

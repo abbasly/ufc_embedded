@@ -5,6 +5,8 @@ import { useReducedMotion } from "@mantine/hooks";
 import { type CSSProperties, Fragment, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+import { totalVisits } from "../app/goatcounter";
+
 const REPO = "https://github.com/abbasly/ufc_embedded";
 
 interface FlowItem {
@@ -76,6 +78,25 @@ function CountUp({ to, start, year }: { to: number; start: number; year?: boolea
     return () => cancelAnimationFrame(frame);
   }, [to, start, year, reduceMotion]);
   return <>{year ? n : n.toLocaleString("en-US")}</>;
+}
+
+/** "1,234 visits so far" from GoatCounter; nothing while loading or when counting is off. */
+function Visits({ i }: { i: number }) {
+  const [visits, setVisits] = useState<number | null>(null);
+  useEffect(() => {
+    let live = true;
+    totalVisits().then((n) => live && setVisits(n));
+    return () => {
+      live = false;
+    };
+  }, []);
+  if (visits === null) return null;
+  return (
+    <div className="visits reveal" style={step(i)}>
+      <span className="visits-dot" aria-hidden />
+      <b>{visits.toLocaleString("en-US")}</b> visits so far
+    </div>
+  );
 }
 
 /** Data -> pipeline -> pages, in three columns joined by rails (stacked on phones). */
@@ -152,6 +173,7 @@ export function AboutPage() {
           </div>
         ))}
       </div>
+      <Visits i={statsStart + 4} />
 
       <div className="credit reveal" style={step(statsStart + 4)}>
         <img
