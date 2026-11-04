@@ -31,6 +31,7 @@ import { canFight, defaultOpponent } from "./matchup";
 import { OutcomeReveal } from "./OutcomeReveal";
 import { UpcomingTicker } from "./Upcoming";
 import { cardDate, eventShort, pairKey, upcomingCards } from "./upcomingCards";
+import { ArenaBackdrop } from "../../components/ArenaBackdrop";
 import { captureCards } from "../share/captureCards";
 import { predictorImage } from "../share/predictorImage";
 import { ShareButton } from "../share/ShareButton";
@@ -145,6 +146,7 @@ export default function PredictorPage() {
   // Two chapters revealed by scrolling (see Chapters.css): the fight, then the analysis.
   return (
     <>
+      <ArenaBackdrop fence />
       <Box component="section" className="chapter" pos="relative" ref={fightRef} pt={cards.length ? 62 : undefined}>
         {cards.length > 0 && (
           <Box pos="absolute" top={0} left={0} right={0} style={{ zIndex: 3 }} data-content>

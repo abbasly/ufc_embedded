@@ -1,0 +1,24 @@
+/* A page backdrop, fixed behind everything: a warm arena spotlight from above and a red haze
+   on the floor, optionally behind a faint chain-link fence like the octagon's (two sets of thin
+   diagonal lines) that fades into the dark towards the edges. Used by the predictor (with the
+   fence) and MMA math (without: its octagon is the cage). */
+
+.arena-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(45% 65% at 50% -8%, rgba(255, 214, 160, 0.26), transparent 72%),
+    radial-gradient(90% 45% at 50% 108%, rgba(250, 82, 82, 0.2), transparent 70%),
+    linear-gradient(180deg, #17181d, #0f1013);
+}
+.arena-bg.with-fence {
+  background:
+    radial-gradient(ellipse 75% 70% at 50% 45%, transparent 40%, rgba(15, 16, 19, 0.85) 100%),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.05) 0 1.5px, transparent 1.5px 30px),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.05) 0 1.5px, transparent 1.5px 30px),
+    radial-gradient(45% 65% at 50% -8%, rgba(255, 214, 160, 0.26), transparent 72%),
+    radial-gradient(90% 45% at 50% 108%, rgba(250, 82, 82, 0.2), transparent 70%),
+    linear-gradient(180deg, #17181d, #0f1013);
+}
