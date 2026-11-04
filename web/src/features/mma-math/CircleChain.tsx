@@ -144,8 +144,9 @@ function Cage({ c, apothem }: { c: number; apothem: number }) {
   return (
     <g aria-hidden>
       <defs>
+        {/* The canvas, a touch warm in the middle where the spotlight falls. */}
         <radialGradient id="cage-canvas">
-          <stop offset="0%" stopColor="#2c2d33" />
+          <stop offset="0%" stopColor="#37332c" />
           <stop offset="100%" stopColor="#1f2025" />
         </radialGradient>
       </defs>
