@@ -26,7 +26,7 @@ const NAV: { to: string; label: string; short?: string; fresh?: boolean }[] = [
 
 // Browser tab titles (also what search results show); keep in sync with scripts/route-previews.mjs.
 const TITLES: Record<string, string> = {
-  "/": "UFC Embedded: UFC fight predictor, fighting style map and Elo rankings",
+  "/": "UFC Embedded by Anar Abbasli: UFC fight predictor, style map and Elo rankings",
   "/style-map": "UFC fighter style map: who fights like who | UFC Embedded",
   "/predictor": "UFC fight predictor: who wins and how | UFC Embedded",
   "/ladder": "UFC Elo rankings: every fighter rated since 1994 | UFC Embedded",

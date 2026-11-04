@@ -12,11 +12,11 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 const ROUTES = [
   {
     path: "",
-    title: "UFC Embedded: UFC fight predictor, fighting style map and Elo rankings",
+    title: "UFC Embedded by Anar Abbasli: UFC fight predictor, style map and Elo rankings",
     description:
-      "Three decades of UFC fights, turned into interactive models: a fighting style map, a fight predictor, Elo rankings and MMA math. Free, no sign-up.",
+      "A machine learning project by Anar Abbasli: three decades of UFC fights turned into a fighting style map, a fight predictor, Elo rankings and MMA math. Free, no sign-up.",
     image: "og.png",
-    text: "A personal machine learning project built on every UFC fight since 1994: a 3D map of fighting styles, a fight predictor, an Elo ladder and MMA math.",
+    text: "A personal machine learning project by Anar Abbasli, built on every UFC fight since 1994: a 3D map of fighting styles, a fight predictor, an Elo ladder and MMA math.",
   },
   {
     path: "style-map",
@@ -61,6 +61,27 @@ const pageUrl = (r) => (r.path ? `${siteUrl}${r.path}/` : siteUrl);
 const meta = (attr, key, value) => (page) =>
   page.replace(new RegExp(`(<meta ${attr}="${key}" content=")[^"]*(")`), `$1${escape(value)}$2`);
 
+// Who made the site, for searches of the author's name: Google reads this schema.org data to
+// connect the name (and its spellings) with the site and the GitHub profile.
+const AUTHOR = {
+  "@type": "Person",
+  name: "Anar Abbasli",
+  alternateName: ["Anar Abbas", "Anar Abbasly"],
+  description: "Student and fight fan; machine learning projects.",
+  url: siteUrl,
+  sameAs: ["https://github.com/abbasly"],
+};
+const structuredData = () =>
+  `<script type="application/ld+json">${JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "UFC Embedded",
+    url: siteUrl,
+    description: ROUTES[0].description,
+    author: AUTHOR,
+    creator: AUTHOR,
+  })}</script>`;
+
 /** What crawlers without JavaScript read: the page's summary and links to every page. */
 const noscript = (route) =>
   `<noscript><h1>${escape(route.title)}</h1><p>${escape(route.text)}</p><ul>` +
@@ -81,6 +102,7 @@ for (const route of ROUTES) {
   }
   page = page.replace(/<link rel="canonical" href="[^"]*"/, `<link rel="canonical" href="${url}"`);
   page = page.replace('<div id="root"></div>', `<div id="root"></div>\n    ${noscript(route)}`);
+  if (!route.path) page = page.replace("</head>", `  ${structuredData()}\n  </head>`);
   const file = route.path ? `dist/${route.path}/index.html` : "dist/index.html";
   if (route.path) mkdirSync(`dist/${route.path}`, { recursive: true });
   writeFileSync(file, page);
