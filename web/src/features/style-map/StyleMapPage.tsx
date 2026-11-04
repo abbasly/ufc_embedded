@@ -131,12 +131,13 @@ export default function StyleMapPage() {
             {METHOD_NOTE[layout]}
           </Text>
         </Group>
-        {/* A softly lit plot area (a little lighter in the middle) rather than a flat black box. */}
+        {/* The plot lit like the page around it: warm light from the top, a red haze below. */}
         <Paper
           withBorder
           pos="relative"
           h={{ base: "65vh", md: "calc(100vh - 150px)" }}
-          style={{ overflow: "hidden", background: "radial-gradient(ellipse 80% 70% at 50% 40%, #2b2d34, #17181c 85%)" }}
+          style={{ overflow: "hidden", background:
+              "radial-gradient(65% 50% at 50% -5%, rgba(255, 214, 160, 0.2), transparent 72%), radial-gradient(85% 42% at 50% 108%, rgba(250, 82, 82, 0.18), transparent 72%), linear-gradient(180deg, #1c1d22, #131417)" }}
         >
           <ErrorBoundary
             fallback={

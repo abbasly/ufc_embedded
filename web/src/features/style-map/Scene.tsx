@@ -104,7 +104,8 @@ export function Scene(props: Props) {
         enableRotate={dims === 3}
         autoRotate={dims === 3 && spin.on && !similarView} // hold still in the similar view, so labels stay put
         autoRotateSpeed={SPIN_SPEED}
-        mouseButtons={dims === 3 ? undefined : { LEFT: MOUSE.PAN, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.PAN }}
+        // Spelled out for 3D too: left unset, the controls kept 2D's panning after switching back.
+        mouseButtons={dims === 3 ? { LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.PAN } : { LEFT: MOUSE.PAN, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.PAN }}
       />
       {/* Hidden rather than unmounted: unmounting drei <Html> here trips a React DOM error. */}
       <Axes data={data} dims={dims} hidden={!interpretable} portal={labels} />
@@ -615,7 +616,7 @@ function Axes({ data, dims, hidden, portal }: AxesProps) {
         const end = (s: number): Vec3 => [d[0] * s * AXIS_LENGTH, d[1] * s * AXIS_LENGTH, d[2] * s * AXIS_LENGTH];
         return (
           <group key={axis.label} visible={!hidden}>
-            <Line points={[end(-1), end(1)]} color="#9aa0aa" lineWidth={2.2} transparent opacity={0.8} />
+            <Line points={[end(-1), end(1)]} color="#7a7f88" lineWidth={2} transparent opacity={0.7} />
             <Html portal={portal} position={end(1.08)} center zIndexRange={LABEL_Z} style={labelStyle}>
               {axis.high} →
             </Html>
@@ -629,7 +630,7 @@ function Axes({ data, dims, hidden, portal }: AxesProps) {
   );
 }
 
-const axisLabelStyle = { color: "#c1c5cc", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", pointerEvents: "none", textShadow: "0 1px 3px #000" } as const;
+const axisLabelStyle = { color: "#a4a8b0", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", pointerEvents: "none", textShadow: "0 1px 3px #000" } as const;
 
 /**
  * A faint grid to keep your bearings: a floor under the cloud in 3D (so "down" stays down as
@@ -643,10 +644,10 @@ function Floor({ dims }: { dims: Dims }) {
       args={[40, 40]}
       cellSize={0.5}
       cellThickness={0.6}
-      cellColor="#3d4048"
+      cellColor="#2c2e34"
       sectionSize={2.5}
-      sectionThickness={1.1}
-      sectionColor="#6b707a"
+      sectionThickness={1}
+      sectionColor="#44474f"
       fadeDistance={dims === 3 ? 26 : 30}
       fadeStrength={1.4}
       infiniteGrid
