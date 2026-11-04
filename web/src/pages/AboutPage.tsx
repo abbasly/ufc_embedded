@@ -66,7 +66,12 @@ function CountUp({ to, start, year }: { to: number; start: number; year?: boolea
   const reduceMotion = useReducedMotion();
   const [n, setN] = useState(reduceMotion || year ? to : 0);
   useEffect(() => {
-    if (reduceMotion || year) return;
+    // No animation: show the number itself. (The reduced-motion setting can arrive after the
+    // first render, so this also replaces a count that had already started.)
+    if (reduceMotion || year) {
+      setN(to);
+      return;
+    }
     let frame = 0;
     const t0 = performance.now() + start;
     const tick = (now: number) => {

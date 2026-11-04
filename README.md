@@ -2,63 +2,69 @@
 
 Every active UFC fighter, mapped by how they fight.
 
-**Live:** https://abbasly.github.io/ufc_embedded/
+**Live:** https://ufc.anarli.com
 
-A personal ML engineering project: turn fight statistics into interactive, explorable models.
-Data is current to the latest UFC event (fights, records, rankings and odds from UFCStats and
-bookmakers, via Kaggle). Works on desktop and phone; fully static, hosted free on GitHub Pages.
+A personal ML engineering project: three decades of UFC fights turned into interactive,
+explorable models. Data is current to the latest UFC event (fights, records, rankings and odds
+from UFCStats and bookmakers, via Kaggle). Works on desktop and phone; fully static, hosted free
+on GitHub Pages.
 
 <table>
   <tr>
     <td width="50%" valign="top">
-      <a href="https://abbasly.github.io/ufc_embedded/style-map"><img src="docs/screenshots/style-map.png" alt="Style map"></a><br>
+      <a href="https://ufc.anarli.com/style-map"><img src="docs/screenshots/style-map.png" alt="Style map"></a><br>
       <sub><b>Style Map</b>: 3D map of fighting styles</sub>
     </td>
     <td width="50%" valign="top">
-      <a href="https://abbasly.github.io/ufc_embedded/predictor"><img src="docs/screenshots/predictor.png" alt="Fight predictor"></a><br>
+      <a href="https://ufc.anarli.com/predictor"><img src="docs/screenshots/predictor.png" alt="Fight predictor"></a><br>
       <sub><b>Fight Predictor</b>: win chance and most likely outcome</sub>
     </td>
   </tr>
   <tr>
     <td width="50%" valign="top">
-      <a href="https://abbasly.github.io/ufc_embedded/predictor"><img src="docs/screenshots/card-flip.png" alt="Flipped fighter card"></a><br>
+      <a href="https://ufc.anarli.com/predictor"><img src="docs/screenshots/card-flip.png" alt="Flipped fighter card"></a><br>
       <sub>Cards flip to a <b>fighter file</b>: record, recent form, stats</sub>
     </td>
     <td width="50%" valign="top">
-      <a href="https://abbasly.github.io/ufc_embedded/ladder"><img src="docs/screenshots/ladder.png" alt="Elo ladder"></a><br>
+      <a href="https://ufc.anarli.com/ladder"><img src="docs/screenshots/ladder.png" alt="Elo ladder"></a><br>
       <sub><b>Elo Ladder</b>: ratings, official ranks, climbers and drops</sub>
     </td>
   </tr>
   <tr>
     <td width="50%" valign="top">
-      <a href="https://abbasly.github.io/ufc_embedded/mma-math"><img src="docs/screenshots/mma-math.png" alt="MMA math"></a><br>
-      <sub><b>MMA Math</b>: any fighter &ldquo;beats&rdquo; any other</sub>
+      <a href="https://ufc.anarli.com/mma-math"><img src="docs/screenshots/mma-math.png" alt="MMA math"></a><br>
+      <sub><b>MMA Math</b>: any fighter &ldquo;beats&rdquo; any other, shareable as an image</sub>
     </td>
     <td width="50%" valign="top">
-      <a href="https://abbasly.github.io/ufc_embedded/about"><img src="docs/screenshots/about.png" alt="About page"></a><br>
-      <sub><b>About</b>: what's in the project</sub>
+      <a href="https://ufc.anarli.com/"><img src="docs/screenshots/about.png" alt="About page"></a><br>
+      <sub><b>Home</b>: how the data, models and pages fit together</sub>
     </td>
   </tr>
 </table>
 
 ## Features
 
-- **[Style Map](https://abbasly.github.io/ufc_embedded/style-map)**: ~700 active fighters placed in 3D by how they fight. Click anyone and the camera
-  flies to them, with lines and photo labels out to their most similar fighters (across the map
-  or in their own division), a match score, what they share ("Leg kicks · Top control") and a
-  stat-by-stat comparison. Readable style axes or a t-SNE similarity view; filter by style,
+- **[Style Map](https://ufc.anarli.com/style-map)**: ~700 active fighters placed in 3D by how they fight. Click anyone and the camera
+  flies to them, with lines and photo labels out to their 5 most similar fighters (across the
+  map or in their own division), ranked with a similarity score out of 100 and what they share
+  ("Leg kicks · Top control"). Readable style axes or a t-SNE similarity view; filter by style,
   weight class, champions or ranked fighters.
-- **[Fight Predictor](https://abbasly.github.io/ufc_embedded/predictor)**: pick two fighters for the win chance and the most
+- **[Fight Predictor](https://ufc.anarli.com/predictor)**: pick two fighters for the win chance and the most
   likely outcome (who, and by KO / submission / decision), what drives the call, past meetings
   and common opponents, and a tale of the tape. Upcoming UFC cards scroll past in a ticker
   (from bookmakers' listings); click a fight to load it, with our pick next to the bookies'.
-- **[Elo Ladder](https://abbasly.github.io/ufc_embedded/ladder)**: every fighter rated chess-style from every UFC fight since 1994,
+- **[Elo Ladder](https://ufc.anarli.com/ladder)**: every fighter rated chess-style from every UFC fight since 1994,
   next to their official rank, with the year's biggest climbers and drops.
-- **[MMA Math](https://abbasly.github.io/ufc_embedded/mma-math)**: loops of fighters who beat each other in a circle, and a
-  calculator that "proves" any fighter beats any other with a chain of wins, drawn as a circle.
+- **[MMA Math](https://ufc.anarli.com/mma-math)**: a calculator that "proves" any fighter beats any other with a chain of
+  wins, drawn as a circle that animates from winner to loser. One click turns the proof into a
+  square image (with the site's address) for Reddit, Instagram or WhatsApp, and the link reopens
+  the same proof. Plus loops of fighters who beat each other in a circle.
 - **Fighter cards everywhere**: collectible-style cards (style = card type, Elo where the HP would
   be, signature stats as moves, gold holo for champions) that flip in 3D to a fighter file. They
   show up in the predictor, the style map, MMA math hovers and the ladder.
+- **[Home](https://ufc.anarli.com)**: a one-screen overview of the data, the Python pipeline and the pages, with a live
+  count of recent visits (Cloudflare Web Analytics, read through a small Cloudflare Worker so the
+  API token never reaches the browser; see `worker/visits.js`).
 
 ## How the style map works
 
@@ -92,7 +98,7 @@ bookmakers, via Kaggle). Works on desktop and phone; fully static, hosted free o
    it keeps: about 15% for style axes vs 47% for t-SNE in 3D.
 7. k-means for five styles (kickboxers, volume boxers, dominant wrestlers, clinch fighters,
    low-volume all-rounders), nearest neighbours in the embedding for "most similar". The match
-   score is the share of all fighter pairs that are less alike.
+   score runs 0-100: 100 is the same style, 0 is as far apart as a typical pair of fighters.
 8. Current champions and rankings come from the official rankings; fighter photos (free licences
    only, about a third of fighters) from Wikipedia.
 
@@ -103,8 +109,11 @@ bookmakers, via Kaggle). Works on desktop and phone; fully static, hosted free o
 2. Simple cycles of 3 to 5 fighters are found with networkx and ranked by the "fame" of the
    least known fighter in the loop (UFC fights, title wins, current belt).
 3. The calculator runs a breadth-first search in the browser for the shortest chain of wins
-   from one fighter to another, drawn as a circle (⇄ swaps the direction). Over 1,200 fighters form one strongly connected component, so within it
-   anyone "beats" anyone.
+   from one fighter to another, drawn as a circle (⇅ swaps the direction). Over 1,200 fighters
+   form one strongly connected component, so within it anyone "beats" anyone.
+4. "Share this proof" draws the same circle on a canvas (photos, arrows, results, the verdict)
+   as a 1080 x 1080 PNG, sized to the chain's length, and hands it to the phone's share sheet or
+   offers download / copy.
 
 ## How the predictor works
 
@@ -208,7 +217,8 @@ flowchart LR
     end
 
     json --> client
-    web -->|"GitHub Actions"| pages(["GitHub Pages"])
+    web -->|"GitHub Actions"| pages(["GitHub Pages<br/>ufc.anarli.com"])
+    worker(["Cloudflare Worker<br/>visit count"]) --> web
 ```
 
 - **Data contract:** `export.py` writes JSON with a `schema_version`; `web/src/data/types.ts`
@@ -259,9 +269,6 @@ Fighter photos are cached in `data/processed/fighter_photos*.json`; delete them 
 ## Limitations
 
 - Career averages hide style changes over time; fighters with few fights are noisy.
-- Only the 8 career rates are used so far. The fight data also has per-round strikes by target
-  (head/body/leg) and position (distance/clinch/ground) and control time: the next step for a
-  richer embedding.
 - Rankings and champions are matched to fighters by name, so namesakes could be confused.
 
 Unofficial fan project, not affiliated with the UFC.

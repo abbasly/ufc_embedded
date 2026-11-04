@@ -115,7 +115,8 @@ export default function MmaMathPage() {
                   </Text>
                 </div>
                 <Select label="Winner" searchable limit={PICKER_LIMIT} placeholder={placeholder} data={options} value={a} onChange={(v) => setPair([v, b])} />
-                <Group justify="center" my={-8}>
+                {/* Centred between the two boxes (the Loser label sits under it). */}
+                <Group justify="center" mt={4} mb={-20}>
                   <Tooltip label="Swap: prove it the other way round" withArrow>
                     <ActionIcon variant="light" size="lg" onClick={() => setPair([b, a])} aria-label="Swap fighters">
                       ⇅
