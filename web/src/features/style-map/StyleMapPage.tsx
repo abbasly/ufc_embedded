@@ -131,7 +131,13 @@ export default function StyleMapPage() {
             {METHOD_NOTE[layout]}
           </Text>
         </Group>
-        <Paper withBorder pos="relative" h={{ base: "65vh", md: "calc(100vh - 150px)" }} style={{ overflow: "hidden" }}>
+        {/* A softly lit plot area (a little lighter in the middle) rather than a flat black box. */}
+        <Paper
+          withBorder
+          pos="relative"
+          h={{ base: "65vh", md: "calc(100vh - 150px)" }}
+          style={{ overflow: "hidden", background: "radial-gradient(ellipse 80% 70% at 50% 40%, #2b2d34, #17181c 85%)" }}
+        >
           <ErrorBoundary
             fallback={
               <Center h="100%">

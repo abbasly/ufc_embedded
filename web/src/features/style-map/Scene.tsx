@@ -4,7 +4,7 @@
 // each of their most similar fighters, who get photo labels with how alike they are.
 
 import { useReducedMotion } from "@mantine/hooks";
-import { Billboard, Html, Line, OrbitControls } from "@react-three/drei";
+import { Billboard, Grid, Html, Line, OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type Mesh, MOUSE, SphereGeometry, Vector3 } from "three";
@@ -108,6 +108,7 @@ export function Scene(props: Props) {
       />
       {/* Hidden rather than unmounted: unmounting drei <Html> here trips a React DOM error. */}
       <Axes data={data} dims={dims} hidden={!interpretable} portal={labels} />
+      <Floor dims={dims} />
 
       {data.fighters.map((f) => {
         const isSelected = f.id === selectedId;
@@ -614,7 +615,7 @@ function Axes({ data, dims, hidden, portal }: AxesProps) {
         const end = (s: number): Vec3 => [d[0] * s * AXIS_LENGTH, d[1] * s * AXIS_LENGTH, d[2] * s * AXIS_LENGTH];
         return (
           <group key={axis.label} visible={!hidden}>
-            <Line points={[end(-1), end(1)]} color="#444" lineWidth={1} />
+            <Line points={[end(-1), end(1)]} color="#9aa0aa" lineWidth={2.2} transparent opacity={0.8} />
             <Html portal={portal} position={end(1.08)} center zIndexRange={LABEL_Z} style={labelStyle}>
               {axis.high} →
             </Html>
@@ -628,7 +629,31 @@ function Axes({ data, dims, hidden, portal }: AxesProps) {
   );
 }
 
-const axisLabelStyle = { color: "#888", fontSize: 11, whiteSpace: "nowrap", pointerEvents: "none" } as const;
+const axisLabelStyle = { color: "#c1c5cc", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", pointerEvents: "none", textShadow: "0 1px 3px #000" } as const;
+
+/**
+ * A faint grid to keep your bearings: a floor under the cloud in 3D (so "down" stays down as
+ * it turns), the backdrop behind it in 2D. It fades out with distance and ignores the pointer.
+ */
+function Floor({ dims }: { dims: Dims }) {
+  return (
+    <Grid
+      position={dims === 3 ? [0, -AXIS_LENGTH - 0.3, 0] : [0, 0, -1]}
+      rotation={dims === 3 ? [0, 0, 0] : [Math.PI / 2, 0, 0]}
+      args={[40, 40]}
+      cellSize={0.5}
+      cellThickness={0.6}
+      cellColor="#3d4048"
+      sectionSize={2.5}
+      sectionThickness={1.1}
+      sectionColor="#6b707a"
+      fadeDistance={dims === 3 ? 26 : 30}
+      fadeStrength={1.4}
+      infiniteGrid
+      raycast={noRaycast}
+    />
+  );
+}
 
 const tooltipPhotoStyle = {
   width: 40,
