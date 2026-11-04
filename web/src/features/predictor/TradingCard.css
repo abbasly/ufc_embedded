@@ -171,3 +171,13 @@
     opacity: 1;
   }
 }
+
+/* While a card is photographed for a share image (share/captureCards.ts): one-line texts may
+   not wrap, since the snapshot draws text a touch wider than the page and the wrapped part
+   would be cut off by the one-line clamp. */
+.card-capture [data-line-clamp][style*="--text-line-clamp: 1;"] {
+  display: block !important;
+  -webkit-line-clamp: unset !important;
+  white-space: nowrap;
+  overflow: visible !important;
+}

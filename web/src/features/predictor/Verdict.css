@@ -253,3 +253,13 @@
     animation: none !important;
   }
 }
+
+/* The share button under the verdict: fades up once the outcome reveal is over. */
+.share-after {
+  animation: rise 0.45s ease-out var(--share-delay) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .share-after {
+    animation: none;
+  }
+}

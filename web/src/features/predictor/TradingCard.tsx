@@ -251,7 +251,7 @@ export function TradingCard({ fighter, cluster, stat, recent }: Props) {
           )}
           <Group justify="space-between" mt="auto">
             <Text fz={u(9)} fw={700}>UFC Embedded</Text>
-            <Text fz={u(9)} fw={700} style={{ opacity: 0.7 }}>↻ tap to flip</Text>
+            <Text fz={u(9)} fw={700} className="flip-hint" style={{ opacity: 0.7 }}>↻ tap to flip</Text>
             <Text fz={u(11)} fw={800}>{rarity}</Text>
           </Group>
         </Stack>

@@ -1,7 +1,7 @@
 // "Share" button: makes the share image, shows it, and offers the ways to send it on: the
 // phone's share sheet (WhatsApp, Instagram, Reddit...), download, copy image, copy link.
 
-import { Button, Center, Group, Image, Loader, Modal, Stack, Text } from "@mantine/core";
+import { Box, Button, Center, CloseButton, Group, Image, Loader, Modal, Stack, Text } from "@mantine/core";
 import { useEffect, useState } from "react";
 
 interface Props {
@@ -97,28 +97,53 @@ export function ShareButton({ make, fileName, text, url, label = "Share", fullWi
       >
         {label}
       </Button>
-      <Modal opened={open} onClose={() => setOpen(false)} title="Share" centered size="lg">
-        <Stack gap="sm">
+      {/* Just the image and the actions: no title bar or frame, and the image sized to the
+          screen so the buttons are always in view. */}
+      <Modal
+        opened={open}
+        onClose={() => setOpen(false)}
+        withCloseButton={false}
+        centered
+        size="auto"
+        padding={0}
+        radius="lg"
+        styles={{ content: { background: "#17181b", overflow: "hidden" } }}
+      >
+        <Box pos="relative">
           {preview ? (
-            <Image src={preview} alt="The image to share" radius="md" />
+            <Image src={preview} alt="The image to share" w="auto" h="auto" mah="calc(100dvh - 150px)" maw="min(92vw, 640px)" />
           ) : (
-            <Center h={300}>{failed ? <Text c="dimmed">Couldn't make the image. Try again.</Text> : <Loader />}</Center>
+            <Center w="min(92vw, 640px)" h="min(60dvh, 500px)">
+              {failed ? <Text c="dimmed">Couldn't make the image. Try again.</Text> : <Loader />}
+            </Center>
           )}
+          <CloseButton
+            pos="absolute"
+            top={10}
+            right={10}
+            radius="xl"
+            variant="filled"
+            onClick={() => setOpen(false)}
+            aria-label="Close"
+            style={{ background: "rgba(0, 0, 0, 0.55)" }}
+          />
+        </Box>
+        <Stack gap={6} p="sm">
           <Group justify="center" gap="xs">
             {canShareFile && (
-              <Button onClick={share} leftSection={<ShareIcon size={16} />}>
+              <Button size="sm" onClick={share} leftSection={<ShareIcon size={16} />}>
                 Share…
               </Button>
             )}
-            <Button variant={canShareFile ? "light" : "filled"} onClick={download} disabled={!preview}>
+            <Button size="sm" variant={canShareFile ? "light" : "filled"} onClick={download} disabled={!preview}>
               Download
             </Button>
             {canCopyImage() && (
-              <Button variant="light" onClick={copyImage} disabled={!blob}>
+              <Button size="sm" variant="light" onClick={copyImage} disabled={!blob}>
                 Copy image
               </Button>
             )}
-            <Button variant="subtle" onClick={copyLink}>
+            <Button size="sm" variant="subtle" onClick={copyLink}>
               Copy link
             </Button>
           </Group>

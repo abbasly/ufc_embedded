@@ -30,7 +30,10 @@ import { commonOpponents, contributions, headToHead, outcomes, sharedRecord, win
 import { canFight, defaultOpponent } from "./matchup";
 import { OutcomeReveal } from "./OutcomeReveal";
 import { UpcomingTicker } from "./Upcoming";
-import { pairKey, upcomingCards } from "./upcomingCards";
+import { cardDate, eventShort, pairKey, upcomingCards } from "./upcomingCards";
+import { captureCards } from "../share/captureCards";
+import { predictorImage } from "../share/predictorImage";
+import { ShareButton } from "../share/ShareButton";
 import { useCountUp } from "./useCountUp";
 import "./Chapters.css";
 import "./Verdict.css";
@@ -170,6 +173,12 @@ export default function PredictorPage() {
                     </ActionIcon>
                   </Tooltip>
                 </Center>
+                {matchup && (
+                  // Comes in once the outcome has played out (keyed, so it replays per matchup).
+                  <Center key={`share-${a.id}-${b.id}`} className="share-after" style={{ "--share-delay": `${SHARE_AFTER_MS}ms` } as React.CSSProperties}>
+                    <SharePrediction data={data} a={a} b={b} event={bookedOn(cards, a.id, b.id)} />
+                  </Center>
+                )}
               </Stack>
             </Grid.Col>
             <Grid.Col span={{ base: 12, md: 3.75 }}>
@@ -243,6 +252,9 @@ const methodName = (m: string) => ({ "KO/TKO": "KO/TKO", SUB: "submission", DEC:
 
 /** The headline, between the two cards: win probabilities and the single most likely outcome. */
 const FILL_MS = 1100;
+// The outcome reveal starts at 80% of the fill and its longest version (three judges' cards,
+// then the name) takes about 2 s more; the share button appears after that (Verdict.css).
+const SHARE_AFTER_MS = FILL_MS * 0.8 + 2100;
 
 function Verdict({ data, a, b }: { data: PredictorData; a: PredictorFighter; b: PredictorFighter }) {
   const pA = winProb(data.win_model, a, b);
@@ -278,6 +290,46 @@ function Verdict({ data, a, b }: { data: PredictorData; a: PredictorFighter; b: 
         delayMs={FILL_MS * 0.8}
       />
     </Stack>
+  );
+}
+
+/** "UFC 335 · Sat 14 Nov" if the two are booked to fight on an upcoming card. */
+function bookedOn(cards: ReturnType<typeof upcomingCards>, aId: string, bId: string): string | undefined {
+  const key = pairKey(aId, bId);
+  const card = cards.find((c) => c.bouts.some((x) => x.a && x.b && pairKey(x.a, x.b) === key));
+  if (!card) return undefined;
+  return [eventShort(card.name), cardDate(card.date)].filter(Boolean).join(" · ");
+}
+
+/** A fighter's line under their photo in the share image: division, and rank or belt. */
+const cornerDetail = (f: PredictorFighter) =>
+  f.champion ? `${f.weight_class} champion` : f.rank ? `${f.weight_class} · #${f.rank}` : f.weight_class;
+
+/** Share button for the matchup: an image of the prediction and a link back to it. */
+function SharePrediction({ data, a, b, event }: { data: PredictorData; a: PredictorFighter; b: PredictorFighter; event?: string }) {
+  const pA = winProb(data.win_model, a, b);
+  const best = outcomes(data, a, b)[0]!;
+  const favourite = pA >= 0.5 ? a : b;
+  const url = `${window.location.origin}${import.meta.env.BASE_URL}predictor?a=${a.id}&b=${b.id}`;
+  return (
+    <ShareButton
+      label="Share prediction"
+      make={async () => {
+        // The two trading cards on the page, red corner first (null: fall back to photos).
+        const cards = await captureCards(document, 2); // the fight's cards come first on the page
+        return predictorImage({
+          a: { name: a.name, photo: a.image?.url, detail: cornerDetail(a) },
+          b: { name: b.name, photo: b.image?.url, detail: cornerDetail(b) },
+          pA,
+          ending: { winner: best.winner.name, method: methodName(best.method), p: best.p, isA: best.winner.id === a.id },
+          event,
+          cards: cards ? [cards[0]!, cards[1]!] : undefined,
+        });
+      }}
+      fileName={`${a.id}-vs-${b.id}`}
+      text={`The model gives ${favourite.name} a ${Math.round(Math.max(pA, 1 - pA) * 100)}% chance against ${favourite === a ? b.name : a.name}.`}
+      url={url}
+    />
   );
 }
 
