@@ -15,7 +15,8 @@ export function countPage(path: string) {
 }
 
 // Every page of the site, as GoatCounter records them (no trailing slash; see vite.config.ts).
-const PAGES = ["/", "/style-map", "/predictor", "/ladder", "/mma-math", "/privacy"];
+// "/about" is the About page's old address, from before it became the home page.
+const PAGES = ["/", "/style-map", "/predictor", "/ladder", "/mma-math", "/privacy", "/about"];
 
 /** One page's all-time views, or 0 if GoatCounter has none (it answers 404) or can't be reached. */
 async function pageVisits(path: string): Promise<number> {
