@@ -24,13 +24,14 @@ const NAV: { to: string; label: string; short?: string; fresh?: boolean }[] = [
   { to: "/", label: "About" }, // the landing page
 ];
 
-// Browser tab titles; keep in sync with scripts/route-previews.mjs.
+// Browser tab titles (also what search results show); keep in sync with scripts/route-previews.mjs.
 const TITLES: Record<string, string> = {
-  "/style-map": "UFC Embedded: style map",
-  "/mma-math": "UFC Embedded: MMA math",
-  "/predictor": "UFC Embedded: fight predictor",
-  "/ladder": "UFC Embedded: Elo ladder",
-  "/privacy": "UFC Embedded: privacy",
+  "/": "UFC Embedded: UFC fight predictor, fighting style map and Elo rankings",
+  "/style-map": "UFC fighter style map: who fights like who | UFC Embedded",
+  "/predictor": "UFC fight predictor: who wins and how | UFC Embedded",
+  "/ladder": "UFC Elo rankings: every fighter rated since 1994 | UFC Embedded",
+  "/mma-math": "MMA math calculator: prove any UFC fighter beats any other | UFC Embedded",
+  "/privacy": "Privacy | UFC Embedded",
 };
 
 /** The landing page is About. Style-map links from when the map was the home page
