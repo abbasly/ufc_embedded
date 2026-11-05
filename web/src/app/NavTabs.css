@@ -1,0 +1,104 @@
+/* The tabs and their sliding pill. "top": a row in the header; "bottom": the phone tab bar,
+   six equal tabs with an icon over a label. */
+
+.nav-tabs {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.nav-tabs[data-placement="top"] {
+  gap: 2px;
+}
+.nav-tabs[data-placement="bottom"] {
+  height: 100%;
+  padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+}
+
+/* The selected tab's pill, behind the labels. It moves with transform, so the slide is smooth. */
+.nav-pill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  border-radius: 8px;
+  background: var(--mantine-color-red-filled);
+  box-shadow: 0 4px 14px rgba(224, 49, 49, 0.35);
+  pointer-events: none;
+}
+.nav-pill[data-ready] {
+  transition:
+    transform 0.32s cubic-bezier(0.3, 0.9, 0.3, 1),
+    width 0.32s cubic-bezier(0.3, 0.9, 0.3, 1),
+    opacity 0.2s;
+}
+.nav-tabs[data-placement="bottom"] .nav-pill {
+  border-radius: 12px;
+  background: rgba(250, 82, 82, 0.18);
+  box-shadow: none;
+}
+
+.nav-tab {
+  position: relative;
+  z-index: 1;
+  color: var(--mantine-color-gray-3);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+.nav-tab:hover {
+  color: var(--mantine-color-white);
+}
+.nav-tab[data-active] {
+  color: var(--mantine-color-white);
+}
+
+.nav-tabs[data-placement="top"] .nav-tab {
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: var(--mantine-font-size-sm);
+  line-height: 1.55;
+}
+.nav-tabs[data-placement="top"] .nav-tab:not([data-active]):hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+/* Room for the tag, which sticks out past the tab's right edge. */
+.nav-tabs[data-placement="top"] .nav-tab:has(.nav-new) {
+  margin-right: 10px;
+}
+
+.nav-tabs[data-placement="bottom"] .nav-tab {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-radius: 12px;
+  font-size: 11px;
+  color: var(--mantine-color-gray-5);
+}
+.nav-tabs[data-placement="bottom"] .nav-tab[data-active] {
+  color: var(--mantine-color-red-3);
+}
+.nav-icon {
+  position: relative;
+  display: flex;
+}
+.nav-icon .nav-new-dot {
+  top: -3px;
+  right: -5px;
+}
+.nav-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-pill[data-ready],
+  .nav-tab {
+    transition: none;
+  }
+}

@@ -1,4 +1,4 @@
-import { Anchor, AppShell, Button, Center, Group, Loader, Text, Title } from "@mantine/core";
+import { Anchor, AppShell, Center, Group, Loader, Text, Title } from "@mantine/core";
 import { Suspense, useEffect, useRef } from "react";
 import { Link, Navigate, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
 
@@ -9,6 +9,7 @@ import { ImpressumPage } from "../pages/ImpressumPage";
 import { PrivacyPage } from "../pages/PrivacyPage";
 import { countPage } from "./goatcounter";
 import { lazyPage } from "./lazyPage";
+import { ICONS, type NavItem, NavTabs } from "./NavTabs";
 import "./NewBadge.css";
 
 // The account corner (sign-in window, user menu) loads only when accounts are on, so a build
@@ -23,16 +24,23 @@ const LadderPage = lazyPage(() => import("../features/ladder/LadderPage"));
 const PickemPage = lazyPage(() => import("../features/pickem/PickemPage"));
 const ProfilePage = lazyPage(() => import("../features/profile/ProfilePage"));
 
-// `short` labels are used on phones so all tabs fit next to the logo; `fresh` tabs get a tag
-// ("NEW", or `tag`). Pick'em (tagged BETA) only where accounts are on.
-const NAV: { to: string; label: string; short?: string; fresh?: boolean; tag?: string }[] = [
-  { to: "/style-map", label: "Style Map", short: "Map" },
-  { to: "/predictor", label: "Predictor", short: "Predict" },
-  ...(accountsEnabled ? [{ to: "/pickem", label: "Pick'em", short: "Picks", fresh: true, tag: "BETA" }] : []),
-  { to: "/ladder", label: "Ladder" },
-  { to: "/mma-math", label: "MMA Math", short: "Math", fresh: !accountsEnabled },
-  { to: "/", label: "About" }, // the landing page
+// The tabs: across the header on wider screens, a bottom tab bar on phones (with the `short`
+// labels). `fresh` tabs get a tag ("NEW", or `tag`). Pick'em (tagged BETA) only where accounts
+// are on.
+const NAV: NavItem[] = [
+  { to: "/style-map", label: "Style Map", short: "Map", icon: ICONS.map },
+  { to: "/predictor", label: "Predictor", short: "Predict", icon: ICONS.predictor },
+  ...(accountsEnabled ? [{ to: "/pickem", label: "Pick'em", short: "Picks", icon: ICONS.picks, fresh: true, tag: "BETA" }] : []),
+  { to: "/ladder", label: "Ladder", icon: ICONS.ladder },
+  { to: "/mma-math", label: "MMA Math", short: "Math", icon: ICONS.math, fresh: !accountsEnabled },
+  { to: "/", label: "About", icon: ICONS.about }, // the landing page
 ];
+
+const GLASS = {
+  background: "rgba(14, 15, 18, 0.72)",
+  backdropFilter: "blur(12px)",
+  WebkitBackdropFilter: "blur(12px)",
+};
 
 // Browser tab titles (also what search results show); keep in sync with scripts/route-previews.mjs.
 const TITLES: Record<string, string> = {
@@ -69,68 +77,28 @@ export function App() {
   }, [pathname]);
 
   return (
-    <AppShell header={{ height: 56 }} padding={{ base: "xs", sm: "md" }}>
+    // The bottom tab bar only on phones (below "sm"): its height is 0 from there up.
+    <AppShell header={{ height: 56 }} footer={{ height: { base: "calc(62px + env(safe-area-inset-bottom, 0px))", sm: 0 } }} padding={{ base: "xs", sm: "md" }}>
       {/* The spotlit arena behind every page; the predictor also gets the cage fence. */}
       <ArenaBackdrop fence={pathname === "/predictor"} />
       {/* Dark glass rather than flat grey, so the arena's colours show through the menu. */}
-      <AppShell.Header
-        style={{
-          background: "rgba(14, 15, 18, 0.72)",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
-        }}
-      >
-        <Group h="100%" px={{ base: "xs", sm: "md" }} justify="space-between" wrap="nowrap">
+      <AppShell.Header style={{ ...GLASS, borderBottom: "1px solid rgba(255, 255, 255, 0.06)" }}>
+        <Group h="100%" px={{ base: "sm", sm: "md" }} justify="space-between" wrap="nowrap">
           <Anchor component={Link} to="/" c="inherit" underline="never">
             <Group gap={8} wrap="nowrap">
               <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" width={26} height={26} />
-              {/* On phones the logo alone leaves room for the tabs. */}
-              <Title order={4} fz={{ base: "md", sm: "lg" }} visibleFrom="xs" style={{ whiteSpace: "nowrap" }}>
+              <Title order={4} fz={{ base: "md", sm: "lg" }} style={{ whiteSpace: "nowrap" }}>
                 UFC Embedded
               </Title>
             </Group>
           </Anchor>
-          <Group gap={2} wrap="nowrap">
-            {NAV.map((item) => (
-              <Button
-                key={item.to}
-                component={Link}
-                to={item.to} // a full URL for tabs to another site: Link opens those as normal links
-                variant={pathname === item.to ? "filled" : "subtle"}
-                color={pathname === item.to ? "red" : "gray"}
-                size="compact-sm"
-                // Tighter on phones, where six tabs and the account button share the bar.
-                px={{ base: accountsEnabled ? 4 : 6, sm: "sm" }}
-                style={item.fresh ? { overflow: "visible" } : undefined}
-                // Room for the NEW tag, which sticks out past the tab's right edge.
-                mr={item.fresh ? { base: 0, xs: 10 } : undefined}
-              >
-                {item.fresh && (
-                  <>
-                    <Text span className="nav-new" visibleFrom="xs">
-                      {item.tag ?? "NEW"}
-                    </Text>
-                    <Text span className="nav-new-dot" hiddenFrom="xs" />
-                  </>
-                )}
-                {item.short ? (
-                  <>
-                    <Text span inherit visibleFrom="xs">
-                      {item.label}
-                    </Text>
-                    <Text span inherit hiddenFrom="xs">
-                      {item.short}
-                    </Text>
-                  </>
-                ) : (
-                  item.label
-                )}
-              </Button>
-            ))}
+          <Group gap="xs" wrap="nowrap">
+            <Group visibleFrom="sm" gap={0}>
+              <NavTabs items={NAV} active={pathname} placement="top" />
+            </Group>
             {/* Sign in / account menu: only when accounts are on (src/backend). */}
             {UserMenu && (
-              <Group ml={{ base: 2, sm: "xs" }} gap={0}>
+              <Group gap={0}>
                 <Suspense fallback={null}>
                   <UserMenu />
                 </Suspense>
@@ -139,6 +107,10 @@ export function App() {
           </Group>
         </Group>
       </AppShell.Header>
+
+      <AppShell.Footer hiddenFrom="sm" style={{ ...GLASS, borderTop: "1px solid rgba(255, 255, 255, 0.08)" }}>
+        <NavTabs items={NAV} active={pathname} placement="bottom" />
+      </AppShell.Footer>
 
       <AppShell.Main>
         <Suspense fallback={<Center h="60vh"><Loader /></Center>}>
