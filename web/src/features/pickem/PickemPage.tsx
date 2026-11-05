@@ -17,7 +17,7 @@ import { type LeaderboardRow, type MatePick, type MateWhoPicked, METHODS, type M
 import { usePredictor } from "../../data/client";
 import type { PredictorData, PredictorFighter } from "../../data/types";
 import { winProb } from "../predictor/model";
-import { Leagues } from "./Leagues";
+import { Leagues, playerPath } from "./Leagues";
 import { boutPoints, isUnderdog, marketChance, METHOD_LABEL, POINTS, scores } from "./scoring";
 import {
   EVERYONE,
@@ -315,7 +315,7 @@ function Results({ rows, me }: { rows: LeaderboardRow[]; me?: string }) {
         </div>
         <Group gap="lg" wrap="wrap">
           {rows.slice(0, 3).map((r, i) => (
-            <Group key={r.displayName} gap={8} wrap="nowrap">
+            <Group key={r.displayName} gap={8} wrap="nowrap" className="pickem-podium" renderRoot={(props) => <Link {...props} to={playerPath(r.displayName)} />}>
               <div style={{ position: "relative" }}>
                 <PlayerAvatar name={r.displayName} avatar={r.avatar} size={i === 0 ? 48 : 40} style={{ border: `2px solid ${medals[i]}` }} />
               </div>

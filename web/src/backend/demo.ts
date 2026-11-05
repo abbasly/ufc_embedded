@@ -134,6 +134,12 @@ export function demoBackend(): Backend {
         save({ ...load(), profile });
         return profile;
       },
+      async byName(displayName) {
+        const me = load().profile;
+        if (me?.displayName === displayName) return { ...me, joinedOn: "2026-11-01" };
+        const i = SAMPLE_NAMES.indexOf(displayName);
+        return i < 0 ? null : { id: `sample-${i}`, displayName, avatar: AVATARS[i % AVATARS.length] ?? null, joinedOn: "2026-10-20" };
+      },
       async update({ displayName, avatar }) {
         signedIn();
         const s = load();
@@ -207,6 +213,13 @@ export function demoBackend(): Backend {
       },
       myScores: async () =>
         load().signedIn ? [{ eventId: "demo-past", name: "UFC 333: Demo vs. Results", startsOn: "2026-10-31", points: 45, correct: 4, picked: 6 }] : [],
+      scoresOf: async (id) =>
+        id === DEMO_USER.id
+          ? [{ eventId: "demo-past", name: "UFC 333: Demo vs. Results", startsOn: "2026-10-31", points: 45, correct: 4, picked: 6 }]
+          : [
+              { eventId: "demo-past", name: "UFC 333: Demo vs. Results", startsOn: "2026-10-31", points: 95, correct: 8, picked: 10 },
+              { eventId: "demo-older", name: "UFC Fight Night: Sample vs. Card", startsOn: "2026-10-24", points: 70, correct: 6, picked: 10 },
+            ],
     },
     // Demo leagues: yours, plus two made-up friends in every league you join.
     leagues: {

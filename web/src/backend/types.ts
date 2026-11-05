@@ -6,6 +6,14 @@ export interface User {
   email: string | null;
 }
 
+/** What anyone can see of a player: name, picture, when they joined. */
+export interface PublicProfile {
+  id: string;
+  displayName: string;
+  avatar: string | null;
+  joinedOn: string; // yyyy-mm-dd
+}
+
 export interface Profile {
   id: string;
   displayName: string;
@@ -124,6 +132,8 @@ export interface Backend {
     mine(): Promise<Profile | null>;
     create(displayName: string): Promise<Profile>;
     update(changes: { displayName?: string; avatar?: string | null }): Promise<void>;
+    /** A player's public profile, by display name (null if there's no such player). */
+    byName(displayName: string): Promise<PublicProfile | null>;
   };
   pickem: {
     /** Recent and upcoming events, earliest first (the latest one if there's nothing recent). */
@@ -144,6 +154,8 @@ export interface Backend {
     pickSplit(eventId: string): Promise<PickSplit>;
     /** The signed-in user's scored events, latest first. */
     myScores(): Promise<EventScore[]>;
+    /** Any player's scored events, latest first (scores are public, like the leaderboard). */
+    scoresOf(userId: string): Promise<EventScore[]>;
   };
   leagues: {
     mine(): Promise<League[]>;
