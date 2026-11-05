@@ -19,7 +19,7 @@
    pulling the page to a chapter after the user stops scrolling felt intrusive. */
 @media (min-width: 62em) {
   .chapter {
-    min-height: calc(100svh - 56px);
+    min-height: calc(100svh - 56px - var(--app-shell-footer-offset, 0px));
   }
 }
 

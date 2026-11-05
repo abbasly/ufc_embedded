@@ -424,7 +424,8 @@ function Side({ id, name, fighter, chance, underdog, chosen, winner, disabled, o
         aria-pressed={chosen}
         style={{ flex: 1, minWidth: 0 }}
       >
-        <Group gap="sm" wrap="nowrap">
+        {/* A row; on small phones the photo sits above the name, so names have the full width. */}
+        <div className="pickem-side-body">
           <Avatar src={fighter?.image?.url} size={46} radius="xl" color="gray">
             {initials}
           </Avatar>
@@ -443,7 +444,7 @@ function Side({ id, name, fighter, chance, underdog, chosen, winner, disabled, o
               {result === null ? "Your pick" : result ? "✓" : "✗"}
             </Text>
           )}
-        </Group>
+        </div>
       </UnstyledButton>
       {vs && (
         <Center>
