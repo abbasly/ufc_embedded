@@ -229,6 +229,10 @@ export function AboutPage() {
           <Anchor component={Link} to="/privacy" size="xs">
             Privacy
           </Anchor>
+          {" · "}
+          <Anchor component={Link} to="/impressum" size="xs">
+            Impressum
+          </Anchor>
         </Text>
       </div>
     </Container>
