@@ -1,0 +1,120 @@
+// A stand-in backend that lives in the browser, for building and trying the account features
+// without a Supabase project: "signing in" makes you a demo user, and profiles and picks are
+// kept in localStorage. Same Backend interface, so features can't tell the difference.
+// Turned on with VITE_ACCOUNTS=demo (local development only; see backend/index.ts).
+
+import { type Backend, BackendError, type Pick, type PickemBout, type PickemEvent, type Profile, type User } from "./types";
+
+const KEY = "ufc-embedded-demo-backend";
+const DEMO_USER: User = { id: "demo-user", email: "demo@example.com" };
+
+interface Stored {
+  signedIn: boolean;
+  profile: Profile | null;
+  picks: Pick[];
+}
+
+function load(): Stored {
+  try {
+    return { signedIn: false, profile: null, picks: [], ...JSON.parse(localStorage.getItem(KEY) ?? "{}") };
+  } catch {
+    return { signedIn: false, profile: null, picks: [] };
+  }
+}
+function save(s: Stored) {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(s));
+  } catch {
+    // private window: the demo just doesn't persist
+  }
+}
+
+/** A sample card a week out, so the Pick'em screens have something to show. */
+function sampleCard(): { event: PickemEvent; bouts: PickemBout[] } {
+  const day = new Date(Date.now() + 7 * 86400e3).toISOString().slice(0, 10);
+  const event: PickemEvent = { id: `${day}-demo`, name: "UFC Demo Night", startsOn: day, locksAt: `${day}T22:00:00Z`, scoredAt: null };
+  const bout = (position: number, a: string, b: string, aName: string, bName: string, p: number): PickemBout => ({
+    id: `${event.id}:${a}:${b}`,
+    eventId: event.id,
+    position,
+    fighterA: a,
+    fighterB: b,
+    aName,
+    bName,
+    modelPA: p,
+    marketPA: null,
+    winner: null,
+    method: null,
+  });
+  return {
+    event,
+    bouts: [
+      bout(1, "islam-makhachev", "ilia-topuria", "Islam Makhachev", "Ilia Topuria", 0.65),
+      bout(2, "alex-pereira", "magomed-ankalaev", "Alex Pereira", "Magomed Ankalaev", 0.52),
+      bout(3, "max-holloway", "dustin-poirier", "Max Holloway", "Dustin Poirier", 0.58),
+    ],
+  };
+}
+
+export function demoBackend(): Backend {
+  const listeners = new Set<(u: User | null) => void>();
+  const notify = () => listeners.forEach((l) => l(load().signedIn ? DEMO_USER : null));
+  const signIn = async () => {
+    save({ ...load(), signedIn: true });
+    notify();
+  };
+  const signedIn = () => {
+    if (!load().signedIn) throw new BackendError("Sign in first.");
+  };
+
+  return {
+    auth: {
+      currentUser: async () => (load().signedIn ? DEMO_USER : null),
+      onChange(callback) {
+        listeners.add(callback);
+        return () => listeners.delete(callback);
+      },
+      signInWithGoogle: signIn,
+      signInWithEmail: signIn,
+      async signOut() {
+        save({ ...load(), signedIn: false });
+        notify();
+      },
+      async deleteAccount() {
+        save({ signedIn: false, profile: null, picks: [] });
+        notify();
+      },
+    },
+    profiles: {
+      mine: async () => (load().signedIn ? load().profile : null),
+      async create(displayName) {
+        signedIn();
+        const profile = { id: DEMO_USER.id, displayName: displayName.trim() };
+        save({ ...load(), profile });
+        return profile;
+      },
+      async rename(displayName) {
+        signedIn();
+        save({ ...load(), profile: { id: DEMO_USER.id, displayName: displayName.trim() } });
+      },
+    },
+    pickem: {
+      currentEvent: async () => sampleCard(),
+      myPicks: async () => (load().signedIn ? load().picks : []),
+      async pick(pick) {
+        signedIn();
+        const s = load();
+        save({ ...s, picks: [...s.picks.filter((p) => p.boutId !== pick.boutId), pick] });
+      },
+      async unpick(boutId) {
+        signedIn();
+        const s = load();
+        save({ ...s, picks: s.picks.filter((p) => p.boutId !== boutId) });
+      },
+      leaderboard: async () => {
+        const s = load();
+        return s.profile ? [{ displayName: s.profile.displayName, points: 0, correct: 0, picked: s.picks.length, events: 0 }] : [];
+      },
+    },
+  };
+}
