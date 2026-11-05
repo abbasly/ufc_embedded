@@ -61,14 +61,16 @@ const STATS = [
 /** Staggered entrance: element ``i`` of the page comes in ``i`` steps after the first. */
 const step = (i: number) => ({ "--i": i }) as CSSProperties;
 
-/** Counts up from 0 once the page has come in (years just appear). */
+/** Counts up from 0 once the page has come in. A year instead counts back from this year,
+ * rolling back through time to it (2026, 2025 ... 1994). */
 function CountUp({ to, start, year }: { to: number; start: number; year?: boolean }) {
   const reduceMotion = useReducedMotion();
-  const [n, setN] = useState(reduceMotion || year ? to : 0);
+  const from = year ? new Date().getFullYear() : 0;
+  const [n, setN] = useState(reduceMotion ? to : from);
   useEffect(() => {
     // No animation: show the number itself. (The reduced-motion setting can arrive after the
     // first render, so this also replaces a count that had already started.)
-    if (reduceMotion || year) {
+    if (reduceMotion) {
       setN(to);
       return;
     }
@@ -76,12 +78,12 @@ function CountUp({ to, start, year }: { to: number; start: number; year?: boolea
     const t0 = performance.now() + start;
     const tick = (now: number) => {
       const t = Math.min(1, Math.max(0, (now - t0) / 1100));
-      setN(Math.round(to * (1 - (1 - t) ** 3)));
+      setN(Math.round(from + (to - from) * (1 - (1 - t) ** 3)));
       if (t < 1) frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [to, start, year, reduceMotion]);
+  }, [to, from, start, reduceMotion]);
   return <>{year ? n : n.toLocaleString("en-US")}</>;
 }
 
