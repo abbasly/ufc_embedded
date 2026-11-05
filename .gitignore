@@ -20,3 +20,6 @@ web/dist/
 
 # Weights & Biases local run files
 wandb/
+
+# Local settings, e.g. web/.env.local with the Supabase URL and key for development
+*.local

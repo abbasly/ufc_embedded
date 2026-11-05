@@ -21,6 +21,14 @@ jobs:
       - run: uv run mypy src tests
       - run: uv run pytest
 
+  # The accounts database (supabase/migrations) and its row level security: applied to a
+  # throwaway Postgres (preinstalled on the runner) and checked with supabase/tests.
+  database:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: PATH="$(ls -d /usr/lib/postgresql/*/bin | sort -V | tail -1):$PATH" supabase/tests/run.sh
+
   web:
     runs-on: ubuntu-latest
     defaults:
@@ -44,6 +52,10 @@ jobs:
           VITE_CF_ANALYTICS_TOKEN: ${{ vars.CF_ANALYTICS_TOKEN }}
           VITE_VISITS_URL: ${{ vars.VISITS_URL }}
           VITE_GOATCOUNTER: ${{ vars.GOATCOUNTER_CODE }}
+          # Accounts (src/backend): on only once both are set. The anon key is public by design;
+          # the service-role key never goes into the site.
+          VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
           BASE_PATH: ${{ vars.SITE_DOMAIN && '/' || format('/{0}/', github.event.repository.name) }}
           VITE_SITE_URL: ${{ vars.SITE_DOMAIN && format('https://{0}', vars.SITE_DOMAIN) || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
       - uses: actions/upload-pages-artifact@v3
@@ -52,7 +64,7 @@ jobs:
 
   deploy:
     if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
-    needs: [python, web]
+    needs: [python, web, database]
     runs-on: ubuntu-latest
     # One Pages deployment at a time: a newer push cancels a deploy that's still running
     # (Pages refuses a new deployment while an older one is stuck in progress).
