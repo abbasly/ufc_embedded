@@ -1,0 +1,62 @@
+/* Pick'em: dark glass panels on the arena backdrop; a picked fighter lights up in red. */
+
+.pickem-bout,
+.pickem-board,
+.pickem-cta {
+  background: rgba(20, 21, 25, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(4px);
+}
+.pickem-cta {
+  border-color: rgba(250, 82, 82, 0.35);
+}
+
+.pickem-side {
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+.pickem-side:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.07);
+  transform: translateY(-1px);
+}
+.pickem-side:disabled {
+  cursor: default;
+}
+.pickem-side[data-chosen] {
+  border-color: rgba(250, 82, 82, 0.8);
+  background: rgba(250, 82, 82, 0.14);
+}
+.pickem-side[data-chosen] .pickem-mark {
+  color: var(--mantine-color-red-4);
+}
+/* After the event: the winner is outlined green; a wrong pick turns grey. */
+.pickem-side[data-won] {
+  border-color: rgba(64, 192, 87, 0.8);
+}
+.pickem-side[data-won][data-chosen] {
+  background: rgba(64, 192, 87, 0.14);
+}
+.pickem-side[data-won] .pickem-mark {
+  color: var(--mantine-color-green-4);
+}
+.pickem-side[data-lost][data-chosen] {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.04);
+  opacity: 0.7;
+}
+
+.pickem-row[data-me] {
+  margin-inline: -6px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(250, 82, 82, 0.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pickem-side {
+    transition: none;
+  }
+}

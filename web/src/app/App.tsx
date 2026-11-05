@@ -2,6 +2,7 @@ import { Anchor, AppShell, Button, Center, Group, Loader, Text, Title } from "@m
 import { Suspense, useEffect, useRef } from "react";
 import { Link, Navigate, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
 
+import { accountsEnabled } from "../backend";
 import { ArenaBackdrop } from "../components/ArenaBackdrop";
 import { AboutPage } from "../pages/AboutPage";
 import { PrivacyPage } from "../pages/PrivacyPage";
@@ -9,19 +10,26 @@ import { countPage } from "./goatcounter";
 import { lazyPage } from "./lazyPage";
 import "./NewBadge.css";
 
+// The account corner (sign-in window, user menu) loads only when accounts are on, so a build
+// without them carries none of its code.
+const UserMenu = accountsEnabled ? lazyPage(() => import("../auth/UserMenu").then((m) => ({ default: m.UserMenu }))) : null;
+
 // Each product is its own lazily loaded feature, so heavy deps (three.js) only load where used.
 const StyleMapPage = lazyPage(() => import("../features/style-map/StyleMapPage"));
 const MmaMathPage = lazyPage(() => import("../features/mma-math/MmaMathPage"));
 const PredictorPage = lazyPage(() => import("../features/predictor/PredictorPage"));
 const LadderPage = lazyPage(() => import("../features/ladder/LadderPage"));
+const PickemPage = lazyPage(() => import("../features/pickem/PickemPage"));
 
 // `short` labels are used on phones so all tabs fit next to the logo; `fresh` tabs get a
 // "NEW" tag.
+// Pick'em (and its NEW tag) only where accounts are on.
 const NAV: { to: string; label: string; short?: string; fresh?: boolean }[] = [
   { to: "/style-map", label: "Style Map", short: "Map" },
   { to: "/predictor", label: "Predictor", short: "Predict" },
+  ...(accountsEnabled ? [{ to: "/pickem", label: "Pick'em", short: "Picks", fresh: true }] : []),
   { to: "/ladder", label: "Ladder" },
-  { to: "/mma-math", label: "MMA Math", short: "Math", fresh: true },
+  { to: "/mma-math", label: "MMA Math", short: "Math", fresh: !accountsEnabled },
   { to: "/", label: "About" }, // the landing page
 ];
 
@@ -33,6 +41,7 @@ const TITLES: Record<string, string> = {
   "/ladder": "UFC Elo rankings: every fighter rated since 1994 | UFC Embedded",
   "/mma-math": "MMA math calculator: prove any UFC fighter beats any other | UFC Embedded",
   "/privacy": "Privacy | UFC Embedded",
+  "/pickem": "Pick'em: pick the winners of the next UFC card | UFC Embedded",
 };
 
 /** The landing page is About. Style-map links from when the map was the home page
@@ -88,7 +97,8 @@ export function App() {
                 variant={pathname === item.to ? "filled" : "subtle"}
                 color={pathname === item.to ? "red" : "gray"}
                 size="compact-sm"
-                px={{ base: 6, sm: "sm" }}
+                // Tighter on phones, where six tabs and the account button share the bar.
+                px={{ base: accountsEnabled ? 4 : 6, sm: "sm" }}
                 style={item.fresh ? { overflow: "visible" } : undefined}
                 // Room for the NEW tag, which sticks out past the tab's right edge.
                 mr={item.fresh ? { base: 0, xs: 10 } : undefined}
@@ -115,6 +125,14 @@ export function App() {
                 )}
               </Button>
             ))}
+            {/* Sign in / account menu: only when accounts are on (src/backend). */}
+            {UserMenu && (
+              <Group ml={{ base: 2, sm: "xs" }} gap={0}>
+                <Suspense fallback={null}>
+                  <UserMenu />
+                </Suspense>
+              </Group>
+            )}
           </Group>
         </Group>
       </AppShell.Header>
@@ -127,6 +145,7 @@ export function App() {
             <Route path="/mma-math" element={<MmaMathPage />} />
             <Route path="/predictor" element={<PredictorPage />} />
             <Route path="/ladder" element={<LadderPage />} />
+            {accountsEnabled && <Route path="/pickem" element={<PickemPage />} />}
             <Route path="/about" element={<Navigate to="/" replace />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="*" element={<Text>Page not found.</Text>} />
