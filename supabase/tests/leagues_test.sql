@@ -56,6 +56,10 @@ insert into public.picks (user_id, bout_id, winner) values ('00000000-0000-0000-
 select pg_temp.expect_count($$select 1 from public.picks$$, 1, 'Fred seeing only his own pick before the lock');
 update public.leagues set name = 'Fred''s now' where name = 'Gym boys';
 select pg_temp.expect_count($$select 1 from public.leagues where name = 'Gym boys'$$, 1, 'the league name after Fred''s rename attempt');
+-- Only the owner can delete a league: Fred's delete (directly, or by "leaving" as if he owned it)
+-- removes nothing but his own membership.
+delete from public.leagues where name = 'Gym boys';
+select pg_temp.expect_count($$select 1 from public.leagues where name = 'Gym boys'$$, 1, 'the league after Fred tried to delete it');
 
 -- ---- After the lock: league-mates see each other's picks; outsiders still don't -----------------
 reset role;

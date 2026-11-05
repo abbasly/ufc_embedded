@@ -15,6 +15,14 @@ const toRow = (r: Record<string, unknown>): LeaderboardRow => ({
   events: Number(r.events),
 });
 
+const toEvent = (r: Record<string, unknown>): PickemEvent => ({
+  id: r.id as string,
+  name: r.name as string,
+  startsOn: r.starts_on as string,
+  locksAt: r.locks_at as string,
+  scoredAt: (r.scored_at as string | null) ?? null,
+});
+
 const toUser = (u: SupabaseUser | null | undefined): User | null => (u ? { id: u.id, email: u.email ?? null } : null);
 
 /** Postgres error codes worth explaining to the user. */
@@ -92,23 +100,26 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
     },
 
     pickem: {
-      async currentEvent() {
-        // The next card that's still open, else the most recent one (to show its results).
-        const now = new Date().toISOString();
-        const open = await db.from("events").select("*").gt("locks_at", now).order("locks_at").limit(1);
-        if (open.error) throw friendly(open.error);
-        let row = open.data[0];
-        if (!row) {
-          const last = await db.from("events").select("*").order("locks_at", { ascending: false }).limit(1);
+      async events() {
+        const since = new Date(Date.now() - 7 * 86400e3).toISOString().slice(0, 10);
+        const recent = await db.from("events").select("*").gte("starts_on", since).order("starts_on");
+        if (recent.error) throw friendly(recent.error);
+        let rows = recent.data;
+        if (!rows.length) {
+          const last = await db.from("events").select("*").order("starts_on", { ascending: false }).limit(1);
           if (last.error) throw friendly(last.error);
-          row = last.data[0];
+          rows = last.data;
         }
-        if (!row) return null;
-        const bouts = await db.from("bouts").select("*").eq("event_id", row.id).order("position");
+        return rows.map(toEvent);
+      },
+      async card(eventId) {
+        const event = await db.from("events").select("*").eq("id", eventId).maybeSingle();
+        if (event.error) throw friendly(event.error);
+        if (!event.data) return null;
+        const bouts = await db.from("bouts").select("*").eq("event_id", eventId).order("position");
         if (bouts.error) throw friendly(bouts.error);
-        const event: PickemEvent = { id: row.id, name: row.name, startsOn: row.starts_on, locksAt: row.locks_at, scoredAt: row.scored_at };
         return {
-          event,
+          event: toEvent(event.data),
           bouts: bouts.data.map(
             (b): PickemBout => ({
               id: b.id,
@@ -128,6 +139,20 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
             }),
           ),
         };
+      },
+      async eventLeaderboard(eventId, limit = 50) {
+        const { data, error } = await db
+          .from("scores")
+          .select("points, correct, picked, profiles!inner(display_name, avatar)")
+          .eq("event_id", eventId)
+          .order("points", { ascending: false })
+          .order("correct", { ascending: false })
+          .limit(limit);
+        if (error) throw friendly(error);
+        return data.map((r) => {
+          const p = r.profiles as unknown as { display_name: string; avatar: string | null };
+          return { displayName: p.display_name, avatar: p.avatar, points: r.points, correct: r.correct, picked: r.picked, events: 1 };
+        });
       },
       async myPicks(eventId) {
         const id = await userId().catch(() => null);

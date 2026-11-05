@@ -102,8 +102,12 @@ export interface Backend {
     update(changes: { displayName?: string; avatar?: string | null }): Promise<void>;
   };
   pickem: {
-    /** The next event still open for picks (or the latest one), with its bouts. */
-    currentEvent(): Promise<{ event: PickemEvent; bouts: PickemBout[] } | null>;
+    /** Recent and upcoming events, earliest first (the latest one if there's nothing recent). */
+    events(): Promise<PickemEvent[]>;
+    /** One event with its bouts, in running order. */
+    card(eventId: string): Promise<{ event: PickemEvent; bouts: PickemBout[] } | null>;
+    /** Everyone's points on one scored event, best first. */
+    eventLeaderboard(eventId: string, limit?: number): Promise<LeaderboardRow[]>;
     myPicks(eventId: string): Promise<Pick[]>;
     pick(pick: Pick): Promise<void>;
     unpick(boutId: string): Promise<void>;

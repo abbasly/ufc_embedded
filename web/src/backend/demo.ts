@@ -108,7 +108,12 @@ export function demoBackend(): Backend {
       },
     },
     pickem: {
-      currentEvent: async () => sampleCard(),
+      events: async () => [sampleCard().event],
+      card: async () => sampleCard(),
+      eventLeaderboard: async () => [
+        { displayName: "olga", avatar: "islam-makhachev", points: 55, correct: 3, picked: 3, events: 1 },
+        { displayName: "fred", avatar: null, points: 20, correct: 2, picked: 3, events: 1 },
+      ],
       myPicks: async () => (load().signedIn ? load().picks : []),
       async pick(pick) {
         signedIn();
