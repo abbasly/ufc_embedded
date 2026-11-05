@@ -11,7 +11,20 @@ import { PlayerAvatar } from "../../auth/PlayerAvatar";
 import type { LeaderboardRow } from "../../backend";
 import { EVERYONE, useLeaderboard, useLeagueActions, useLeagues, useStandings } from "./usePickem";
 
-const TOP = 25;
+const TOP = 10; // rows shown before "Show all"
+const MEDALS = ["#f4c430", "#c0c6cf", "#cd7f32"];
+
+/** A league's invite link: opening it joins the league (after signing in, if need be). */
+export const inviteLink = (code: string) => `${window.location.origin}${import.meta.env.BASE_URL}pickem?join=${code}`;
+
+export async function copyInviteLink(code: string) {
+  const link = inviteLink(code);
+  try {
+    await navigator.clipboard.writeText(link);
+  } catch {
+    window.prompt("Copy this invite link:", link);
+  }
+}
 
 interface Props {
   /** The league open on the board (or EVERYONE): the page shows that league's faces. */
@@ -49,20 +62,15 @@ export function Leagues({ selected, setSelected }: Props) {
 
   const copyInvite = async () => {
     if (!league) return;
-    const link = `${window.location.origin}${import.meta.env.BASE_URL}pickem?join=${league.inviteCode}`;
-    try {
-      await navigator.clipboard.writeText(link);
-    } catch {
-      window.prompt("Copy this invite link:", link);
-    }
+    await copyInviteLink(league.inviteCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <Paper p="md" radius="md" className="pickem-board">
-      <Stack gap="sm">
-        <Title order={4}>Leaderboard</Title>
+    <Paper p="lg" radius="md" className="pickem-board">
+      <Stack gap="md">
+        <Title order={3}>Leaderboard</Title>
         {user && (leagues.data?.length ?? 0) > 0 && (
           <SegmentedControl
             size="xs"
@@ -194,6 +202,7 @@ export function Leagues({ selected, setSelected }: Props) {
 }
 
 function Standings({ rows, loading, me, inLeague }: { rows?: LeaderboardRow[]; loading: boolean; me?: string; inLeague: boolean }) {
+  const [all, setAll] = useState(false);
   if (loading) return <Loader size="sm" />;
   if (!rows?.length)
     return (
@@ -201,11 +210,11 @@ function Standings({ rows, loading, me, inLeague }: { rows?: LeaderboardRow[]; l
         {inLeague ? "Nobody here yet: send your friends the invite link." : "No scores yet. Picks are scored after each event: get yours in and be first on the board."}
       </Text>
     );
-  // Big boards (a subreddit's league): the top 25, plus your own row if you're further down.
+  // Big boards: the top 10, plus your own row if you're further down, until "Show all".
   const mine = rows.findIndex((r) => r.displayName === me);
-  const shown = rows.map((row, i) => ({ row, i })).filter(({ i }) => i < TOP || i === mine);
+  const shown = rows.map((row, i) => ({ row, i })).filter(({ i }) => all || i < TOP || i === mine);
   return (
-    <Stack gap={6}>
+    <Stack gap={8}>
       {rows.length > TOP && (
         <Text size="xs" c="dimmed">
           {rows.length} players
@@ -213,20 +222,34 @@ function Standings({ rows, loading, me, inLeague }: { rows?: LeaderboardRow[]; l
       )}
       {shown.map(({ row, i }) => (
         <Group key={row.displayName} justify="space-between" wrap="nowrap" className="pickem-row" data-me={row.displayName === me || undefined}>
-          <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
-            <Text size="sm" c="dimmed" w={20} ta="right">
+          <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
+            <Text fw={800} w={22} ta="right" c={i < 3 && row.points > 0 ? undefined : "dimmed"} style={i < 3 && row.points > 0 ? { color: MEDALS[i] } : undefined}>
               {i + 1}
             </Text>
-            <PlayerAvatar name={row.displayName} avatar={row.avatar} size={22} />
-            <Text size="sm" fw={600} truncate>
-              {row.displayName}
-            </Text>
+            <PlayerAvatar name={row.displayName} avatar={row.avatar} size={34} style={i < 3 && row.points > 0 ? { boxShadow: `0 0 0 2px ${MEDALS[i]}` } : undefined} />
+            <div style={{ minWidth: 0 }}>
+              <Text fw={700} truncate lh={1.25}>
+                {row.displayName}
+              </Text>
+              <Text size="xs" c="dimmed" style={{ fontVariantNumeric: "tabular-nums" }}>
+                {row.correct}/{row.picked} right{row.events > 1 ? ` · ${row.events} cards` : ""}
+              </Text>
+            </div>
           </Group>
-          <Text size="sm" style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
-            {row.correct}/{row.picked} · <b>{row.points}</b>
+          <Text fz="lg" fw={800} style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
+            {row.points}
+            <Text span size="xs" c="dimmed" fw={600}>
+              {" "}
+              pts
+            </Text>
           </Text>
         </Group>
       ))}
+      {rows.length > TOP && (
+        <Button size="xs" variant="subtle" color="gray" onClick={() => setAll((a) => !a)}>
+          {all ? "Show the top 10" : `Show all ${rows.length}`}
+        </Button>
+      )}
     </Stack>
   );
 }

@@ -153,7 +153,8 @@ export default function PickemPage() {
         chance={modelChance(predictor, byId, bout)}
         canPick={open} // signed out, a tap asks you to sign in first
         mates={(mates.data ?? []).filter((m) => m.boutId === bout.id && inLeague.has(m.displayName))}
-        pickedBy={(whoPicked.data ?? []).filter((m) => m.boutId === bout.id && inLeague.has(m.displayName))}
+        // Before the lock only: after it, the faces sit under the fighter each friend picked.
+        pickedBy={locked ? [] : (whoPicked.data ?? []).filter((m) => m.boutId === bout.id && inLeague.has(m.displayName))}
         split={split.data?.[bout.id]}
         leagueName={leagueName}
         onPick={(winner, method) => (user ? pick.mutate({ boutId: bout.id, winner, method }) : setSigningIn(true))}
@@ -235,7 +236,7 @@ export default function PickemPage() {
         ]}
       />
       <Grid gap="xl" className="pickem-columns" data-view={view}>
-        <Grid.Col span={{ base: 12, md: 8 }} className="pickem-col-fights">
+        <Grid.Col span={{ base: 12, md: 7 }} className="pickem-col-fights">
           <Stack gap="lg">
             <Stack gap="sm">
               {/* A single list (no Wikipedia card yet) needs no heading. */}
@@ -279,7 +280,7 @@ export default function PickemPage() {
             )}
           </Stack>
         </Grid.Col>
-        <Grid.Col span={{ base: 12, md: 4 }} className="pickem-col-board">
+        <Grid.Col span={{ base: 12, md: 5 }} className="pickem-col-board">
           <Stack gap="md">
             <Leagues selected={league} setSelected={setLeague} />
             <Rules />

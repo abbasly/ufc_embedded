@@ -156,10 +156,12 @@
   background: linear-gradient(90deg, #c92a2a, #fa5252);
 }
 
+.pickem-row {
+  margin-inline: -8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+}
 .pickem-row[data-me] {
-  margin-inline: -6px;
-  padding: 2px 6px;
-  border-radius: 6px;
   background: rgba(250, 82, 82, 0.12);
 }
 
