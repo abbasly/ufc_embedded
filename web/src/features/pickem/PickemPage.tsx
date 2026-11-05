@@ -18,7 +18,7 @@ import { usePredictor } from "../../data/client";
 import type { PredictorData, PredictorFighter } from "../../data/types";
 import { winProb } from "../predictor/model";
 import { Leagues } from "./Leagues";
-import { boutPoints, isUnderdog, METHOD_LABEL, POINTS } from "./scoring";
+import { boutPoints, isUnderdog, marketChance, METHOD_LABEL, POINTS } from "./scoring";
 import { PICK_MUTATION, useCard, useEventLeaderboard, useEvents, useMatesPicks, useMyPicks, usePick, usePickSplit } from "./usePickem";
 
 /** The current time, ticking every ``ms``: for the lock countdown. */
@@ -290,7 +290,7 @@ function Rules() {
           <b>+{POINTS.method}</b> if you also call how: KO/TKO, submission or decision
         </Text>
         <Text size="sm">
-          <b>+{POINTS.underdog}</b> if your winner was the bookies' underdog
+          <b>+{POINTS.underdog}</b> if your winner was the bookies' underdog (under 50% in the odds, whatever our model says)
         </Text>
       </Stack>
       <Text size="xs" c="dimmed" mt={6}>
@@ -340,7 +340,7 @@ function Bout({ bout, label, choice, byId, chance, canPick, mates, split, onPick
             name={i === 0 ? bout.aName : bout.bName}
             fighter={byId.get(id)}
             chance={chance === null ? null : i === 0 ? chance : 1 - chance}
-            underdog={isUnderdog(bout, id)}
+            underdog={isUnderdog(bout, id) ? marketChance(bout, id) : null}
             chosen={choice?.winner === id}
             winner={bout.outcome === "win" ? bout.winner : null}
             disabled={!canPick}
@@ -400,7 +400,7 @@ interface SideProps {
   name: string;
   fighter: PredictorFighter | undefined;
   chance: number | null; // the model's win chance for this fighter
-  underdog: boolean;
+  underdog: number | null; // the bookies' chance, when they have this fighter as the underdog
   chosen: boolean;
   winner: string | null; // the result, once in
   disabled: boolean;
@@ -435,7 +435,15 @@ function Side({ id, name, fighter, chance, underdog, chosen, winner, disabled, o
             </Text>
             <Text size="xs" c="dimmed" truncate>
               {chance !== null ? `Model ${Math.round(chance * 100)}%` : fighter ? fighter.weight_class : "UFC newcomer"}
-              {underdog && <span className="pickem-bonus"> · underdog</span>}
+              {underdog !== null && (
+                <>
+                  {" · "}
+                  {/* The model's number and the bookies' can disagree: say whose underdog this is. */}
+                  <Tooltip label={`Bookies give them ${Math.round(underdog * 100)}%: a win is worth +${POINTS.underdog}`} withArrow events={{ hover: true, focus: false, touch: true }}>
+                    <span className="pickem-bonus">underdog</span>
+                  </Tooltip>
+                </>
+              )}
             </Text>
           </div>
           {chosen && (
