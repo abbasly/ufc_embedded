@@ -261,6 +261,11 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
         const { error } = await db.rpc("leave_league", { league: leagueId });
         if (error) throw friendly(error);
       },
+      async members(leagueId) {
+        const { data, error } = await db.from("league_members").select("profiles!inner(display_name)").eq("league_id", leagueId);
+        if (error) throw friendly(error);
+        return data.map((m) => (m.profiles as unknown as { display_name: string }).display_name);
+      },
       async standings(leagueId) {
         const { data, error } = await db.rpc("league_standings", { league: leagueId });
         if (error) throw friendly(error);

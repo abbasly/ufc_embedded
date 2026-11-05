@@ -9,16 +9,20 @@ import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/AuthProvider";
 import { PlayerAvatar } from "../../auth/PlayerAvatar";
 import type { LeaderboardRow } from "../../backend";
-import { useLeaderboard, useLeagueActions, useLeagues, useStandings } from "./usePickem";
+import { EVERYONE, useLeaderboard, useLeagueActions, useLeagues, useStandings } from "./usePickem";
 
-const EVERYONE = "everyone";
 const TOP = 25;
 
-export function Leagues() {
+interface Props {
+  /** The league open on the board (or EVERYONE): the page shows that league's faces. */
+  selected: string;
+  setSelected: (id: string) => void;
+}
+
+export function Leagues({ selected, setSelected }: Props) {
   const { user, profile } = useAuth();
   const leagues = useLeagues();
   const actions = useLeagueActions();
-  const [selected, setSelected] = useState(EVERYONE);
   const [dialog, setDialog] = useState<"create" | "join" | null>(null);
   const [copied, setCopied] = useState(false);
   const [params, setParams] = useSearchParams();

@@ -140,6 +140,8 @@ export interface Backend {
     join(inviteCode: string): Promise<string>;
     leave(leagueId: string): Promise<void>;
     standings(leagueId: string): Promise<LeaderboardRow[]>;
+    /** The display names of a league's members (members only). */
+    members(leagueId: string): Promise<string[]>;
   };
 }
 
