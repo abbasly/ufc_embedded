@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    branches: [master, beta] # beta: tests only; only master deploys
   pull_request:
   workflow_dispatch:
 
