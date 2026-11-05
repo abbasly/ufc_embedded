@@ -91,6 +91,17 @@ export function useMatesPicks(eventId: string | undefined, locked: boolean) {
   });
 }
 
+/** How everyone picked (counts per fighter): empty until the card locks. */
+export function usePickSplit(eventId: string | undefined, locked: boolean) {
+  const { backend } = useAuth();
+  return useQuery({
+    queryKey: ["pickem", "split", eventId],
+    queryFn: () => backend!.pickem.pickSplit(eventId!),
+    enabled: !!backend && !!eventId && locked,
+    staleTime: 60_000,
+  });
+}
+
 export function useLeagues() {
   const { backend, user } = useAuth();
   return useQuery({

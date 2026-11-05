@@ -5,7 +5,7 @@
 
 import "./Pickem.css";
 
-import { Alert, Anchor, Avatar, Badge, Button, Center, Grid, Group, Loader, Paper, Stack, Text, Title, UnstyledButton } from "@mantine/core";
+import { Alert, Anchor, Avatar, Badge, Button, Center, Grid, Group, Loader, Paper, Stack, Text, Title, Tooltip, UnstyledButton } from "@mantine/core";
 import { useIsMutating } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -13,13 +13,13 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/AuthProvider";
 import { PlayerAvatar } from "../../auth/PlayerAvatar";
 import { SignInModal } from "../../auth/SignInModal";
-import { type LeaderboardRow, type MatePick, METHODS, type Method, type Pick, type PickemBout, type PickemEvent, type Segment } from "../../backend";
+import { type LeaderboardRow, type MatePick, METHODS, type Method, type Pick, type PickemBout, type PickemEvent, type PickSplit, type Segment } from "../../backend";
 import { usePredictor } from "../../data/client";
 import type { PredictorData, PredictorFighter } from "../../data/types";
 import { winProb } from "../predictor/model";
 import { Leagues } from "./Leagues";
 import { boutPoints, isUnderdog, METHOD_LABEL, POINTS } from "./scoring";
-import { PICK_MUTATION, useCard, useEventLeaderboard, useEvents, useMatesPicks, useMyPicks, usePick } from "./usePickem";
+import { PICK_MUTATION, useCard, useEventLeaderboard, useEvents, useMatesPicks, useMyPicks, usePick, usePickSplit } from "./usePickem";
 
 /** The current time, ticking every ``ms``: for the lock countdown. */
 function useNow(ms: number) {
@@ -93,6 +93,7 @@ export default function PickemPage() {
   const now = useNow(15_000); // the countdown badge ticks by itself, every second
   const locked = !!event.data && new Date(event.data.event.locksAt).getTime() <= now;
   const mates = useMatesPicks(eventId, locked);
+  const split = usePickSplit(eventId, locked);
   const results = useEventLeaderboard(eventId, !!event.data?.event.scoredAt);
   const [signingIn, setSigningIn] = useState(false);
   const byId = useMemo(() => new Map(predictor?.fighters.map((f) => [f.id, f])), [predictor]);
@@ -125,6 +126,7 @@ export default function PickemPage() {
         chance={modelChance(predictor, byId, bout)}
         canPick={!!user && open}
         mates={(mates.data ?? []).filter((m) => m.boutId === bout.id)}
+        split={split.data?.[bout.id]}
         onPick={(winner, method) => pick.mutate({ boutId: bout.id, winner, method })}
       />
     );
@@ -305,11 +307,12 @@ interface BoutProps {
   byId: Map<string, PredictorFighter>;
   chance: number | null; // the model's P(A wins)
   canPick: boolean;
-  mates: MatePick[];
+  mates: MatePick[]; // league-mates' picks (after the lock)
+  split: PickSplit[string] | undefined; // how everyone picked (after the lock)
   onPick: (winner: string | null, method: Method | null) => void;
 }
 
-function Bout({ bout, label, choice, byId, chance, canPick, mates, onPick }: BoutProps) {
+function Bout({ bout, label, choice, byId, chance, canPick, mates, split, onPick }: BoutProps) {
   const choose = (id: string) => (choice?.winner === id ? onPick(null, null) : onPick(id, choice?.method ?? null));
   const points = boutPoints(bout, choice);
   const surname = (id: string) => (id === bout.fighterA ? bout.aName : bout.bName).split(" ").at(-1);
@@ -346,6 +349,7 @@ function Bout({ bout, label, choice, byId, chance, canPick, mates, onPick }: Bou
           />
         ))}
       </Group>
+      <Crowd bout={bout} mates={mates} split={split} surname={surname} />
 
       {choice && canPick && (
         <Group gap={6} px={4} mb={6} wrap="wrap">
@@ -386,7 +390,7 @@ function Bout({ bout, label, choice, byId, chance, canPick, mates, onPick }: Bou
           )}
         </Group>
       )}
-      <BoutFooter bout={bout} known={byId.has(bout.fighterA) && byId.has(bout.fighterB)} mates={mates} />
+      <BoutFooter bout={bout} known={byId.has(bout.fighterA) && byId.has(bout.fighterB)} />
     </Paper>
   );
 }
@@ -452,28 +456,74 @@ function Side({ id, name, fighter, chance, underdog, chosen, winner, disabled, o
   );
 }
 
-/** Under each bout: links to the site's deeper looks at the matchup, and (after the lock)
- * what your league-mates picked. */
-function BoutFooter({ bout, known, mates }: { bout: PickemBout; known: boolean; mates: MatePick[] }) {
-  const surname = (id: string) => (id === bout.fighterA ? bout.aName : bout.bName).split(" ").at(-1);
-  if (!known && !mates.length) return null;
+/** After the lock: your league-mates' faces under the fighter each picked, and a bar with how
+ * everyone picked. */
+function Crowd({ bout, mates, split, surname }: { bout: PickemBout; mates: MatePick[]; split: PickSplit[string] | undefined; surname: (id: string) => string | undefined }) {
+  const a = split?.[bout.fighterA] ?? 0;
+  const b = split?.[bout.fighterB] ?? 0;
+  const total = a + b;
+  if (!total && !mates.length) return null;
+  const pctA = total ? Math.round((100 * a) / total) : 50;
+  const faces = (fighter: string) => {
+    const backers = mates.filter((m) => m.winner === fighter);
+    if (!backers.length) return <div className="pickem-faces" />;
+    const shown = backers.slice(0, 4);
+    return (
+      <Avatar.Group spacing={8} className="pickem-faces">
+        {shown.map((m) => (
+          <Tooltip key={m.displayName} label={`${m.displayName}: ${surname(m.winner)}${m.method ? ` by ${METHOD_LABEL[m.method]}` : ""}`} withArrow>
+            <PlayerAvatar name={m.displayName} avatar={m.avatar} size={24} />
+          </Tooltip>
+        ))}
+        {backers.length > shown.length && (
+          <Tooltip label={backers.slice(4).map((m) => m.displayName).join(", ")} withArrow>
+            <Avatar size={24} radius="xl">
+              +{backers.length - shown.length}
+            </Avatar>
+          </Tooltip>
+        )}
+      </Avatar.Group>
+    );
+  };
+  return (
+    <Group gap="sm" wrap="nowrap" px={4} mb={6} align="center">
+      {faces(bout.fighterA)}
+      {total > 0 ? (
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="pickem-split" role="img" aria-label={`${pctA}% picked ${surname(bout.fighterA)}, ${100 - pctA}% ${surname(bout.fighterB)}`}>
+            <div style={{ width: `${pctA}%` }} />
+          </div>
+          <Group justify="space-between" gap={4} mt={2}>
+            <Text size="xs" fw={700}>
+              {pctA}%
+            </Text>
+            <Text size="xs" c="dimmed">
+              {total} {total === 1 ? "pick" : "picks"}
+            </Text>
+            <Text size="xs" fw={700}>
+              {100 - pctA}%
+            </Text>
+          </Group>
+        </div>
+      ) : (
+        <div style={{ flex: 1 }} />
+      )}
+      {faces(bout.fighterB)}
+    </Group>
+  );
+}
+
+/** Under each bout: links to the site's deeper looks at the matchup. */
+function BoutFooter({ bout, known }: { bout: PickemBout; known: boolean }) {
+  if (!known) return null;
   return (
     <Group gap="md" wrap="wrap" px={4}>
-      {known && (
-        <>
-          <Anchor component={Link} to={`/predictor?a=${bout.fighterA}&b=${bout.fighterB}`} size="xs" c="dimmed">
-            Full prediction →
-          </Anchor>
-          <Anchor component={Link} to={`/mma-math?winner=${bout.fighterA}&loser=${bout.fighterB}`} size="xs" c="dimmed">
-            MMA math →
-          </Anchor>
-        </>
-      )}
-      {mates.length > 0 && (
-        <Text size="xs" c="dimmed" ml="auto">
-          {mates.map((m) => `${m.displayName}: ${surname(m.winner)}`).join(" · ")}
-        </Text>
-      )}
+      <Anchor component={Link} to={`/predictor?a=${bout.fighterA}&b=${bout.fighterB}`} size="xs" c="dimmed">
+        Full prediction →
+      </Anchor>
+      <Anchor component={Link} to={`/mma-math?winner=${bout.fighterA}&loser=${bout.fighterB}`} size="xs" c="dimmed">
+        MMA math →
+      </Anchor>
     </Group>
   );
 }

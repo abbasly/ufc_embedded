@@ -4,7 +4,7 @@
 
 import { type SupabaseClient, type User as SupabaseUser, createClient } from "@supabase/supabase-js";
 
-import { type Backend, BackendError, type LeaderboardRow, type Method, type PickemBout, type PickemEvent, type Segment, type User } from "./types";
+import { type Backend, BackendError, type LeaderboardRow, type Method, type PickemBout, type PickemEvent, type PickSplit, type Segment, type User } from "./types";
 
 const toRow = (r: Record<string, unknown>): LeaderboardRow => ({
   displayName: r.display_name as string,
@@ -185,15 +185,29 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
         // Row level security returns only league-mates' picks, and only once the card has locked.
         const { data, error } = await db
           .from("picks")
-          .select("bout_id, winner, profiles!inner(display_name), bouts!inner(event_id)")
+          .select("bout_id, winner, method, profiles!inner(display_name, avatar), bouts!inner(event_id)")
           .eq("bouts.event_id", eventId)
           .neq("user_id", id);
         if (error) throw friendly(error);
-        return data.map((p) => ({
-          displayName: (p.profiles as unknown as { display_name: string }).display_name,
-          boutId: p.bout_id as string,
-          winner: p.winner as string,
-        }));
+        return data.map((p) => {
+          const profile = p.profiles as unknown as { display_name: string; avatar: string | null };
+          return {
+            displayName: profile.display_name,
+            avatar: profile.avatar,
+            boutId: p.bout_id as string,
+            winner: p.winner as string,
+            method: p.method as Method | null,
+          };
+        });
+      },
+      async pickSplit(eventId) {
+        const { data, error } = await db.rpc("pick_split", { event: eventId });
+        if (error) throw friendly(error);
+        const split: PickSplit = {};
+        for (const r of data as { bout_id: string; fighter: string; picks: number }[]) {
+          (split[r.bout_id] ??= {})[r.fighter] = Number(r.picks);
+        }
+        return split;
       },
       async myScores() {
         const id = await userId().catch(() => null);
