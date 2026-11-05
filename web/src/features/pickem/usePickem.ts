@@ -4,6 +4,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { useAuth } from "../../auth/AuthProvider";
 import type { Method, Pick } from "../../backend";
@@ -125,11 +126,13 @@ export function useLeagues() {
 
 export const EVERYONE = "everyone";
 
-/** The league open on the leaderboard (or EVERYONE). Until someone picks one, it's their
- * first league, so friends' faces show from the start. */
+/** The league open on the leaderboard (or EVERYONE). Until someone picks one, it's the one in
+ * the address (?league=..., from the profile page) or their first league, so friends' faces
+ * show from the start. */
 export function useLeagueChoice() {
   const leagues = useLeagues();
-  const [chosen, setChosen] = useState<string | null>(null);
+  const [params] = useSearchParams();
+  const [chosen, setChosen] = useState<string | null>(() => params.get("league"));
   const ids = leagues.data?.map((l) => l.id) ?? [];
   const selected = chosen && (chosen === EVERYONE || ids.includes(chosen)) ? chosen : (ids[0] ?? EVERYONE);
   return [selected, setChosen] as const;

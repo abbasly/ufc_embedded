@@ -3,7 +3,7 @@
 // kept in localStorage. Same Backend interface, so features can't tell the difference.
 // Turned on with VITE_ACCOUNTS=demo (local development only; see backend/index.ts).
 
-import { type Backend, BackendError, type League, type Pick, type PickemBout, type PickemEvent, type Profile, type User } from "./types";
+import { type Backend, BackendError, type LeaderboardRow, type League, type Method, type Pick, type PickemBout, type PickemEvent, type Profile, type User } from "./types";
 
 const KEY = "ufc-embedded-demo-backend";
 const DEMO_USER: User = { id: "demo-user", email: "demo@example.com" };
@@ -30,14 +30,23 @@ function save(s: Stored) {
   }
 }
 
-/** A sample card a week out, so the Pick'em screens have something to show. */
+/** The results the demo card gets with ?results: [winner, method] per bout. */
+const RESULTS: Record<number, [string, Method]> = {
+  1: ["ilia-topuria", "KO/TKO"],
+  2: ["alex-pereira", "DEC"],
+  3: ["max-holloway", "SUB"],
+};
+
+/** A sample card a week out, so the Pick'em screens have something to show. In the address,
+ * ?locked shows it locked (the after-lock views) and ?results fought and scored. */
 function sampleCard(): { event: PickemEvent; bouts: PickemBout[] } {
   const day = new Date(Date.now() + 7 * 86400e3).toISOString().slice(0, 10);
-  // ?locked in the URL shows the card as locked (to try the after-lock views).
-  const locked = new URLSearchParams(window.location.search).has("locked");
+  const params = new URLSearchParams(window.location.search);
+  const results = params.has("results");
+  const locked = results || params.has("locked");
   const locksAt = locked ? new Date(Date.now() - 3600e3).toISOString() : `${day}T22:00:00Z`;
-  const event: PickemEvent = { id: `${day}-demo`, name: "UFC Demo Night", startsOn: day, locksAt, scoredAt: null };
-  const bout = (position: number, a: string, b: string, aName: string, bName: string, p: number): PickemBout => ({
+  const event: PickemEvent = { id: `${day}-demo`, name: "UFC Demo Night", startsOn: day, locksAt, scoredAt: results ? new Date().toISOString() : null };
+  const bout = (position: number, a: string, b: string, aName: string, bName: string, p: number, market: number): PickemBout => ({
     id: `${event.id}:${a}:${b}`,
     eventId: event.id,
     position,
@@ -46,21 +55,38 @@ function sampleCard(): { event: PickemEvent; bouts: PickemBout[] } {
     aName,
     bName,
     modelPA: p,
-    marketPA: null,
+    marketPA: market,
     segment: position <= 2 ? "main" : "prelims",
     title: position === 1,
-    outcome: null,
-    winner: null,
-    method: null,
+    outcome: results ? "win" : null,
+    winner: results ? RESULTS[position]![0] : null,
+    method: results ? RESULTS[position]![1] : null,
   });
   return {
     event,
     bouts: [
-      bout(1, "islam-makhachev", "ilia-topuria", "Islam Makhachev", "Ilia Topuria", 0.65),
-      bout(2, "alex-pereira", "magomed-ankalaev", "Alex Pereira", "Magomed Ankalaev", 0.52),
-      bout(3, "max-holloway", "dustin-poirier", "Max Holloway", "Dustin Poirier", 0.58),
+      bout(1, "islam-makhachev", "ilia-topuria", "Islam Makhachev", "Ilia Topuria", 0.65, 0.62),
+      bout(2, "alex-pereira", "magomed-ankalaev", "Alex Pereira", "Magomed Ankalaev", 0.52, 0.45),
+      bout(3, "max-holloway", "dustin-poirier", "Max Holloway", "Dustin Poirier", 0.58, 0.55),
     ],
   };
+}
+
+/** A full-looking board for the demo: made-up players with made-up scores (local only). */
+const SAMPLE_NAMES = [
+  "olga", "fred", "ko_king", "sub_hunter", "leg_kick_larry", "the_clinch", "dec_merchant", "southpaw99",
+  "octagon_owl", "gnp_greg", "rnc_rita", "spinning_back_steve", "jab_jab_cross", "cage_rat", "elbow_ella",
+  "calf_slicer", "body_shot_bob", "flying_knee", "guard_puller", "sprawl_sam", "walkout_wally", "cutman_carl",
+  "bell_saved", "scorecard_sue", "upset_ufo", "tko_tom", "mma_math_major", "chin_check", "takedown_tess", "ref_stoppage",
+];
+const AVATARS = ["islam-makhachev", "alex-pereira", "ilia-topuria", "max-holloway", "dustin-poirier", null];
+function sampleBoard(me: Profile | null, myPicks: number): LeaderboardRow[] {
+  const rows: LeaderboardRow[] = SAMPLE_NAMES.map((name, i) => {
+    const correct = Math.max(2, 26 - Math.round(i * 0.75));
+    return { displayName: name, avatar: AVATARS[i % AVATARS.length] ?? null, points: correct * 10 + ((i * 7) % 4) * 5, correct, picked: 30, events: 3 };
+  });
+  if (me) rows.push({ displayName: me.displayName, avatar: me.avatar, points: 0, correct: 0, picked: myPicks, events: 0 });
+  return rows.sort((a, b) => b.points - a.points);
 }
 
 export function demoBackend(): Backend {
@@ -121,10 +147,32 @@ export function demoBackend(): Backend {
     pickem: {
       events: async () => [sampleCard().event],
       card: async () => sampleCard(),
-      eventLeaderboard: async () => [
-        { displayName: "olga", avatar: "islam-makhachev", points: 55, correct: 3, picked: 3, events: 1 },
-        { displayName: "fred", avatar: null, points: 20, correct: 2, picked: 3, events: 1 },
-      ],
+      // The card's final standings: sample players, and you with your demo picks scored by the
+      // real rules (main card only: 10, +5 method, +5 underdog).
+      eventLeaderboard: async () => {
+        const s = load();
+        const rows: LeaderboardRow[] = SAMPLE_NAMES.slice(0, 14).map((name, i) => {
+          const correct = i < 4 ? 2 : i < 10 ? 1 : 0;
+          return { displayName: name, avatar: AVATARS[i % AVATARS.length] ?? null, points: correct * 10 + (i < 3 ? 15 - i * 5 : i < 6 ? 5 : 0), correct, picked: 2, events: 1 };
+        });
+        if (s.profile) {
+          const main = sampleCard().bouts.filter((b) => b.segment === "main");
+          let points = 0;
+          let correct = 0;
+          let picked = 0;
+          for (const b of main) {
+            const p = s.picks.find((x) => x.boutId === b.id);
+            if (!p) continue;
+            picked++;
+            if (p.winner !== b.winner) continue;
+            correct++;
+            const market = p.winner === b.fighterA ? b.marketPA! : 1 - b.marketPA!;
+            points += 10 + (p.method && p.method === b.method ? 5 : 0) + (market < 0.5 ? 5 : 0);
+          }
+          if (picked) rows.push({ displayName: s.profile.displayName, avatar: s.profile.avatar, points, correct, picked, events: 1 });
+        }
+        return rows.sort((a, b) => b.points - a.points || b.correct - a.correct);
+      },
       myPicks: async () => (load().signedIn ? load().picks : []),
       async pick(pick) {
         signedIn();
@@ -136,10 +184,7 @@ export function demoBackend(): Backend {
         const s = load();
         save({ ...s, picks: s.picks.filter((p) => p.boutId !== boutId) });
       },
-      leaderboard: async () => {
-        const s = load();
-        return s.profile ? [{ displayName: s.profile.displayName, avatar: s.profile.avatar, points: 0, correct: 0, picked: s.picks.length, events: 0 }] : [];
-      },
+      leaderboard: async () => sampleBoard(load().profile, load().picks.length),
       matesPicks: async () => {
         const [b0, b1] = sampleCard().bouts as [PickemBout, PickemBout];
         return [

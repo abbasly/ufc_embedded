@@ -13,7 +13,9 @@ import { PasswordModal } from "../../auth/PasswordModal";
 import { PlayerAvatar } from "../../auth/PlayerAvatar";
 import { SignInModal } from "../../auth/SignInModal";
 import { usePredictor } from "../../data/client";
-import { useLeaderboard } from "../pickem/usePickem";
+import type { League } from "../../backend";
+import { copyInviteLink } from "../pickem/Leagues";
+import { useLeaderboard, useLeagues, useStandings } from "../pickem/usePickem";
 
 const VALID_NAME = /^[A-Za-z0-9_.-]{3,24}$/;
 
@@ -40,6 +42,7 @@ export default function ProfilePage() {
     <Stack gap="lg" maw={720} mx="auto" pt={4}>
       <Identity />
       <Stats />
+      <MyLeagues />
       <History />
       <Account />
     </Stack>
@@ -209,6 +212,73 @@ function Stats() {
 }
 
 const day = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+
+/** Your leagues, each with where you stand, a way in and its invite link. */
+function MyLeagues() {
+  const leagues = useLeagues();
+  return (
+    <Paper p="md" radius="md" className="pickem-board">
+      <Title order={4} mb="sm">
+        Your leagues
+      </Title>
+      {leagues.isPending ? (
+        <Loader size="sm" />
+      ) : !leagues.data?.length ? (
+        <Text size="sm" c="dimmed">
+          No leagues yet.{" "}
+          <Anchor component={Link} to="/">
+            Start one or join with a code on Pick'em →
+          </Anchor>
+        </Text>
+      ) : (
+        <Stack gap={10}>
+          {leagues.data.map((l) => (
+            <LeagueRow key={l.id} league={l} />
+          ))}
+        </Stack>
+      )}
+    </Paper>
+  );
+}
+
+function LeagueRow({ league }: { league: League }) {
+  const { profile } = useAuth();
+  const standings = useStandings(league.id);
+  const [copied, setCopied] = useState(false);
+  const rows = standings.data ?? [];
+  const rank = rows.findIndex((r) => r.displayName === profile?.displayName);
+  return (
+    <Group justify="space-between" wrap="nowrap" gap="sm">
+      <div style={{ minWidth: 0 }}>
+        <Text fw={700} truncate>
+          {league.name}
+        </Text>
+        <Text size="xs" c="dimmed">
+          {standings.isPending
+            ? "…"
+            : `${rows.length} ${rows.length === 1 ? "member" : "members"}${rank >= 0 ? ` · you're #${rank + 1}` : ""}${league.isOwner ? " · yours" : ""}`}
+        </Text>
+      </div>
+      <Group gap={6} wrap="nowrap">
+        <Button
+          size="xs"
+          variant="subtle"
+          color="gray"
+          onClick={async () => {
+            await copyInviteLink(league.inviteCode);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+          }}
+        >
+          {copied ? "Copied" : "Invite"}
+        </Button>
+        <Button size="xs" variant="light" component={Link} to={`/?league=${league.id}`}>
+          Open
+        </Button>
+      </Group>
+    </Group>
+  );
+}
 
 function History() {
   const scores = useMyScores();
