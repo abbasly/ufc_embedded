@@ -18,6 +18,9 @@ interface AuthState {
   refreshProfile: () => Promise<void>;
   /** Arrived from a password-reset link: time to set a new password. */
   recovering: boolean;
+  /** A problem with an email link the page was opened from (expired, used). */
+  linkError: string | null;
+  clearLinkError: () => void;
   endRecovery: () => void;
 }
 
@@ -31,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loaded, setLoaded] = useState<{ userId: string; profile: Profile | null } | null>(null);
   const [loading, setLoading] = useState(accountsEnabled);
   const [recovering, setRecovering] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
 
   useEffect(() => {
     const pending = getBackend();
@@ -48,6 +52,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         stopUser();
         stopRecovery();
       };
+      // Opened from one of our emails: confirm the address or start a password reset.
+      try {
+        if ((await b.auth.finishEmailLink()) === "recovery") setRecovering(true);
+      } catch (e) {
+        setLinkError(e instanceof Error ? e.message : "That link didn't work.");
+      }
       update(await b.auth.currentUser());
       setLoading(false);
     });
@@ -71,9 +81,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const profileReady = !!userId && loaded?.userId === userId;
   const profile = profileReady ? loaded!.profile : null;
   const endRecovery = useCallback(() => setRecovering(false), []);
+  const clearLinkError = useCallback(() => setLinkError(null), []);
   const value = useMemo(
-    () => ({ enabled: accountsEnabled, loading, user, profile, profileReady, backend, refreshProfile, recovering, endRecovery }),
-    [loading, user, profile, profileReady, backend, refreshProfile, recovering, endRecovery],
+    () => ({ enabled: accountsEnabled, loading, user, profile, profileReady, backend, refreshProfile, recovering, endRecovery, linkError, clearLinkError }),
+    [loading, user, profile, profileReady, backend, refreshProfile, recovering, endRecovery, linkError, clearLinkError],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

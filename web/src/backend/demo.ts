@@ -87,6 +87,7 @@ export function demoBackend(): Backend {
         return "signed-in" as const;
       },
       signInWithPassword: signIn,
+      finishEmailLink: async () => null,
       async sendPasswordReset() {},
       onPasswordRecovery: () => () => {},
       async updatePassword() {},
