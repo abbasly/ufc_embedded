@@ -8,6 +8,7 @@ from ufc_embedded.pickem_sync import (
     event_id,
     events_to_sync,
     fighter_id,
+    locks_at,
     sql_text,
     sync_sql,
 )
@@ -15,6 +16,7 @@ from ufc_embedded.pickem_sync import (
 CARD: dict[str, Any] = {
     "date": "2026-11-14",
     "name": "UFC 334: Gane vs. Hokit",
+    "city": "New York City",
     "fights": [
         {
             "a": "josh-hokit",
@@ -135,7 +137,7 @@ def test_ids_and_quoting() -> None:
 def test_one_transaction_scored_only_once_every_result_is_in() -> None:
     before = sync_sql([(CARD, card_bouts(CARD, parse_fight_card(BEFORE), KNOWN.get))])
     assert before.startswith("begin;") and before.endswith("commit;\n")
-    assert "'2026-11-14T17:00:00Z'" in before  # picks lock on fight day, before any start
+    assert "'2026-11-14T13:00:00Z'" in before  # 8 am in New York: before any start
     assert "e.scored_at is not null" in before  # cancelled bouts are removed only before scoring
     assert "score_event" not in before
     after = sync_sql([(CARD, card_bouts(CARD, parse_fight_card(AFTER), KNOWN.get))])
@@ -148,3 +150,11 @@ def test_recent_events_keep_syncing_for_their_results() -> None:
     last_week = {"date": "2026-11-07", "name": "UFC Fight Night", "fights": []}
     cards = events_to_sync([CARD], [old, last_week, CARD], date(2026, 11, 10))
     assert [c["name"] for c in cards] == ["UFC Fight Night", "UFC 334: Gane vs. Hokit"]
+
+
+def test_picks_lock_on_the_morning_of_fight_day_wherever_it_is() -> None:
+    day = {"date": "2026-11-07"}
+    assert locks_at({**day, "city": "Las Vegas"}) == "2026-11-07T16:00:00Z"
+    assert locks_at({**day, "city": "Abu Dhabi"}) == "2026-11-07T04:00:00Z"
+    assert locks_at({**day, "city": "Sydney"}) == "2026-11-06T22:00:00Z"  # the day before in UTC
+    assert locks_at({**day, "city": None}) == "2026-11-07T04:00:00Z"  # unknown: early to be safe
