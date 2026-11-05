@@ -69,6 +69,19 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
         const { error } = await db.auth.signInWithOAuth({ provider: "google", options: { redirectTo: redirectTo() } });
         if (error) throw friendly(error);
       },
+      async finishEmailLink() {
+        const url = new URL(window.location.href);
+        const tokenHash = url.searchParams.get("token_hash");
+        const type = url.searchParams.get("type");
+        if (!tokenHash || (type !== "email" && type !== "signup" && type !== "recovery")) return null;
+        // Take the one-time token out of the address bar (and history) either way.
+        url.searchParams.delete("token_hash");
+        url.searchParams.delete("type");
+        window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+        const { error } = await db.auth.verifyOtp({ token_hash: tokenHash, type });
+        if (error) throw new BackendError("That link has expired or was already used. Sign in, or ask for a new one.");
+        return type === "recovery" ? "recovery" : "confirmed";
+      },
       async signUp(email, password) {
         const { data, error } = await db.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo() } });
         if (error) throw friendly(error);

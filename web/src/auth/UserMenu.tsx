@@ -1,7 +1,7 @@
 // The header's account corner: "Sign in", or the signed-in user's avatar with a menu (profile,
 // Pick'em, sign out). Renders nothing when accounts are off.
 
-import { Button, Menu, UnstyledButton } from "@mantine/core";
+import { Button, Menu, Modal, Stack, Text, UnstyledButton } from "@mantine/core";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -12,14 +12,25 @@ import { ProfileSetup } from "./ProfileSetup";
 import { SignInModal } from "./SignInModal";
 
 export function UserMenu() {
-  const { enabled, loading, user, profile, backend, recovering, endRecovery } = useAuth();
+  const { enabled, loading, user, profile, backend, recovering, endRecovery, linkError, clearLinkError } = useAuth();
   const [signingIn, setSigningIn] = useState(false);
 
   if (!enabled || loading) return null;
 
+  // An email link that didn't work (expired, already used).
+  const linkNotice = (
+    <Modal opened={!!linkError} onClose={clearLinkError} title="That link didn't work" centered size="sm">
+      <Stack gap="sm">
+        <Text size="sm">{linkError}</Text>
+        <Button onClick={clearLinkError}>OK</Button>
+      </Stack>
+    </Modal>
+  );
+
   if (!user) {
     return (
       <>
+        {linkNotice}
         <Button size="compact-sm" variant="light" onClick={() => setSigningIn(true)}>
           Sign in
         </Button>
@@ -31,6 +42,7 @@ export function UserMenu() {
   const name = profile?.displayName ?? user.email ?? "You";
   return (
     <>
+      {linkNotice}
       <ProfileSetup />
       {/* Arrived from a "reset your password" email: signed in, now pick a new one. */}
       <PasswordModal opened={recovering} onClose={endRecovery} title="Set a new password" />

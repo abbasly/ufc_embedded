@@ -102,6 +102,10 @@ export interface Backend {
     /** Calls back on sign-in and sign-out; returns the unsubscribe function. */
     onChange(callback: (user: User | null) => void): () => void;
     signInWithGoogle(): Promise<void>;
+    /** Finishes a link from one of our emails (confirm the address, reset the password) when
+     * the page was opened from one: links point at this site (?token_hash=...&type=...), not at
+     * the backend. Returns what the link was for, or null if the page wasn't opened from one. */
+    finishEmailLink(): Promise<"confirmed" | "recovery" | null>;
     /** Creates an account with email and password. "confirm": an email went out to confirm
      * the address first (the usual case); "signed-in": no confirmation needed. */
     signUp(email: string, password: string): Promise<"confirm" | "signed-in">;

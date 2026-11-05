@@ -86,11 +86,13 @@ The demo backend keeps everything in the browser: "signing in" makes you a demo 
    JavaScript origins `https://ufc.anarli.com` and `http://localhost:5173`, and redirect URI
    `https://<project ref>.supabase.co/auth/v1/callback` (one per Supabase project). Paste its
    client id and secret in Supabase, Authentication → Sign In / Providers → Google.
-3. **Production project.** A second project, `ufc-embedded` (Frankfurt), with every migration
+3. **Email templates.** Authentication → Emails → Templates: paste the files in
+   `email-templates/` (see its README), so emails are branded and link to the site itself.
+4. **Production project.** A second project, `ufc-embedded` (Frankfurt), with every migration
    applied in order, the same email, Google and URL settings, and the cards loaded
    (`uv run python -m ufc_embedded.pickem_sync`).
-4. **GitHub.** Repository variables `SUPABASE_URL` and `SUPABASE_ANON_KEY` with the
+5. **GitHub.** Repository variables `SUPABASE_URL` and `SUPABASE_ANON_KEY` with the
    *production* project's values (development keeps using `web/.env.local`). The next deploy
    from `master` switches accounts on.
-5. **Legal.** Fill in `web/src/pages/legal.ts` (Impressum); the privacy policy already covers
+6. **Legal.** Fill in `web/src/pages/legal.ts` (Impressum); the privacy policy already covers
    accounts, Supabase, Resend and Google.
