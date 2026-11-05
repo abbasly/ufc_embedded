@@ -176,6 +176,7 @@ export function demoBackend(): Backend {
       async leave(leagueId) {
         save({ ...load(), leagues: load().leagues.filter((l) => l.id !== leagueId) });
       },
+      members: async () => ["olga", "fred", load().profile?.displayName ?? "you"],
       standings: async () => {
         const s = load();
         const me = { displayName: s.profile?.displayName ?? "you", avatar: s.profile?.avatar ?? null, points: 0, correct: 0, picked: s.picks.length, events: 0 };

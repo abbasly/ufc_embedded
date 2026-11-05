@@ -20,10 +20,14 @@ import { winProb } from "../predictor/model";
 import { Leagues } from "./Leagues";
 import { boutPoints, isUnderdog, marketChance, METHOD_LABEL, POINTS, scores } from "./scoring";
 import {
+  EVERYONE,
   PICK_MUTATION,
   useCard,
   useEventLeaderboard,
   useEvents,
+  useLeagueChoice,
+  useLeagueMembers,
+  useLeagues,
   useMatesPicks,
   useMatesWhoPicked,
   useMyPicks,
@@ -104,6 +108,11 @@ export default function PickemPage() {
   const mates = useMatesPicks(eventId, locked);
   const split = usePickSplit(eventId, locked);
   const whoPicked = useMatesWhoPicked(eventId, !locked);
+  // Friends' faces come from the league open on the leaderboard, never a mix of leagues.
+  const [league, setLeague] = useLeagueChoice();
+  const members = useLeagueMembers(league);
+  const leagueName = useLeagues().data?.find((l) => l.id === league)?.name ?? "";
+  const inLeague = useMemo(() => new Set(league === EVERYONE ? [] : (members.data ?? [])), [league, members.data]);
   // Phones show the fights or the leaderboard (a tap apart); wider screens show both.
   const [view, setView] = useState<"fights" | "board">("fights");
   const [prelimsOpen, setPrelimsOpen] = useState(false);
@@ -139,9 +148,10 @@ export default function PickemPage() {
         byId={byId}
         chance={modelChance(predictor, byId, bout)}
         canPick={!!user && open}
-        mates={(mates.data ?? []).filter((m) => m.boutId === bout.id)}
-        pickedBy={(whoPicked.data ?? []).filter((m) => m.boutId === bout.id)}
+        mates={(mates.data ?? []).filter((m) => m.boutId === bout.id && inLeague.has(m.displayName))}
+        pickedBy={(whoPicked.data ?? []).filter((m) => m.boutId === bout.id && inLeague.has(m.displayName))}
         split={split.data?.[bout.id]}
+        leagueName={leagueName}
         onPick={(winner, method) => pick.mutate({ boutId: bout.id, winner, method })}
       />
     );
@@ -274,7 +284,7 @@ export default function PickemPage() {
         </Grid.Col>
         <Grid.Col span={{ base: 12, md: 4 }} className="pickem-col-board">
           <Stack gap="md">
-            <Leagues />
+            <Leagues selected={league} setSelected={setLeague} />
             <Rules />
           </Stack>
         </Grid.Col>
@@ -361,10 +371,11 @@ interface BoutProps {
   mates: MatePick[]; // league-mates' picks (after the lock)
   pickedBy: MateWhoPicked[]; // league-mates who have picked (before the lock; not whom)
   split: PickSplit[string] | undefined; // how everyone picked (after the lock)
+  leagueName: string; // whose faces these are
   onPick: (winner: string | null, method: Method | null) => void;
 }
 
-function Bout({ bout, label, choice, byId, chance, canPick, mates, pickedBy, split, onPick }: BoutProps) {
+function Bout({ bout, label, choice, byId, chance, canPick, mates, pickedBy, split, leagueName, onPick }: BoutProps) {
   const choose = (id: string) => (choice?.winner === id ? onPick(null, null) : onPick(id, choice?.method ?? null));
   const points = boutPoints(bout, choice);
   const surname = (id: string) => (id === bout.fighterA ? bout.aName : bout.bName).split(" ").at(-1);
@@ -442,7 +453,7 @@ function Bout({ bout, label, choice, byId, chance, canPick, mates, pickedBy, spl
           )}
         </Group>
       )}
-      <BoutFooter bout={bout} known={byId.has(bout.fighterA) && byId.has(bout.fighterB)} pickedBy={pickedBy} />
+      <BoutFooter bout={bout} known={byId.has(bout.fighterA) && byId.has(bout.fighterB)} pickedBy={pickedBy} leagueName={leagueName} />
     </Paper>
   );
 }
@@ -589,7 +600,7 @@ function Faces({ people, tip }: { people: { displayName: string; avatar: string 
 
 /** Under each bout: links to the site's deeper looks at the matchup, and (before the lock)
  * which league-mates have already picked it. */
-function BoutFooter({ bout, known, pickedBy }: { bout: PickemBout; known: boolean; pickedBy: MateWhoPicked[] }) {
+function BoutFooter({ bout, known, pickedBy, leagueName }: { bout: PickemBout; known: boolean; pickedBy: MateWhoPicked[]; leagueName: string }) {
   if (!known && !pickedBy.length) return null;
   return (
     <Group gap="md" wrap="wrap" px={4} align="center">
@@ -605,8 +616,8 @@ function BoutFooter({ bout, known, pickedBy }: { bout: PickemBout; known: boolea
       )}
       {pickedBy.length > 0 && (
         <Group gap={6} ml="auto" wrap="nowrap">
-          <Text size="xs" c="dimmed">
-            Picked
+          <Text size="xs" c="dimmed" truncate maw={140}>
+            {leagueName} picked
           </Text>
           <Faces people={pickedBy} tip={(name) => `${name} has picked: you'll see whom when the card locks`} />
         </Group>

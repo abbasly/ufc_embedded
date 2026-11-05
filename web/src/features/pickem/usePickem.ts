@@ -3,6 +3,7 @@
 // the tap shows at once, and rolls back if the database refuses it (e.g. the card just locked).
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 import { useAuth } from "../../auth/AuthProvider";
 import type { Method, Pick } from "../../backend";
@@ -119,6 +120,29 @@ export function useLeagues() {
     queryKey: ["leagues", user?.id],
     queryFn: () => backend!.leagues.mine(),
     enabled: !!backend && !!user,
+  });
+}
+
+export const EVERYONE = "everyone";
+
+/** The league open on the leaderboard (or EVERYONE). Until someone picks one, it's their
+ * first league, so friends' faces show from the start. */
+export function useLeagueChoice() {
+  const leagues = useLeagues();
+  const [chosen, setChosen] = useState<string | null>(null);
+  const ids = leagues.data?.map((l) => l.id) ?? [];
+  const selected = chosen && (chosen === EVERYONE || ids.includes(chosen)) ? chosen : (ids[0] ?? EVERYONE);
+  return [selected, setChosen] as const;
+}
+
+/** The display names of a league's members (empty for EVERYONE). */
+export function useLeagueMembers(leagueId: string) {
+  const { backend } = useAuth();
+  return useQuery({
+    queryKey: ["leagues", "members", leagueId],
+    queryFn: () => backend!.leagues.members(leagueId),
+    enabled: !!backend && leagueId !== EVERYONE,
+    staleTime: 60_000,
   });
 }
 
