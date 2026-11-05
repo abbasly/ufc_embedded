@@ -16,6 +16,9 @@ interface AuthState {
   backend: Backend | null;
   /** Re-read the profile, e.g. after creating or renaming it. */
   refreshProfile: () => Promise<void>;
+  /** Arrived from a password-reset link: time to set a new password. */
+  recovering: boolean;
+  endRecovery: () => void;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -27,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // telling "no profile yet" from "not loaded yet" (the display-name prompt waits for that).
   const [loaded, setLoaded] = useState<{ userId: string; profile: Profile | null } | null>(null);
   const [loading, setLoading] = useState(accountsEnabled);
+  const [recovering, setRecovering] = useState(false);
 
   useEffect(() => {
     const pending = getBackend();
@@ -38,7 +42,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setBackend(b);
       // Keep the same object while it's the same person (token refreshes fire this too).
       const update = (u: User | null) => setUser((old) => (old?.id === u?.id && old?.email === u?.email ? old : u));
-      unsubscribe = b.auth.onChange(update);
+      const stopUser = b.auth.onChange(update);
+      const stopRecovery = b.auth.onPasswordRecovery(() => setRecovering(true));
+      unsubscribe = () => {
+        stopUser();
+        stopRecovery();
+      };
       update(await b.auth.currentUser());
       setLoading(false);
     });
@@ -61,9 +70,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const profileReady = !!userId && loaded?.userId === userId;
   const profile = profileReady ? loaded!.profile : null;
+  const endRecovery = useCallback(() => setRecovering(false), []);
   const value = useMemo(
-    () => ({ enabled: accountsEnabled, loading, user, profile, profileReady, backend, refreshProfile }),
-    [loading, user, profile, profileReady, backend, refreshProfile],
+    () => ({ enabled: accountsEnabled, loading, user, profile, profileReady, backend, refreshProfile, recovering, endRecovery }),
+    [loading, user, profile, profileReady, backend, refreshProfile, recovering, endRecovery],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -82,7 +82,14 @@ export function demoBackend(): Backend {
         return () => listeners.delete(callback);
       },
       signInWithGoogle: signIn,
-      signInWithEmail: signIn,
+      async signUp() {
+        await signIn();
+        return "signed-in" as const;
+      },
+      signInWithPassword: signIn,
+      async sendPasswordReset() {},
+      onPasswordRecovery: () => () => {},
+      async updatePassword() {},
       async signOut() {
         save({ ...load(), signedIn: false });
         notify();

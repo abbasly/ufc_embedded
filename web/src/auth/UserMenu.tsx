@@ -6,12 +6,13 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useAuth } from "./AuthProvider";
+import { PasswordModal } from "./PasswordModal";
 import { PlayerAvatar } from "./PlayerAvatar";
 import { ProfileSetup } from "./ProfileSetup";
 import { SignInModal } from "./SignInModal";
 
 export function UserMenu() {
-  const { enabled, loading, user, profile, backend } = useAuth();
+  const { enabled, loading, user, profile, backend, recovering, endRecovery } = useAuth();
   const [signingIn, setSigningIn] = useState(false);
 
   if (!enabled || loading) return null;
@@ -31,6 +32,8 @@ export function UserMenu() {
   return (
     <>
       <ProfileSetup />
+      {/* Arrived from a "reset your password" email: signed in, now pick a new one. */}
+      <PasswordModal opened={recovering} onClose={endRecovery} title="Set a new password" />
       <Menu position="bottom-end" withArrow>
         <Menu.Target>
           <UnstyledButton aria-label="Account">

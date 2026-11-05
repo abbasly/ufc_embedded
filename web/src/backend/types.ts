@@ -102,8 +102,16 @@ export interface Backend {
     /** Calls back on sign-in and sign-out; returns the unsubscribe function. */
     onChange(callback: (user: User | null) => void): () => void;
     signInWithGoogle(): Promise<void>;
-    /** Emails a one-time sign-in link: no passwords. */
-    signInWithEmail(email: string): Promise<void>;
+    /** Creates an account with email and password. "confirm": an email went out to confirm
+     * the address first (the usual case); "signed-in": no confirmation needed. */
+    signUp(email: string, password: string): Promise<"confirm" | "signed-in">;
+    signInWithPassword(email: string, password: string): Promise<void>;
+    /** Emails a link that opens the site to set a new password (see onPasswordRecovery). */
+    sendPasswordReset(email: string): Promise<void>;
+    /** Calls back when someone arrives from a password-reset link; returns the unsubscribe. */
+    onPasswordRecovery(callback: () => void): () => void;
+    /** Sets a new password for the signed-in user. */
+    updatePassword(password: string): Promise<void>;
     signOut(): Promise<void>;
     /** Deletes the account and everything that belongs to it. */
     deleteAccount(): Promise<void>;

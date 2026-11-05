@@ -36,9 +36,10 @@ export function PrivacyPage() {
             <Text>If you sign in to play Pick'em, we store:</Text>
             <List spacing="xs">
               <List.Item>
-                <b>Your email address</b>, to sign you in (we send a one-time link) or, if you sign in with Google, the
-                email address Google shares. It isn't shown to anyone and isn't used for anything else: no newsletters,
-                no marketing.
+                <b>Your email address</b>, to sign you in and to send account emails (confirming your address,
+                resetting your password), or, if you sign in with Google, the email address Google shares. It isn't
+                shown to anyone and isn't used for anything else: no newsletters, no marketing. If you use a password,
+                only a secure hash of it is stored (by Supabase), never the password itself.
               </List.Item>
               <List.Item>
                 <b>The display name you choose</b>, and the fighter you pick as your profile picture, both shown on

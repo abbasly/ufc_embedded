@@ -25,8 +25,15 @@ const toEvent = (r: Record<string, unknown>): PickemEvent => ({
 
 const toUser = (u: SupabaseUser | null | undefined): User | null => (u ? { id: u.id, email: u.email ?? null } : null);
 
-/** Postgres error codes worth explaining to the user. */
+/** Postgres and Supabase Auth error codes worth explaining to the user. */
 function friendly(error: { code?: string; message: string }): Error {
+  if (error.code === "invalid_credentials") return new BackendError("Wrong email or password.");
+  if (error.code === "email_not_confirmed") return new BackendError("Confirm your email first: check your inbox for the link.");
+  if (error.code === "user_already_exists") return new BackendError("There's already an account with that email. Sign in instead.");
+  if (error.code === "weak_password") return new BackendError("Pick a longer password: at least 8 characters.");
+  if (error.code === "same_password") return new BackendError("That's your current password: pick a new one.");
+  if (error.code === "over_email_send_rate_limit") return new BackendError("Too many emails just now. Try again in a few minutes.");
+  if (error.code === "email_address_invalid") return new BackendError("That email address doesn't look right.");
   if (error.code === "23505") return new BackendError("That name is taken.");
   if (error.code === "23514") return new BackendError("Names are 3-24 letters, digits, dots, dashes or underscores.");
   if (error.code === "42501") return new BackendError("Picks for this card are closed.");
@@ -61,8 +68,27 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
         const { error } = await db.auth.signInWithOAuth({ provider: "google", options: { redirectTo: redirectTo() } });
         if (error) throw friendly(error);
       },
-      async signInWithEmail(email) {
-        const { error } = await db.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo() } });
+      async signUp(email, password) {
+        const { data, error } = await db.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo() } });
+        if (error) throw friendly(error);
+        return data.session ? "signed-in" : "confirm";
+      },
+      async signInWithPassword(email, password) {
+        const { error } = await db.auth.signInWithPassword({ email, password });
+        if (error) throw friendly(error);
+      },
+      async sendPasswordReset(email) {
+        const { error } = await db.auth.resetPasswordForEmail(email, { redirectTo: redirectTo() });
+        if (error) throw friendly(error);
+      },
+      onPasswordRecovery(callback) {
+        const { data } = db.auth.onAuthStateChange((event) => {
+          if (event === "PASSWORD_RECOVERY") callback();
+        });
+        return () => data.subscription.unsubscribe();
+      },
+      async updatePassword(password) {
+        const { error } = await db.auth.updateUser({ password });
         if (error) throw friendly(error);
       },
       async signOut() {
