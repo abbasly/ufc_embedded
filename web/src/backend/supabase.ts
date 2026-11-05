@@ -200,6 +200,17 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
           };
         });
       },
+      async matesWhoPicked(eventId) {
+        const id = await userId().catch(() => null);
+        if (!id) return [];
+        const { data, error } = await db.rpc("mates_who_picked", { event: eventId });
+        if (error) throw friendly(error);
+        return (data as { bout_id: string; display_name: string; avatar: string | null }[]).map((r) => ({
+          boutId: r.bout_id,
+          displayName: r.display_name,
+          avatar: r.avatar,
+        }));
+      },
       async pickSplit(eventId) {
         const { data, error } = await db.rpc("pick_split", { event: eventId });
         if (error) throw friendly(error);

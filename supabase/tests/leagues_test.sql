@@ -61,6 +61,13 @@ select pg_temp.expect_count($$select 1 from public.leagues where name = 'Gym boy
 delete from public.leagues where name = 'Gym boys';
 select pg_temp.expect_count($$select 1 from public.leagues where name = 'Gym boys'$$, 1, 'the league after Fred tried to delete it');
 
+-- Fred can see that Olga has picked (her name), but not whom; outsiders see nothing.
+select pg_temp.expect_count($$select 1 from public.mates_who_picked('lg-open') where display_name = 'olga'$$, 1, 'Fred seeing that Olga picked');
+select pg_temp.expect_count($$select 1 from public.mates_who_picked('lg-open') where display_name = 'fred'$$, 0, 'Fred listed as his own league-mate');
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000c';
+select pg_temp.expect_count($$select 1 from public.mates_who_picked('lg-open')$$, 0, 'an outsider seeing who picked');
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000b';
+
 -- The crowd's split stays hidden until the lock.
 select pg_temp.expect_count($$select 1 from public.pick_split('lg-open')$$, 0, 'the pick split before the lock');
 

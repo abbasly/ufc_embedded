@@ -3,6 +3,8 @@
 
 import { type QueryClient, useQuery } from "@tanstack/react-query";
 
+import { accountsEnabled } from "../backend";
+
 import {
   MMA_MATH_SCHEMA_VERSION,
   type MmaMathData,
@@ -65,12 +67,13 @@ export const usePredictor = (enabled = true) => useQuery({ ...predictorQuery, en
 /**
  * Start downloading the data the first page needs as soon as the app starts, alongside that
  * page's code, instead of after the code has loaded. ``path`` is relative to the site root.
+ * (Pick'em, the home page where accounts are on, shows the predictor's photos and odds.)
  */
 export function prefetchFor(client: QueryClient, path: string, search: string) {
   const query =
     path.startsWith("/style-map") || new URLSearchParams(search).has("fighter")
       ? styleMapQuery
-      : path.startsWith("/predictor") || path.startsWith("/ladder")
+      : path.startsWith("/predictor") || path.startsWith("/ladder") || (accountsEnabled && (path === "/" || path.startsWith("/pickem")))
         ? predictorQuery
         : path.startsWith("/mma-math")
           ? mmaMathQuery

@@ -58,6 +58,13 @@ export interface MatePick {
   method: Method | null;
 }
 
+/** A league-mate who has picked a bout (but not whom: that shows after the lock). */
+export interface MateWhoPicked {
+  boutId: string;
+  displayName: string;
+  avatar: string | null;
+}
+
 /** How many players picked each fighter: bout id -> fighter id -> picks. Empty until the lock. */
 export type PickSplit = Record<string, Record<string, number>>;
 
@@ -119,6 +126,8 @@ export interface Backend {
     leaderboard(limit?: number): Promise<LeaderboardRow[]>;
     /** League-mates' picks on an event (empty until it locks). */
     matesPicks(eventId: string): Promise<MatePick[]>;
+    /** Which league-mates have picked each bout (any time; not whom). */
+    matesWhoPicked(eventId: string): Promise<MateWhoPicked[]>;
     /** How everyone picked, in counts (empty until it locks). */
     pickSplit(eventId: string): Promise<PickSplit>;
     /** The signed-in user's scored events, latest first. */

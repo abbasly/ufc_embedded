@@ -33,6 +33,39 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
+/* The prelims' fold-away header. */
+.pickem-prelims-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--mantine-radius-md);
+  background: rgba(20, 21, 25, 0.62);
+  color: var(--mantine-color-gray-4);
+  font-size: var(--mantine-font-size-sm);
+}
+.pickem-prelims-toggle:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.pickem-prelims-toggle b {
+  color: var(--mantine-color-white);
+}
+.pickem-chevron {
+  transition: transform 0.2s;
+}
+.pickem-chevron[data-open] {
+  transform: rotate(180deg);
+}
+
+/* Phones: one column at a time, picked with the Fights / Leaderboard switch. */
+@media (max-width: 61.99em) {
+  .pickem-columns[data-view="fights"] .pickem-col-board,
+  .pickem-columns[data-view="board"] .pickem-col-fights {
+    display: none;
+  }
+}
+
 /* Bonus hints and the method buttons. */
 .pickem-bonus {
   color: var(--mantine-color-yellow-5);

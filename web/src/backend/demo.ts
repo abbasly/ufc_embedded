@@ -140,6 +140,14 @@ export function demoBackend(): Backend {
           { displayName: "olga", avatar: "islam-makhachev", boutId: b1.id, winner: b1.fighterA, method: null },
         ];
       },
+      matesWhoPicked: async () => {
+        const [b0, b1] = sampleCard().bouts as [PickemBout, PickemBout];
+        return [
+          { boutId: b0.id, displayName: "olga", avatar: "islam-makhachev" },
+          { boutId: b0.id, displayName: "fred", avatar: null },
+          { boutId: b1.id, displayName: "olga", avatar: "islam-makhachev" },
+        ];
+      },
       pickSplit: async () => {
         const [b0, b1] = sampleCard().bouts as [PickemBout, PickemBout];
         return { [b0.id]: { [b0.fighterA]: 62, [b0.fighterB]: 38 }, [b1.id]: { [b1.fighterA]: 15, [b1.fighterB]: 30 } };

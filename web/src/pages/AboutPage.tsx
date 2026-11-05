@@ -45,11 +45,11 @@ const FLOW: { label: string; hint?: string; core?: boolean; items: FlowItem[] }[
     hint: "open one",
     // Same order as the navigation bar.
     items: [
-      { title: "Style Map", text: "Fighters in 3D by how they fight", to: "/style-map" },
+      ...(accountsEnabled ? [{ title: "Pick'em", tag: "BETA", text: "Pick every fight, beat your friends", to: "/" }] : []),
       { title: "Fight Predictor", text: "Win chance and how it ends", to: "/predictor" },
-      ...(accountsEnabled ? [{ title: "Pick'em", tag: "BETA", text: "Pick every fight, beat your friends", to: "/pickem" }] : []),
-      { title: "Elo Ladder", text: "Chess-style ratings vs official ranks", to: "/ladder" },
       { title: "MMA Math", text: "Anyone beats anyone, in circles", to: "/mma-math" },
+      { title: "Style Map", text: "Fighters in 3D by how they fight", to: "/style-map" },
+      { title: "Elo Ladder", text: "Chess-style ratings vs official ranks", to: "/ladder" },
     ],
   },
 ];

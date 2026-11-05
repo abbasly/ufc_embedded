@@ -50,6 +50,14 @@ const ROUTES = [
     text: "MMA math: loops of UFC fighters who beat each other in a circle, and a calculator that finds a chain of wins from any fighter to any other.",
   },
   {
+    path: "about",
+    title: "About UFC Embedded: a machine learning project by Anar Abbasli",
+    description:
+      "How UFC Embedded is built: three decades of UFC fights, a Python pipeline (point-in-time features, style embeddings, Elo, fight models) and the pages that come out.",
+    image: "og.png",
+    text: "UFC Embedded is a personal machine learning project by Anar Abbasli, built on every UFC fight since 1994: the data, the Python pipeline and the pages.",
+  },
+  {
     path: "pickem",
     title: "Pick'em: pick the winners of the next UFC card | UFC Embedded",
     description: "Pick the winner and the method of every fight on the next UFC card, then compete with friends in your own league. Free.",

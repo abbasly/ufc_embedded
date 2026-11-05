@@ -1,6 +1,6 @@
 // How picks score: the same rules as public.score_event() in
-// supabase/migrations/20261105000004_cards_and_scoring.sql (the database is what counts; this
-// is for showing the rules and each bout's points on the page).
+// supabase/migrations/20261105000007_main_card_scoring.sql (the database is what counts; this
+// is for showing the rules and each bout's points on the page). Only the main card scores.
 
 import type { Method, Pick, PickemBout } from "../../backend";
 
@@ -16,9 +16,13 @@ export function marketChance(bout: PickemBout, fighter: string): number | null {
 
 export const isUnderdog = (bout: PickemBout, fighter: string) => (marketChance(bout, fighter) ?? 1) < 0.5;
 
-/** Points for one pick once the bout has a result; null before, or for a draw or no contest. */
+/** Whether a bout counts for points (the main card; prelims are for fun). */
+export const scores = (bout: PickemBout) => bout.segment === "main";
+
+/** Points for one pick once the bout has a result; null before, for a draw or no contest, or
+ * for a prelim. */
 export function boutPoints(bout: PickemBout, pick: Pick | undefined): number | null {
-  if (bout.outcome !== "win" || !pick) return null;
+  if (bout.outcome !== "win" || !pick || !scores(bout)) return null;
   if (pick.winner !== bout.winner) return 0;
   return (
     POINTS.winner +
