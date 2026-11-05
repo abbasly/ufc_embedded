@@ -21,6 +21,7 @@ const MmaMathPage = lazyPage(() => import("../features/mma-math/MmaMathPage"));
 const PredictorPage = lazyPage(() => import("../features/predictor/PredictorPage"));
 const LadderPage = lazyPage(() => import("../features/ladder/LadderPage"));
 const PickemPage = lazyPage(() => import("../features/pickem/PickemPage"));
+const ProfilePage = lazyPage(() => import("../features/profile/ProfilePage"));
 
 // `short` labels are used on phones so all tabs fit next to the logo; `fresh` tabs get a
 // "NEW" tag.
@@ -44,6 +45,7 @@ const TITLES: Record<string, string> = {
   "/privacy": "Privacy | UFC Embedded",
   "/impressum": "Impressum | UFC Embedded",
   "/pickem": "Pick'em: pick the winners of the next UFC card | UFC Embedded",
+  "/me": "Your profile | UFC Embedded",
 };
 
 /** The landing page is About. Style-map links from when the map was the home page
@@ -148,6 +150,7 @@ export function App() {
             <Route path="/predictor" element={<PredictorPage />} />
             <Route path="/ladder" element={<LadderPage />} />
             {accountsEnabled && <Route path="/pickem" element={<PickemPage />} />}
+            {accountsEnabled && <Route path="/me" element={<ProfilePage />} />}
             <Route path="/about" element={<Navigate to="/" replace />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/impressum" element={<ImpressumPage />} />

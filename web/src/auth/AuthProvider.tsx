@@ -11,6 +11,8 @@ interface AuthState {
   loading: boolean; // the session is still being restored
   user: User | null;
   profile: Profile | null; // null right after a first sign-in, until a display name is chosen
+  /** Whether ``profile`` has been loaded for the signed-in user (null then means "none yet"). */
+  profileReady: boolean;
   backend: Backend | null;
   /** Re-read the profile, e.g. after creating or renaming it. */
   refreshProfile: () => Promise<void>;
@@ -21,7 +23,9 @@ const AuthContext = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [backend, setBackend] = useState<Backend | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  // The profile, tagged with whose it is: until it's loaded for the current user, there's no
+  // telling "no profile yet" from "not loaded yet" (the display-name prompt waits for that).
+  const [loaded, setLoaded] = useState<{ userId: string; profile: Profile | null } | null>(null);
   const [loading, setLoading] = useState(accountsEnabled);
 
   useEffect(() => {
@@ -32,8 +36,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     pending.then(async (b) => {
       if (!live) return;
       setBackend(b);
-      unsubscribe = b.auth.onChange((u) => setUser(u));
-      setUser(await b.auth.currentUser());
+      // Keep the same object while it's the same person (token refreshes fire this too).
+      const update = (u: User | null) => setUser((old) => (old?.id === u?.id && old?.email === u?.email ? old : u));
+      unsubscribe = b.auth.onChange(update);
+      update(await b.auth.currentUser());
       setLoading(false);
     });
     return () => {
@@ -42,17 +48,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const userId = user?.id ?? null;
   const refreshProfile = useCallback(async () => {
-    setProfile(backend && user ? await backend.profiles.mine() : null);
-  }, [backend, user]);
+    if (!backend || !userId) return setLoaded(null);
+    const profile = await backend.profiles.mine();
+    setLoaded({ userId, profile });
+  }, [backend, userId]);
 
   useEffect(() => {
     void refreshProfile();
   }, [refreshProfile]);
 
+  const profileReady = !!userId && loaded?.userId === userId;
+  const profile = profileReady ? loaded!.profile : null;
   const value = useMemo(
-    () => ({ enabled: accountsEnabled, loading, user, profile, backend, refreshProfile }),
-    [loading, user, profile, backend, refreshProfile],
+    () => ({ enabled: accountsEnabled, loading, user, profile, profileReady, backend, refreshProfile }),
+    [loading, user, profile, profileReady, backend, refreshProfile],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

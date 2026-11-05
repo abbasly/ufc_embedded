@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { useAuth } from "../../auth/AuthProvider";
+import { PlayerAvatar } from "../../auth/PlayerAvatar";
 import type { LeaderboardRow } from "../../backend";
 import { useLeaderboard, useLeagueActions, useLeagues, useStandings } from "./usePickem";
 
@@ -169,6 +170,7 @@ function Standings({ rows, loading, me, inLeague }: { rows?: LeaderboardRow[]; l
             <Text size="sm" c="dimmed" w={20} ta="right">
               {i + 1}
             </Text>
+            <PlayerAvatar name={row.displayName} avatar={row.avatar} size={22} />
             <Text size="sm" fw={600} truncate>
               {row.displayName}
             </Text>

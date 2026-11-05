@@ -5,7 +5,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "../../auth/AuthProvider";
-import type { Pick } from "../../backend";
+import type { Method, Pick } from "../../backend";
 
 export function useCurrentEvent() {
   const { backend } = useAuth();
@@ -30,25 +30,29 @@ export function useLeaderboard() {
   const { backend } = useAuth();
   return useQuery({
     queryKey: ["pickem", "leaderboard"],
-    queryFn: () => backend!.pickem.leaderboard(20),
+    queryFn: () => backend!.pickem.leaderboard(100),
     enabled: !!backend,
     staleTime: 60_000,
   });
 }
 
-/** Pick a fighter, or take the pick back (winner: null). */
+export const PICK_MUTATION = ["pickem", "pick"];
+
+/** Pick a fighter (and optionally how they win), or take the pick back (winner: null). Saved
+ * straight away: there's no separate save step. */
 export function usePick(eventId: string | undefined) {
   const { backend, user } = useAuth();
   const client = useQueryClient();
   const key = ["pickem", "picks", eventId, user?.id];
   return useMutation({
-    mutationFn: ({ boutId, winner }: { boutId: string; winner: string | null }) =>
-      winner ? backend!.pickem.pick({ boutId, winner, method: null }) : backend!.pickem.unpick(boutId),
-    onMutate: async ({ boutId, winner }) => {
+    mutationKey: PICK_MUTATION,
+    mutationFn: ({ boutId, winner, method = null }: { boutId: string; winner: string | null; method?: Method | null }) =>
+      winner ? backend!.pickem.pick({ boutId, winner, method }) : backend!.pickem.unpick(boutId),
+    onMutate: async ({ boutId, winner, method = null }) => {
       await client.cancelQueries({ queryKey: key });
       const before = client.getQueryData<Pick[]>(key) ?? [];
       const rest = before.filter((p) => p.boutId !== boutId);
-      client.setQueryData<Pick[]>(key, winner ? [...rest, { boutId, winner, method: null }] : rest);
+      client.setQueryData<Pick[]>(key, winner ? [...rest, { boutId, winner, method }] : rest);
       return { before };
     },
     onError: (_error, _vars, context) => client.setQueryData(key, context?.before),

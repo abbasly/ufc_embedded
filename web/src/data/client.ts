@@ -60,7 +60,7 @@ const predictorQuery = {
 
 export const useStyleMap = () => useQuery(styleMapQuery);
 export const useMmaMath = () => useQuery(mmaMathQuery);
-export const usePredictor = () => useQuery(predictorQuery);
+export const usePredictor = (enabled = true) => useQuery({ ...predictorQuery, enabled });
 
 /**
  * Start downloading the data the first page needs as soon as the app starts, alongside that

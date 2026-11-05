@@ -9,9 +9,14 @@ export interface User {
 export interface Profile {
   id: string;
   displayName: string;
+  avatar: string | null; // a fighter's public id: their photo is the profile picture
 }
 
 export type Method = "KO/TKO" | "SUB" | "DEC";
+export const METHODS: Method[] = ["KO/TKO", "SUB", "DEC"];
+
+/** Where a bout sits on the card, as the UFC bills it. */
+export type Segment = "main" | "prelims" | "early";
 
 export interface PickemEvent {
   id: string;
@@ -31,6 +36,9 @@ export interface PickemBout {
   bName: string;
   modelPA: number | null;
   marketPA: number | null;
+  segment: Segment;
+  title: boolean; // a championship fight
+  outcome: "win" | "draw" | "nc" | null; // null until fought
   winner: string | null; // the result, once in
   method: Method | null;
 }
@@ -58,10 +66,21 @@ export interface League {
 
 export interface LeaderboardRow {
   displayName: string;
+  avatar: string | null;
   points: number;
   correct: number;
   picked: number;
   events: number;
+}
+
+/** How the signed-in user did on one scored event. */
+export interface EventScore {
+  eventId: string;
+  name: string;
+  startsOn: string;
+  points: number;
+  correct: number;
+  picked: number;
 }
 
 /** Everything the app asks of a backend. One implementation today (Supabase, supabase.ts). */
@@ -80,7 +99,7 @@ export interface Backend {
   profiles: {
     mine(): Promise<Profile | null>;
     create(displayName: string): Promise<Profile>;
-    rename(displayName: string): Promise<void>;
+    update(changes: { displayName?: string; avatar?: string | null }): Promise<void>;
   };
   pickem: {
     /** The next event still open for picks (or the latest one), with its bouts. */
@@ -91,6 +110,8 @@ export interface Backend {
     leaderboard(limit?: number): Promise<LeaderboardRow[]>;
     /** League-mates' picks on an event (empty until it locks). */
     matesPicks(eventId: string): Promise<MatePick[]>;
+    /** The signed-in user's scored events, latest first. */
+    myScores(): Promise<EventScore[]>;
   };
   leagues: {
     mine(): Promise<League[]>;

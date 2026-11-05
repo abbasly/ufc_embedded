@@ -44,6 +44,9 @@ function sampleCard(): { event: PickemEvent; bouts: PickemBout[] } {
     bName,
     modelPA: p,
     marketPA: null,
+    segment: position <= 2 ? "main" : "prelims",
+    title: position === 1,
+    outcome: null,
     winner: null,
     method: null,
   });
@@ -90,13 +93,18 @@ export function demoBackend(): Backend {
       mine: async () => (load().signedIn ? load().profile : null),
       async create(displayName) {
         signedIn();
-        const profile = { id: DEMO_USER.id, displayName: displayName.trim() };
+        const profile = { id: DEMO_USER.id, displayName: displayName.trim(), avatar: null };
         save({ ...load(), profile });
         return profile;
       },
-      async rename(displayName) {
+      async update({ displayName, avatar }) {
         signedIn();
-        save({ ...load(), profile: { id: DEMO_USER.id, displayName: displayName.trim() } });
+        const s = load();
+        if (!s.profile) throw new BackendError("Pick a display name first.");
+        save({
+          ...s,
+          profile: { ...s.profile, ...(displayName !== undefined && { displayName: displayName.trim() }), ...(avatar !== undefined && { avatar }) },
+        });
       },
     },
     pickem: {
@@ -114,9 +122,11 @@ export function demoBackend(): Backend {
       },
       leaderboard: async () => {
         const s = load();
-        return s.profile ? [{ displayName: s.profile.displayName, points: 0, correct: 0, picked: s.picks.length, events: 0 }] : [];
+        return s.profile ? [{ displayName: s.profile.displayName, avatar: s.profile.avatar, points: 0, correct: 0, picked: s.picks.length, events: 0 }] : [];
       },
       matesPicks: async () => [],
+      myScores: async () =>
+        load().signedIn ? [{ eventId: "demo-past", name: "UFC 333: Demo vs. Results", startsOn: "2026-10-31", points: 45, correct: 4, picked: 6 }] : [],
     },
     // Demo leagues: yours, plus two made-up friends in every league you join.
     leagues: {
@@ -141,10 +151,10 @@ export function demoBackend(): Backend {
       },
       standings: async () => {
         const s = load();
-        const me = { displayName: s.profile?.displayName ?? "you", points: 0, correct: 0, picked: s.picks.length, events: 0 };
+        const me = { displayName: s.profile?.displayName ?? "you", avatar: s.profile?.avatar ?? null, points: 0, correct: 0, picked: s.picks.length, events: 0 };
         return [
-          { displayName: "olga", points: 12, correct: 10, picked: 13, events: 1 },
-          { displayName: "fred", points: 9, correct: 8, picked: 13, events: 1 },
+          { displayName: "olga", avatar: "islam-makhachev", points: 120, correct: 10, picked: 13, events: 1 },
+          { displayName: "fred", avatar: null, points: 95, correct: 8, picked: 13, events: 1 },
           me,
         ];
       },

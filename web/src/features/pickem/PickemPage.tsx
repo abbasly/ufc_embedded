@@ -1,21 +1,24 @@
-// Pick'em: pick the winners on the next UFC card, before it locks, and see how you stack up
-// against the model and other fans. Everything account-related goes through useAuth() and the
-// backend interface; fighter photos and the model's odds come from the predictor's data.
+// Pick'em: pick the winners on the next UFC card (and, for bonus points, how they win) before
+// it locks, and see how you stack up against other fans. Everything account-related goes
+// through useAuth() and the backend interface; fighter photos and the model's odds come from
+// the predictor's data.
 
 import "./Pickem.css";
 
 import { Alert, Anchor, Avatar, Badge, Button, Center, Grid, Group, Loader, Paper, Stack, Text, Title, UnstyledButton } from "@mantine/core";
+import { useIsMutating } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useAuth } from "../../auth/AuthProvider";
 import { SignInModal } from "../../auth/SignInModal";
-import type { MatePick, PickemBout } from "../../backend";
+import { type MatePick, METHODS, type Method, type Pick, type PickemBout, type Segment } from "../../backend";
 import { usePredictor } from "../../data/client";
 import type { PredictorData, PredictorFighter } from "../../data/types";
 import { winProb } from "../predictor/model";
 import { Leagues } from "./Leagues";
-import { useCurrentEvent, useMatesPicks, useMyPicks, usePick } from "./usePickem";
+import { boutPoints, isUnderdog, METHOD_LABEL, POINTS } from "./scoring";
+import { PICK_MUTATION, useCurrentEvent, useMatesPicks, useMyPicks, usePick } from "./usePickem";
 
 /** The current time, ticking every ``ms``: for the lock countdown. */
 function useNow(ms: number) {
@@ -40,6 +43,12 @@ function timeLeft(ms: number): string {
 const dateLabel = (day: string) =>
   new Date(`${day}T12:00:00`).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
 
+const SEGMENTS: { key: Segment; label: string }[] = [
+  { key: "main", label: "Main card" },
+  { key: "prelims", label: "Prelims" },
+  { key: "early", label: "Early prelims" },
+];
+
 /** The model's P(A wins) for a bout, when both fighters are in the predictor's data. */
 function modelChance(data: PredictorData | undefined, byId: Map<string, PredictorFighter>, bout: PickemBout): number | null {
   const a = byId.get(bout.fighterA);
@@ -53,6 +62,7 @@ export default function PickemPage() {
   const event = useCurrentEvent();
   const picks = useMyPicks(event.data?.event.id);
   const pick = usePick(event.data?.event.id);
+  const saving = useIsMutating({ mutationKey: PICK_MUTATION }) > 0;
   const now = useNow(30_000);
   const locked = !!event.data && new Date(event.data.event.locksAt).getTime() <= now;
   const mates = useMatesPicks(event.data?.event.id, locked);
@@ -67,8 +77,28 @@ export default function PickemPage() {
   const { event: card, bouts } = event.data;
   const lockIn = new Date(card.locksAt).getTime() - now;
   const open = lockIn > 0;
-  const mine = new Map((picks.data ?? []).map((p) => [p.boutId, p.winner]));
+  const mine = new Map((picks.data ?? []).map((p) => [p.boutId, p]));
   const picked = bouts.filter((b) => mine.has(b.id)).length;
+  const earned = bouts.reduce((n, b) => n + (boutPoints(b, mine.get(b.id)) ?? 0), 0);
+  const mainBouts = bouts.filter((b) => b.segment === "main");
+
+  const renderBout = (bout: PickemBout) => {
+    const choice = mine.get(bout.id);
+    const rank = mainBouts.indexOf(bout); // 0: main event, 1: co-main
+    return (
+      <Bout
+        key={bout.id}
+        bout={bout}
+        label={rank === 0 ? "Main event" : rank === 1 ? "Co-main event" : null}
+        choice={choice}
+        byId={byId}
+        chance={modelChance(predictor, byId, bout)}
+        canPick={!!user && open}
+        mates={(mates.data ?? []).filter((m) => m.boutId === bout.id)}
+        onPick={(winner, method) => pick.mutate({ boutId: bout.id, winner, method })}
+      />
+    );
+  };
 
   return (
     <Stack gap="lg" maw={1100} mx="auto" pt={4}>
@@ -95,8 +125,10 @@ export default function PickemPage() {
             </Badge>
           )}
           {user && (
-            <Text size="sm" c="dimmed">
-              You've picked {picked} of {bouts.length}
+            <Text size="sm" c="dimmed" style={{ fontVariantNumeric: "tabular-nums" }}>
+              {card.scoredAt ? `${earned} points from ` : "You've picked "}
+              {picked} of {bouts.length}
+              {open && picked > 0 && <span className="pickem-saved"> · {saving ? "Saving…" : "✓ Saved"}</span>}
             </Text>
           )}
         </Stack>
@@ -119,56 +151,149 @@ export default function PickemPage() {
 
       <Grid gap="xl">
         <Grid.Col span={{ base: 12, md: 8 }}>
-          <Stack gap="sm">
-            {bouts.map((bout) => {
-              const choice = mine.get(bout.id) ?? null;
-              const p = modelChance(predictor, byId, bout);
-              const choose = (id: string) => pick.mutate({ boutId: bout.id, winner: choice === id ? null : id });
+          <Stack gap="lg">
+            {SEGMENTS.map(({ key, label }) => {
+              const segment = bouts.filter((b) => b.segment === key);
+              if (!segment.length) return null;
               return (
-                <Paper key={bout.id} p="sm" radius="md" className="pickem-bout">
-                  {bout.position === 1 && (
-                    <Text size="xs" fw={800} c="dimmed" tt="uppercase" mb={6} style={{ letterSpacing: "0.1em" }}>
-                      Main event
+                <Stack key={key} gap="sm">
+                  {/* A single list (no Wikipedia card yet) needs no heading. */}
+                  {segment.length !== bouts.length && (
+                    <Text size="xs" fw={800} c="dimmed" tt="uppercase" className="pickem-segment">
+                      {label}
                     </Text>
                   )}
-                  <Group wrap="nowrap" gap="sm" align="stretch" mb={6}>
-                    <Side
-                      id={bout.fighterA}
-                      name={bout.aName}
-                      fighter={byId.get(bout.fighterA)}
-                      chance={p}
-                      chosen={choice === bout.fighterA}
-                      winner={bout.winner}
-                      disabled={!user || !open}
-                      onPick={choose}
-                    />
-                    <Center>
-                      <Text fw={900} fs="italic" c="dimmed">
-                        vs
-                      </Text>
-                    </Center>
-                    <Side
-                      id={bout.fighterB}
-                      name={bout.bName}
-                      fighter={byId.get(bout.fighterB)}
-                      chance={p === null ? null : 1 - p}
-                      chosen={choice === bout.fighterB}
-                      winner={bout.winner}
-                      disabled={!user || !open}
-                      onPick={choose}
-                    />
-                  </Group>
-                  <BoutFooter bout={bout} known={byId.has(bout.fighterA) && byId.has(bout.fighterB)} mates={(mates.data ?? []).filter((m) => m.boutId === bout.id)} />
-                </Paper>
+                  {segment.map(renderBout)}
+                </Stack>
               );
             })}
           </Stack>
         </Grid.Col>
         <Grid.Col span={{ base: 12, md: 4 }}>
-          <Leagues />
+          <Stack gap="md">
+            <Rules />
+            <Leagues />
+          </Stack>
         </Grid.Col>
       </Grid>
     </Stack>
+  );
+}
+
+function Rules() {
+  return (
+    <Paper p="md" radius="md" className="pickem-board">
+      <Text size="xs" fw={800} c="dimmed" tt="uppercase" mb={6} style={{ letterSpacing: "0.1em" }}>
+        Scoring
+      </Text>
+      <Stack gap={2}>
+        <Text size="sm">
+          <b>{POINTS.winner}</b> for the right winner
+        </Text>
+        <Text size="sm">
+          <b>+{POINTS.method}</b> if you also call how: KO/TKO, submission or decision
+        </Text>
+        <Text size="sm">
+          <b>+{POINTS.underdog}</b> if your winner was the bookies' underdog
+        </Text>
+      </Stack>
+      <Text size="xs" c="dimmed" mt={6}>
+        Picks save as you tap. Change them until the card locks.
+      </Text>
+    </Paper>
+  );
+}
+
+interface BoutProps {
+  bout: PickemBout;
+  label: string | null; // "Main event", "Co-main event"
+  choice: Pick | undefined;
+  byId: Map<string, PredictorFighter>;
+  chance: number | null; // the model's P(A wins)
+  canPick: boolean;
+  mates: MatePick[];
+  onPick: (winner: string | null, method: Method | null) => void;
+}
+
+function Bout({ bout, label, choice, byId, chance, canPick, mates, onPick }: BoutProps) {
+  const choose = (id: string) => (choice?.winner === id ? onPick(null, null) : onPick(id, choice?.method ?? null));
+  const points = boutPoints(bout, choice);
+  const surname = (id: string) => (id === bout.fighterA ? bout.aName : bout.bName).split(" ").at(-1);
+  return (
+    <Paper p="sm" radius="md" className="pickem-bout" data-headline={label === "Main event" || undefined}>
+      {(label || bout.title) && (
+        <Group gap={8} mb={6}>
+          {label && (
+            <Text size="xs" fw={800} tt="uppercase" c={label === "Main event" ? "red.4" : "dimmed"} style={{ letterSpacing: "0.1em" }}>
+              {label}
+            </Text>
+          )}
+          {bout.title && (
+            <Badge size="xs" variant="light" color="yellow">
+              Title fight
+            </Badge>
+          )}
+        </Group>
+      )}
+      <Group wrap="nowrap" gap="sm" align="stretch" mb={6}>
+        {[bout.fighterA, bout.fighterB].map((id, i) => (
+          <Side
+            key={id}
+            id={id}
+            name={i === 0 ? bout.aName : bout.bName}
+            fighter={byId.get(id)}
+            chance={chance === null ? null : i === 0 ? chance : 1 - chance}
+            underdog={isUnderdog(bout, id)}
+            chosen={choice?.winner === id}
+            winner={bout.outcome === "win" ? bout.winner : null}
+            disabled={!canPick}
+            onPick={choose}
+            vs={i === 0}
+          />
+        ))}
+      </Group>
+
+      {choice && canPick && (
+        <Group gap={6} px={4} mb={6} wrap="wrap">
+          <Text size="xs" c="dimmed">
+            How does {surname(choice.winner)} win? <span className="pickem-bonus">+{POINTS.method}</span>
+          </Text>
+          {METHODS.map((m) => (
+            <UnstyledButton
+              key={m}
+              className="pickem-method"
+              data-chosen={choice.method === m || undefined}
+              aria-pressed={choice.method === m}
+              onClick={() => onPick(choice.winner, choice.method === m ? null : m)}
+            >
+              {METHOD_LABEL[m]}
+            </UnstyledButton>
+          ))}
+        </Group>
+      )}
+      {choice?.method && !canPick && bout.outcome === null && (
+        <Text size="xs" c="dimmed" px={4} mb={6}>
+          Your call: {surname(choice.winner)} by {METHOD_LABEL[choice.method]}
+        </Text>
+      )}
+      {bout.outcome && (
+        <Group gap="xs" px={4} mb={6}>
+          <Text size="xs" fw={700}>
+            {bout.outcome === "win" && bout.winner
+              ? `${surname(bout.winner)} by ${bout.method ? METHOD_LABEL[bout.method] : "other"}`
+              : bout.outcome === "draw"
+                ? "Draw: no points either way"
+                : "No contest: no points either way"}
+          </Text>
+          {points !== null && (
+            <Text size="xs" fw={800} c={points ? "green.4" : "dimmed"}>
+              {points ? `+${points}` : "0"}
+            </Text>
+          )}
+        </Group>
+      )}
+      <BoutFooter bout={bout} known={byId.has(bout.fighterA) && byId.has(bout.fighterB)} mates={mates} />
+    </Paper>
   );
 }
 
@@ -177,47 +302,59 @@ interface SideProps {
   name: string;
   fighter: PredictorFighter | undefined;
   chance: number | null; // the model's win chance for this fighter
+  underdog: boolean;
   chosen: boolean;
   winner: string | null; // the result, once in
   disabled: boolean;
   onPick: (id: string) => void;
+  vs: boolean; // draw "vs" after this side
 }
 
 /** One fighter in a bout: tap to pick them. After the event: a tick or a cross on your pick. */
-function Side({ id, name, fighter, chance, chosen, winner, disabled, onPick }: SideProps) {
+function Side({ id, name, fighter, chance, underdog, chosen, winner, disabled, onPick, vs }: SideProps) {
   const result = winner === null ? null : winner === id;
   const initials = name.split(" ").map((w) => w[0]).slice(0, 2).join("");
   return (
-    <UnstyledButton
-      className="pickem-side"
-      data-chosen={chosen || undefined}
-      data-won={result === true || undefined}
-      data-lost={result === false || undefined}
-      disabled={disabled}
-      onClick={() => onPick(id)}
-      aria-pressed={chosen}
-      style={{ flex: 1, minWidth: 0 }}
-    >
-      <Group gap="sm" wrap="nowrap">
-        <Avatar src={fighter?.image?.url} size={46} radius="xl" color="gray">
-          {initials}
-        </Avatar>
-        <div style={{ minWidth: 0 }}>
-          <Text fw={700} lineClamp={2} lh={1.2}>
-            {name}
+    <>
+      <UnstyledButton
+        className="pickem-side"
+        data-chosen={chosen || undefined}
+        data-won={result === true || undefined}
+        data-lost={result === false || undefined}
+        disabled={disabled}
+        onClick={() => onPick(id)}
+        aria-pressed={chosen}
+        style={{ flex: 1, minWidth: 0 }}
+      >
+        <Group gap="sm" wrap="nowrap">
+          <Avatar src={fighter?.image?.url} size={46} radius="xl" color="gray">
+            {initials}
+          </Avatar>
+          <div style={{ minWidth: 0 }}>
+            <Text fw={700} lineClamp={2} lh={1.2}>
+              {name}
+            </Text>
+            <Text size="xs" c="dimmed" truncate>
+              {chance !== null ? `Model ${Math.round(chance * 100)}%` : fighter ? fighter.weight_class : "UFC newcomer"}
+              {underdog && <span className="pickem-bonus"> · underdog</span>}
+            </Text>
+          </div>
+          {chosen && (
+            // On phones the outline alone marks the pick, so the name keeps the room.
+            <Text ml="auto" fw={800} size="sm" className="pickem-mark" visibleFrom={result === null ? "sm" : undefined}>
+              {result === null ? "Your pick" : result ? "✓" : "✗"}
+            </Text>
+          )}
+        </Group>
+      </UnstyledButton>
+      {vs && (
+        <Center>
+          <Text fw={900} fs="italic" c="dimmed">
+            vs
           </Text>
-          <Text size="xs" c="dimmed" truncate>
-            {chance !== null ? `Model ${Math.round(chance * 100)}%` : fighter ? fighter.weight_class : "UFC debut"}
-          </Text>
-        </div>
-        {chosen && (
-          // On phones the outline alone marks the pick, so the name keeps the room.
-          <Text ml="auto" fw={800} size="sm" className="pickem-mark" visibleFrom={result === null ? "sm" : undefined}>
-            {result === null ? "Your pick" : result ? "✓" : "✗"}
-          </Text>
-        )}
-      </Group>
-    </UnstyledButton>
+        </Center>
+      )}
+    </>
   );
 }
 

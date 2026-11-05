@@ -9,11 +9,11 @@ import { useAuth } from "./AuthProvider";
 const VALID = /^[A-Za-z0-9_.-]{3,24}$/;
 
 export function ProfileSetup() {
-  const { backend, user, profile, loading, refreshProfile } = useAuth();
+  const { backend, user, profile, profileReady, refreshProfile } = useAuth();
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const open = !loading && !!user && !profile;
+  const open = !!user && profileReady && !profile;
 
   const save = async () => {
     if (!backend) return;

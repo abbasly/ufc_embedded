@@ -8,7 +8,7 @@
 import type { Backend } from "./types";
 
 export type * from "./types";
-export { BackendError } from "./types";
+export { BackendError, METHODS } from "./types";
 
 const url: string | undefined = import.meta.env.VITE_SUPABASE_URL || undefined;
 const anonKey: string | undefined = import.meta.env.VITE_SUPABASE_ANON_KEY || undefined;

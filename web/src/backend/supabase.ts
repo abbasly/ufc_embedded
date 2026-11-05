@@ -4,10 +4,11 @@
 
 import { type SupabaseClient, type User as SupabaseUser, createClient } from "@supabase/supabase-js";
 
-import { type Backend, BackendError, type LeaderboardRow, type Method, type PickemBout, type PickemEvent, type User } from "./types";
+import { type Backend, BackendError, type LeaderboardRow, type Method, type PickemBout, type PickemEvent, type Segment, type User } from "./types";
 
 const toRow = (r: Record<string, unknown>): LeaderboardRow => ({
   displayName: r.display_name as string,
+  avatar: (r.avatar as string | null) ?? null,
   points: Number(r.points),
   correct: Number(r.correct),
   picked: Number(r.picked),
@@ -70,19 +71,22 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
       async mine() {
         const id = await userId().catch(() => null);
         if (!id) return null;
-        const { data, error } = await db.from("profiles").select("id, display_name").eq("id", id).maybeSingle();
+        const { data, error } = await db.from("profiles").select("id, display_name, avatar").eq("id", id).maybeSingle();
         if (error) throw friendly(error);
-        return data && { id: data.id as string, displayName: data.display_name as string };
+        return data && { id: data.id as string, displayName: data.display_name as string, avatar: data.avatar as string | null };
       },
       async create(displayName) {
         const id = await userId();
         const { error } = await db.from("profiles").insert({ id, display_name: displayName.trim() });
         if (error) throw friendly(error);
-        return { id, displayName: displayName.trim() };
+        return { id, displayName: displayName.trim(), avatar: null };
       },
-      async rename(displayName) {
+      async update({ displayName, avatar }) {
         const id = await userId();
-        const { error } = await db.from("profiles").update({ display_name: displayName.trim() }).eq("id", id);
+        const changes: Record<string, unknown> = {};
+        if (displayName !== undefined) changes.display_name = displayName.trim();
+        if (avatar !== undefined) changes.avatar = avatar;
+        const { error } = await db.from("profiles").update(changes).eq("id", id);
         if (error) throw friendly(error);
       },
     },
@@ -116,6 +120,9 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
               bName: b.b_name,
               modelPA: b.model_p_a,
               marketPA: b.market_p_a,
+              segment: b.segment as Segment,
+              title: b.title,
+              outcome: b.outcome,
               winner: b.winner,
               method: b.method as Method | null,
             }),
@@ -162,6 +169,21 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
           boutId: p.bout_id as string,
           winner: p.winner as string,
         }));
+      },
+      async myScores() {
+        const id = await userId().catch(() => null);
+        if (!id) return [];
+        const { data, error } = await db
+          .from("scores")
+          .select("event_id, points, correct, picked, events!inner(name, starts_on)")
+          .eq("user_id", id);
+        if (error) throw friendly(error);
+        return data
+          .map((s) => {
+            const event = s.events as unknown as { name: string; starts_on: string };
+            return { eventId: s.event_id, name: event.name, startsOn: event.starts_on, points: s.points, correct: s.correct, picked: s.picked };
+          })
+          .sort((a, b) => b.startsOn.localeCompare(a.startsOn));
       },
     },
 

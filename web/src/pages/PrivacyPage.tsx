@@ -41,7 +41,8 @@ export function PrivacyPage() {
                 no marketing.
               </List.Item>
               <List.Item>
-                <b>The display name you choose</b>, shown on leaderboards.
+                <b>The display name you choose</b>, and the fighter you pick as your profile picture, both shown on
+                leaderboards.
               </List.Item>
               <List.Item>
                 <b>Your picks, scores and league memberships.</b> Your picks are private until a card locks; after that,
@@ -51,7 +52,7 @@ export function PrivacyPage() {
             <Text>
               We use this only to run the game: signing you in, saving your picks, scoring them and showing the
               leaderboards (Art. 6(1)(b) GDPR: providing the service you signed up for). We keep it until you delete your
-              account, which you can do yourself at any time from the account menu: it deletes your account, display
+              account, which you can do yourself at any time on your profile page: it deletes your account, display
               name, picks, scores and memberships straight away, for good. Leagues you created are deleted with it.
             </Text>
           </>
