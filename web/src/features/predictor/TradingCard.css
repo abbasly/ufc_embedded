@@ -151,21 +151,6 @@
   background-size: 100% 100%, 300% 300%;
   background-position: 0 0, var(--mx, 50%) var(--my, 50%);
 }
-.hover-shine-back {
-  mix-blend-mode: color-dodge;
-  background-image:
-    radial-gradient(circle at var(--mx-back, 50%) var(--my, 50%), rgba(255, 255, 255, 0.35), transparent 42%),
-    linear-gradient(
-      115deg,
-      transparent 20%,
-      rgba(255, 70, 190, 0.22) 36%,
-      rgba(255, 220, 90, 0.2) 44%,
-      rgba(90, 255, 200, 0.2) 52%,
-      rgba(80, 170, 255, 0.22) 60%,
-      transparent 76%
-    );
-  background-position: 0 0, var(--mx-back, 50%) var(--my, 50%);
-}
 @media (hover: hover) {
   .flip-card:hover .hover-shine {
     opacity: 1;

@@ -135,7 +135,6 @@ export function TradingCard({ fighter, cluster, stat, recent }: Props) {
     const x = ((e.clientX - r.left) / r.width) * 100;
     const y = ((e.clientY - r.top) / r.height) * 100;
     e.currentTarget.style.setProperty("--mx", `${x}%`);
-    e.currentTarget.style.setProperty("--mx-back", `${100 - x}%`); // the back is mirrored
     e.currentTarget.style.setProperty("--my", `${y}%`);
   };
   // Alternate class names so the lift + glint animations restart on every flip.
@@ -257,7 +256,6 @@ export function TradingCard({ fighter, cluster, stat, recent }: Props) {
         </Stack>
       </Box>
       <Box className="flip-face flip-back" style={frame}>
-        <Box className="hover-shine hover-shine-back" />
         <BackFace fighter={fighter} type={type} stat={stat} recent={recent} rarity={rarity} />
       </Box>
       </Box>
