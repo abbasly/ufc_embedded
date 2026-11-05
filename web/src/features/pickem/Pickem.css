@@ -1,14 +1,10 @@
 /* Pick'em: dark glass panels on the arena backdrop; a picked fighter lights up in red. */
 
 .pickem-bout,
-.pickem-board,
-.pickem-cta {
+.pickem-board {
   background: rgba(20, 21, 25, 0.62);
   border: 1px solid rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(4px);
-}
-.pickem-cta {
-  border-color: rgba(250, 82, 82, 0.35);
 }
 /* The main event: the bout the card is named after stands out. */
 .pickem-bout[data-headline] {
