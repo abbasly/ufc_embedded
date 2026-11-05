@@ -5,7 +5,7 @@
 
 import "./Pickem.css";
 
-import { Alert, Anchor, Avatar, Badge, Button, Center, Collapse, Grid, Group, Loader, Paper, SegmentedControl, Stack, Text, Title, Tooltip, UnstyledButton } from "@mantine/core";
+import { Alert, Anchor, Avatar, Badge, Center, Collapse, Grid, Group, Loader, Paper, SegmentedControl, Stack, Text, Title, Tooltip, UnstyledButton } from "@mantine/core";
 import { useIsMutating } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -118,6 +118,10 @@ export default function PickemPage() {
   const [prelimsOpen, setPrelimsOpen] = useState(false);
   const results = useEventLeaderboard(eventId, !!event.data?.event.scoredAt);
   const [signingIn, setSigningIn] = useState(false);
+  // Signed in (with email and password, the window stays put otherwise): close it.
+  useEffect(() => {
+    if (user) setSigningIn(false);
+  }, [user]);
   const byId = useMemo(() => new Map(predictor?.fighters.map((f) => [f.id, f])), [predictor]);
 
   if (!enabled) return <Alert title="Pick'em isn't available here">Accounts are switched off on this site.</Alert>;
@@ -147,12 +151,12 @@ export default function PickemPage() {
         choice={choice}
         byId={byId}
         chance={modelChance(predictor, byId, bout)}
-        canPick={!!user && open}
+        canPick={open} // signed out, a tap asks you to sign in first
         mates={(mates.data ?? []).filter((m) => m.boutId === bout.id && inLeague.has(m.displayName))}
         pickedBy={(whoPicked.data ?? []).filter((m) => m.boutId === bout.id && inLeague.has(m.displayName))}
         split={split.data?.[bout.id]}
         leagueName={leagueName}
-        onPick={(winner, method) => pick.mutate({ boutId: bout.id, winner, method })}
+        onPick={(winner, method) => (user ? pick.mutate({ boutId: bout.id, winner, method }) : setSigningIn(true))}
       />
     );
   };
@@ -212,15 +216,8 @@ export default function PickemPage() {
         </Paper>
       )}
 
-      {!user && (
-        <Paper p="md" radius="md" className="pickem-cta">
-          <Group justify="space-between" wrap="wrap" gap="sm">
-            <Text>Sign in to make your picks and get on the leaderboard.</Text>
-            <Button onClick={() => setSigningIn(true)}>Sign in</Button>
-          </Group>
-          <SignInModal opened={signingIn} onClose={() => setSigningIn(false)} />
-        </Paper>
-      )}
+      {/* No separate sign-in box: tapping a fighter while signed out opens sign-in. */}
+      <SignInModal opened={signingIn} onClose={() => setSigningIn(false)} />
       {pick.error && (
         <Alert color="red" withCloseButton onClose={() => pick.reset()}>
           {pick.error.message}
