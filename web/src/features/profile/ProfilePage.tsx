@@ -9,6 +9,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useAuth } from "../../auth/AuthProvider";
+import { PasswordModal } from "../../auth/PasswordModal";
 import { PlayerAvatar } from "../../auth/PlayerAvatar";
 import { SignInModal } from "../../auth/SignInModal";
 import { usePredictor } from "../../data/client";
@@ -252,11 +253,17 @@ function Account() {
   const { backend } = useAuth();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
   return (
     <Group gap="sm">
       <Button variant="default" onClick={() => backend?.auth.signOut()}>
         Sign out
       </Button>
+      {/* Also how Google users (or early email-link users) add a password. */}
+      <Button variant="subtle" color="gray" onClick={() => setChangingPassword(true)}>
+        Change password
+      </Button>
+      <PasswordModal opened={changingPassword} onClose={() => setChangingPassword(false)} title="Change your password" />
       <Button variant="subtle" color="red" c="red.4" onClick={() => setConfirmDelete(true)}>
         Delete account
       </Button>

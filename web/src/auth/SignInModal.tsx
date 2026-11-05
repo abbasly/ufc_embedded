@@ -1,6 +1,7 @@
-// Sign in with Google, or with a one-time link sent by email. No passwords to store or leak.
+// Sign in with Google, or with an email and password (a new account confirms its email first;
+// a forgotten password gets a reset link). Passwords are Supabase Auth's: hashed, never ours.
 
-import { Anchor, Button, Divider, Modal, Stack, Text, TextInput } from "@mantine/core";
+import { Anchor, Button, Divider, Modal, PasswordInput, SegmentedControl, Stack, Text, TextInput } from "@mantine/core";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -17,12 +18,22 @@ function GoogleMark() {
   );
 }
 
+type Mode = "signin" | "signup" | "reset";
+
 export function SignInModal({ opened, onClose }: { opened: boolean; onClose: () => void }) {
   const { backend } = useAuth();
+  const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
+  const [password, setPassword] = useState("");
+  const [sent, setSent] = useState<string | null>(null); // a "check your email" message
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const switchTo = (m: Mode) => {
+    setMode(m);
+    setError(null);
+    setSent(null);
+  };
 
   const run = async (action: () => Promise<void>) => {
     setError(null);
@@ -36,35 +47,76 @@ export function SignInModal({ opened, onClose }: { opened: boolean; onClose: () 
     }
   };
 
+  const submit = () => {
+    if (!backend) return;
+    const address = email.trim();
+    if (!address.includes("@")) return setError("Enter your email address.");
+    if (mode === "reset") {
+      return void run(async () => {
+        await backend.auth.sendPasswordReset(address);
+        setSent(`If there's an account for ${address}, a link to set a new password is on its way.`);
+      });
+    }
+    if (password.length < 8) return setError("Passwords are at least 8 characters.");
+    if (mode === "signin") return void run(() => backend.auth.signInWithPassword(address, password));
+    void run(async () => {
+      const result = await backend.auth.signUp(address, password);
+      if (result === "confirm") setSent(`Almost there: open the link we sent to ${address} to confirm your account, then come back and sign in.`);
+    });
+  };
+
   return (
-    <Modal opened={opened} onClose={onClose} title="Sign in" centered size="sm">
+    <Modal opened={opened} onClose={onClose} title={mode === "signup" ? "Create an account" : mode === "reset" ? "Reset your password" : "Sign in"} centered size="sm">
       <Stack gap="sm">
-        <Text size="sm" c="dimmed">
-          Pick the winners on upcoming UFC cards and see how you stack up against the model and
-          other fans.
-        </Text>
-        <Button variant="default" leftSection={<GoogleMark />} loading={busy} onClick={() => backend && run(() => backend.auth.signInWithGoogle())}>
-          Continue with Google
-        </Button>
-        <Divider label="or get a sign-in link by email" labelPosition="center" />
+        {mode !== "reset" && (
+          <>
+            <Text size="sm" c="dimmed">
+              Pick the winners on upcoming UFC cards and see how you stack up against the model and other fans.
+            </Text>
+            <Button variant="default" leftSection={<GoogleMark />} loading={busy} onClick={() => backend && run(() => backend.auth.signInWithGoogle())}>
+              Continue with Google
+            </Button>
+            <Divider label="or with email" labelPosition="center" />
+            <SegmentedControl
+              size="xs"
+              fullWidth
+              value={mode}
+              onChange={(m) => switchTo(m as Mode)}
+              data={[
+                { value: "signin", label: "Sign in" },
+                { value: "signup", label: "Create account" },
+              ]}
+            />
+          </>
+        )}
         {sent ? (
-          <Text size="sm">
-            Check <b>{email}</b> for a sign-in link. You can close this window.
-          </Text>
+          <Text size="sm">{sent}</Text>
         ) : (
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              if (backend && email.includes("@")) void run(async () => {
-                await backend.auth.signInWithEmail(email.trim());
-                setSent(true);
-              });
+              submit();
             }}
           >
             <Stack gap="xs">
-              <TextInput type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.currentTarget.value)} required />
-              <Button type="submit" variant="light" loading={busy}>
-                Email me a link
+              {mode === "reset" && (
+                <Text size="sm" c="dimmed">
+                  We'll email you a link to set a new password.
+                </Text>
+              )}
+              <TextInput type="email" label="Email" placeholder="you@example.com" autoComplete="email" value={email} onChange={(e) => setEmail(e.currentTarget.value)} required />
+              {mode !== "reset" && (
+                <PasswordInput
+                  label="Password"
+                  placeholder={mode === "signup" ? "At least 8 characters" : undefined}
+                  autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.currentTarget.value)}
+                  required
+                />
+              )}
+              <Button type="submit" loading={busy} mt={4}>
+                {mode === "signup" ? "Create account" : mode === "reset" ? "Send the link" : "Sign in"}
               </Button>
             </Stack>
           </form>
@@ -74,8 +126,18 @@ export function SignInModal({ opened, onClose }: { opened: boolean; onClose: () 
             {error}
           </Text>
         )}
+        {mode === "signin" && !sent && (
+          <Anchor component="button" type="button" size="xs" c="dimmed" ta="left" onClick={() => switchTo("reset")}>
+            Forgot your password?
+          </Anchor>
+        )}
+        {mode === "reset" && (
+          <Anchor component="button" type="button" size="xs" c="dimmed" ta="left" onClick={() => switchTo("signin")}>
+            ← Back to sign in
+          </Anchor>
+        )}
         <Text size="xs" c="dimmed">
-          We only keep your display name and your picks.{" "}
+          We only keep your email, display name and picks.{" "}
           <Anchor component={Link} to="/privacy" size="xs" onClick={onClose}>
             Privacy
           </Anchor>
