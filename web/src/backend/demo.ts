@@ -3,7 +3,7 @@
 // kept in localStorage. Same Backend interface, so features can't tell the difference.
 // Turned on with VITE_ACCOUNTS=demo (local development only; see backend/index.ts).
 
-import { type Backend, BackendError, type Pick, type PickemBout, type PickemEvent, type Profile, type User } from "./types";
+import { type Backend, BackendError, type League, type Pick, type PickemBout, type PickemEvent, type Profile, type User } from "./types";
 
 const KEY = "ufc-embedded-demo-backend";
 const DEMO_USER: User = { id: "demo-user", email: "demo@example.com" };
@@ -12,13 +12,14 @@ interface Stored {
   signedIn: boolean;
   profile: Profile | null;
   picks: Pick[];
+  leagues: League[];
 }
 
 function load(): Stored {
   try {
-    return { signedIn: false, profile: null, picks: [], ...JSON.parse(localStorage.getItem(KEY) ?? "{}") };
+    return { signedIn: false, profile: null, picks: [], leagues: [], ...JSON.parse(localStorage.getItem(KEY) ?? "{}") };
   } catch {
-    return { signedIn: false, profile: null, picks: [] };
+    return { signedIn: false, profile: null, picks: [], leagues: [] };
   }
 }
 function save(s: Stored) {
@@ -81,7 +82,7 @@ export function demoBackend(): Backend {
         notify();
       },
       async deleteAccount() {
-        save({ signedIn: false, profile: null, picks: [] });
+        save({ signedIn: false, profile: null, picks: [], leagues: [] });
         notify();
       },
     },
@@ -114,6 +115,38 @@ export function demoBackend(): Backend {
       leaderboard: async () => {
         const s = load();
         return s.profile ? [{ displayName: s.profile.displayName, points: 0, correct: 0, picked: s.picks.length, events: 0 }] : [];
+      },
+      matesPicks: async () => [],
+    },
+    // Demo leagues: yours, plus two made-up friends in every league you join.
+    leagues: {
+      mine: async () => (load().signedIn ? load().leagues : []),
+      async create(name) {
+        signedIn();
+        const league: League = { id: `demo-${Date.now()}`, name: name.trim(), inviteCode: Math.random().toString(36).slice(2, 10).toUpperCase(), isOwner: true };
+        save({ ...load(), leagues: [...load().leagues, league] });
+        return league;
+      },
+      async join(inviteCode) {
+        signedIn();
+        const code = inviteCode.trim().toUpperCase();
+        const existing = load().leagues.find((l) => l.inviteCode === code);
+        if (existing) return existing.id;
+        const league: League = { id: `demo-${code}`, name: "Friends league", inviteCode: code, isOwner: false };
+        save({ ...load(), leagues: [...load().leagues, league] });
+        return league.id;
+      },
+      async leave(leagueId) {
+        save({ ...load(), leagues: load().leagues.filter((l) => l.id !== leagueId) });
+      },
+      standings: async () => {
+        const s = load();
+        const me = { displayName: s.profile?.displayName ?? "you", points: 0, correct: 0, picked: s.picks.length, events: 0 };
+        return [
+          { displayName: "olga", points: 12, correct: 10, picked: 13, events: 1 },
+          { displayName: "fred", points: 9, correct: 8, picked: 13, events: 1 },
+          me,
+        ];
       },
     },
   };

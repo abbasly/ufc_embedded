@@ -41,6 +41,21 @@ export interface Pick {
   method: Method | null;
 }
 
+/** A league-mate's pick, visible once the card has locked. */
+export interface MatePick {
+  displayName: string;
+  boutId: string;
+  winner: string;
+}
+
+/** A private group of friends with its own leaderboard, joined with an invite code. */
+export interface League {
+  id: string;
+  name: string;
+  inviteCode: string;
+  isOwner: boolean;
+}
+
 export interface LeaderboardRow {
   displayName: string;
   points: number;
@@ -74,6 +89,16 @@ export interface Backend {
     pick(pick: Pick): Promise<void>;
     unpick(boutId: string): Promise<void>;
     leaderboard(limit?: number): Promise<LeaderboardRow[]>;
+    /** League-mates' picks on an event (empty until it locks). */
+    matesPicks(eventId: string): Promise<MatePick[]>;
+  };
+  leagues: {
+    mine(): Promise<League[]>;
+    create(name: string): Promise<League>;
+    /** Join by invite code; returns the league's id. */
+    join(inviteCode: string): Promise<string>;
+    leave(leagueId: string): Promise<void>;
+    standings(leagueId: string): Promise<LeaderboardRow[]>;
   };
 }
 

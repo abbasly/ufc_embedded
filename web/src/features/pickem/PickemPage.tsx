@@ -4,16 +4,18 @@
 
 import "./Pickem.css";
 
-import { Alert, Avatar, Badge, Button, Center, Grid, Group, Loader, Paper, Stack, Text, Title, UnstyledButton } from "@mantine/core";
+import { Alert, Anchor, Avatar, Badge, Button, Center, Grid, Group, Loader, Paper, Stack, Text, Title, UnstyledButton } from "@mantine/core";
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { useAuth } from "../../auth/AuthProvider";
 import { SignInModal } from "../../auth/SignInModal";
-import type { PickemBout } from "../../backend";
+import type { MatePick, PickemBout } from "../../backend";
 import { usePredictor } from "../../data/client";
 import type { PredictorData, PredictorFighter } from "../../data/types";
 import { winProb } from "../predictor/model";
-import { useCurrentEvent, useLeaderboard, useMyPicks, usePick } from "./usePickem";
+import { Leagues } from "./Leagues";
+import { useCurrentEvent, useMatesPicks, useMyPicks, usePick } from "./usePickem";
 
 /** The current time, ticking every ``ms``: for the lock countdown. */
 function useNow(ms: number) {
@@ -52,6 +54,8 @@ export default function PickemPage() {
   const picks = useMyPicks(event.data?.event.id);
   const pick = usePick(event.data?.event.id);
   const now = useNow(30_000);
+  const locked = !!event.data && new Date(event.data.event.locksAt).getTime() <= now;
+  const mates = useMatesPicks(event.data?.event.id, locked);
   const [signingIn, setSigningIn] = useState(false);
   const byId = useMemo(() => new Map(predictor?.fighters.map((f) => [f.id, f])), [predictor]);
 
@@ -127,7 +131,7 @@ export default function PickemPage() {
                       Main event
                     </Text>
                   )}
-                  <Group wrap="nowrap" gap="sm" align="stretch">
+                  <Group wrap="nowrap" gap="sm" align="stretch" mb={6}>
                     <Side
                       id={bout.fighterA}
                       name={bout.aName}
@@ -154,13 +158,14 @@ export default function PickemPage() {
                       onPick={choose}
                     />
                   </Group>
+                  <BoutFooter bout={bout} known={byId.has(bout.fighterA) && byId.has(bout.fighterB)} mates={(mates.data ?? []).filter((m) => m.boutId === bout.id)} />
                 </Paper>
               );
             })}
           </Stack>
         </Grid.Col>
         <Grid.Col span={{ base: 12, md: 4 }}>
-          <Leaderboard />
+          <Leagues />
         </Grid.Col>
       </Grid>
     </Stack>
@@ -216,39 +221,28 @@ function Side({ id, name, fighter, chance, chosen, winner, disabled, onPick }: S
   );
 }
 
-function Leaderboard() {
-  const board = useLeaderboard();
-  const { profile } = useAuth();
+/** Under each bout: links to the site's deeper looks at the matchup, and (after the lock)
+ * what your league-mates picked. */
+function BoutFooter({ bout, known, mates }: { bout: PickemBout; known: boolean; mates: MatePick[] }) {
+  const surname = (id: string) => (id === bout.fighterA ? bout.aName : bout.bName).split(" ").at(-1);
+  if (!known && !mates.length) return null;
   return (
-    <Paper p="md" radius="md" className="pickem-board">
-      <Title order={4} mb="xs">
-        Leaderboard
-      </Title>
-      {board.isPending ? (
-        <Loader size="sm" />
-      ) : !board.data?.length ? (
-        <Text size="sm" c="dimmed">
-          No scores yet. Picks are scored after each event: get yours in and be first on the board.
-        </Text>
-      ) : (
-        <Stack gap={6}>
-          {board.data.map((row, i) => (
-            <Group key={row.displayName} justify="space-between" wrap="nowrap" className="pickem-row" data-me={row.displayName === profile?.displayName || undefined}>
-              <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
-                <Text size="sm" c="dimmed" w={20} ta="right">
-                  {i + 1}
-                </Text>
-                <Text size="sm" fw={600} truncate>
-                  {row.displayName}
-                </Text>
-              </Group>
-              <Text size="sm" style={{ fontVariantNumeric: "tabular-nums" }}>
-                {row.correct}/{row.picked} · <b>{row.points}</b>
-              </Text>
-            </Group>
-          ))}
-        </Stack>
+    <Group gap="md" wrap="wrap" px={4}>
+      {known && (
+        <>
+          <Anchor component={Link} to={`/predictor?a=${bout.fighterA}&b=${bout.fighterB}`} size="xs" c="dimmed">
+            Full prediction →
+          </Anchor>
+          <Anchor component={Link} to={`/mma-math?winner=${bout.fighterA}&loser=${bout.fighterB}`} size="xs" c="dimmed">
+            MMA math →
+          </Anchor>
+        </>
       )}
-    </Paper>
+      {mates.length > 0 && (
+        <Text size="xs" c="dimmed" ml="auto">
+          {mates.map((m) => `${m.displayName}: ${surname(m.winner)}`).join(" · ")}
+        </Text>
+      )}
+    </Group>
   );
 }

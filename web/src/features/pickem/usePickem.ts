@@ -55,3 +55,43 @@ export function usePick(eventId: string | undefined) {
     onSettled: () => client.invalidateQueries({ queryKey: key }),
   });
 }
+
+/** League-mates' picks on the event: empty until the card locks. */
+export function useMatesPicks(eventId: string | undefined, locked: boolean) {
+  const { backend, user } = useAuth();
+  return useQuery({
+    queryKey: ["pickem", "mates", eventId, user?.id],
+    queryFn: () => backend!.pickem.matesPicks(eventId!),
+    enabled: !!backend && !!user && !!eventId && locked,
+  });
+}
+
+export function useLeagues() {
+  const { backend, user } = useAuth();
+  return useQuery({
+    queryKey: ["leagues", user?.id],
+    queryFn: () => backend!.leagues.mine(),
+    enabled: !!backend && !!user,
+  });
+}
+
+export function useStandings(leagueId: string | null) {
+  const { backend } = useAuth();
+  return useQuery({
+    queryKey: ["leagues", "standings", leagueId],
+    queryFn: () => backend!.leagues.standings(leagueId!),
+    enabled: !!backend && !!leagueId,
+  });
+}
+
+/** Create, join and leave leagues; each refreshes the list of leagues. */
+export function useLeagueActions() {
+  const { backend } = useAuth();
+  const client = useQueryClient();
+  const refresh = () => client.invalidateQueries({ queryKey: ["leagues"] });
+  return {
+    create: useMutation({ mutationFn: (name: string) => backend!.leagues.create(name), onSuccess: refresh }),
+    join: useMutation({ mutationFn: (code: string) => backend!.leagues.join(code), onSuccess: refresh }),
+    leave: useMutation({ mutationFn: (id: string) => backend!.leagues.leave(id), onSuccess: refresh }),
+  };
+}

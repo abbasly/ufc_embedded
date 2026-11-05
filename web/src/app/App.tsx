@@ -5,6 +5,7 @@ import { Link, Navigate, Route, Routes, useLocation, useSearchParams } from "rea
 import { accountsEnabled } from "../backend";
 import { ArenaBackdrop } from "../components/ArenaBackdrop";
 import { AboutPage } from "../pages/AboutPage";
+import { ImpressumPage } from "../pages/ImpressumPage";
 import { PrivacyPage } from "../pages/PrivacyPage";
 import { countPage } from "./goatcounter";
 import { lazyPage } from "./lazyPage";
@@ -41,6 +42,7 @@ const TITLES: Record<string, string> = {
   "/ladder": "UFC Elo rankings: every fighter rated since 1994 | UFC Embedded",
   "/mma-math": "MMA math calculator: prove any UFC fighter beats any other | UFC Embedded",
   "/privacy": "Privacy | UFC Embedded",
+  "/impressum": "Impressum | UFC Embedded",
   "/pickem": "Pick'em: pick the winners of the next UFC card | UFC Embedded",
 };
 
@@ -148,6 +150,7 @@ export function App() {
             {accountsEnabled && <Route path="/pickem" element={<PickemPage />} />}
             <Route path="/about" element={<Navigate to="/" replace />} />
             <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/impressum" element={<ImpressumPage />} />
             <Route path="*" element={<Text>Page not found.</Text>} />
           </Routes>
         </Suspense>
