@@ -161,6 +161,22 @@
   padding: 6px 8px;
   border-radius: 8px;
 }
+a.pickem-podium {
+  color: inherit;
+  text-decoration: none;
+}
+a.pickem-podium:hover b,
+a.pickem-podium:hover .mantine-Text-root:first-child {
+  text-decoration: underline;
+}
+a.pickem-row {
+  color: inherit;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+a.pickem-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
 .pickem-row[data-me] {
   background: rgba(250, 82, 82, 0.12);
 }

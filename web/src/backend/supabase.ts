@@ -4,7 +4,7 @@
 
 import { type SupabaseClient, type User as SupabaseUser, createClient } from "@supabase/supabase-js";
 
-import { type Backend, BackendError, type LeaderboardRow, type Method, type PickemBout, type PickemEvent, type PickSplit, type Segment, type User } from "./types";
+import { type Backend, BackendError, type LeaderboardRow, type Method, type PickemBout, type EventScore, type PickemEvent, type PickSplit, type Segment, type User } from "./types";
 
 const toRow = (r: Record<string, unknown>): LeaderboardRow => ({
   displayName: r.display_name as string,
@@ -53,6 +53,21 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
     const { data } = await db.auth.getUser();
     if (!data.user) throw new BackendError("Sign in first.");
     return data.user.id;
+  };
+
+  /** A player's scored events, latest first. */
+  const scoresOf = async (id: string): Promise<EventScore[]> => {
+    const { data, error } = await db
+      .from("scores")
+      .select("event_id, points, correct, picked, events!inner(name, starts_on)")
+      .eq("user_id", id);
+    if (error) throw friendly(error);
+    return data
+      .map((s) => {
+        const event = s.events as unknown as { name: string; starts_on: string };
+        return { eventId: s.event_id, name: event.name, startsOn: event.starts_on, points: s.points, correct: s.correct, picked: s.picked };
+      })
+      .sort((a, b) => b.startsOn.localeCompare(a.startsOn));
   };
 
   return {
@@ -135,6 +150,11 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
         const { error } = await db.from("profiles").insert({ id, display_name: displayName.trim() });
         if (error) throw friendly(error);
         return { id, displayName: displayName.trim(), avatar: null };
+      },
+      async byName(displayName) {
+        const { data, error } = await db.from("profiles").select("id, display_name, avatar, created_at").eq("display_name", displayName).maybeSingle();
+        if (error) throw friendly(error);
+        return data && { id: data.id, displayName: data.display_name, avatar: data.avatar, joinedOn: String(data.created_at).slice(0, 10) };
       },
       async update({ displayName, avatar }) {
         const id = await userId();
@@ -269,19 +289,9 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
       },
       async myScores() {
         const id = await userId().catch(() => null);
-        if (!id) return [];
-        const { data, error } = await db
-          .from("scores")
-          .select("event_id, points, correct, picked, events!inner(name, starts_on)")
-          .eq("user_id", id);
-        if (error) throw friendly(error);
-        return data
-          .map((s) => {
-            const event = s.events as unknown as { name: string; starts_on: string };
-            return { eventId: s.event_id, name: event.name, startsOn: event.starts_on, points: s.points, correct: s.correct, picked: s.picked };
-          })
-          .sort((a, b) => b.startsOn.localeCompare(a.startsOn));
+        return id ? scoresOf(id) : [];
       },
+      scoresOf,
     },
 
     leagues: {

@@ -4,7 +4,7 @@
 
 import { Button, Group, Loader, Modal, Paper, SegmentedControl, Stack, Text, TextInput, Title } from "@mantine/core";
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import { useAuth } from "../../auth/AuthProvider";
 import { PlayerAvatar } from "../../auth/PlayerAvatar";
@@ -13,6 +13,9 @@ import { EVERYONE, useLeaderboard, useLeagueActions, useLeagues, useStandings } 
 
 const TOP = 10; // rows shown before "Show all"
 const MEDALS = ["#f4c430", "#c0c6cf", "#cd7f32"];
+
+/** A player's page. */
+export const playerPath = (displayName: string) => `/u/${encodeURIComponent(displayName)}`;
 
 /** A league's invite link: opening it joins the league (after signing in, if need be). */
 export const inviteLink = (code: string) => `${window.location.origin}${import.meta.env.BASE_URL}pickem?join=${code}`;
@@ -221,7 +224,15 @@ function Standings({ rows, loading, me, inLeague }: { rows?: LeaderboardRow[]; l
         </Text>
       )}
       {shown.map(({ row, i }) => (
-        <Group key={row.displayName} justify="space-between" wrap="nowrap" className="pickem-row" data-me={row.displayName === me || undefined}>
+        <Group
+          key={row.displayName}
+          justify="space-between"
+          wrap="nowrap"
+          className="pickem-row"
+          data-me={row.displayName === me || undefined}
+          // The whole row opens the player's page.
+          renderRoot={(props) => <Link {...props} to={playerPath(row.displayName)} />}
+        >
           <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
             <Text fw={800} w={22} ta="right" c={i < 3 && row.points > 0 ? undefined : "dimmed"} style={i < 3 && row.points > 0 ? { color: MEDALS[i] } : undefined}>
               {i + 1}

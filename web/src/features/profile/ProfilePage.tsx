@@ -3,7 +3,7 @@
 
 import "../pickem/Pickem.css";
 
-import { Anchor, Avatar, Button, Center, Group, Loader, Modal, Paper, Select, SimpleGrid, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Anchor, Avatar, Button, Center, Group, Loader, Modal, Paper, Select, Stack, Text, TextInput, Title } from "@mantine/core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -15,7 +15,8 @@ import { SignInModal } from "../../auth/SignInModal";
 import { usePredictor } from "../../data/client";
 import type { League } from "../../backend";
 import { copyInviteLink } from "../pickem/Leagues";
-import { useLeaderboard, useLeagues, useStandings } from "../pickem/usePickem";
+import { useLeagues, useStandings } from "../pickem/usePickem";
+import { History, Stats } from "./PlayerStats";
 
 const VALID_NAME = /^[A-Za-z0-9_.-]{3,24}$/;
 
@@ -37,13 +38,19 @@ export default function ProfilePage() {
   }
   // No display name yet: the setup prompt (in the header) is open.
   if (!profile) return null;
+  return <Own displayName={profile.displayName} />;
+}
+
+/** Your own profile, once there's a display name. */
+function Own({ displayName }: { displayName: string }) {
+  const scores = useMyScores();
 
   return (
     <Stack gap="lg" maw={720} mx="auto" pt={4}>
       <Identity />
-      <Stats />
+      <Stats scores={scores.data} displayName={displayName} />
       <MyLeagues />
-      <History />
+      <History scores={scores.data} loading={scores.isPending} own />
       <Account />
     </Stack>
   );
@@ -171,48 +178,6 @@ function useMyScores() {
   });
 }
 
-/** Totals over every scored card, and where that puts you on the overall leaderboard. */
-function Stats() {
-  const { profile } = useAuth();
-  const scores = useMyScores();
-  const board = useLeaderboard();
-  const rows = scores.data ?? [];
-  const points = rows.reduce((n, r) => n + r.points, 0);
-  const correct = rows.reduce((n, r) => n + r.correct, 0);
-  const picked = rows.reduce((n, r) => n + r.picked, 0);
-  const rank = board.data?.findIndex((r) => r.displayName === profile?.displayName) ?? -1;
-
-  const tiles = [
-    { label: "Points", value: String(points) },
-    { label: "Right picks", value: picked ? `${correct}/${picked}` : "–", note: picked ? `${Math.round((100 * correct) / picked)}%` : undefined },
-    { label: "Cards played", value: String(rows.length) },
-    { label: "Rank", value: rank >= 0 ? `#${rank + 1}` : "–", note: rank >= 0 ? "overall" : undefined },
-  ];
-  return (
-    <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm">
-      {tiles.map((t) => (
-        <Paper key={t.label} p="md" radius="md" className="pickem-board">
-          <Text size="xs" c="dimmed" tt="uppercase" fw={700} style={{ letterSpacing: "0.08em" }}>
-            {t.label}
-          </Text>
-          <Group gap={6} align="baseline">
-            <Text fz={26} fw={800} style={{ fontVariantNumeric: "tabular-nums" }}>
-              {t.value}
-            </Text>
-            {t.note && (
-              <Text size="sm" c="dimmed">
-                {t.note}
-              </Text>
-            )}
-          </Group>
-        </Paper>
-      ))}
-    </SimpleGrid>
-  );
-}
-
-const day = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-
 /** Your leagues, each with where you stand, a way in and its invite link. */
 function MyLeagues() {
   const leagues = useLeagues();
@@ -277,45 +242,6 @@ function LeagueRow({ league }: { league: League }) {
         </Button>
       </Group>
     </Group>
-  );
-}
-
-function History() {
-  const scores = useMyScores();
-  return (
-    <Paper p="md" radius="md" className="pickem-board">
-      <Title order={4} mb="sm">
-        Past cards
-      </Title>
-      {scores.isPending ? (
-        <Loader size="sm" />
-      ) : !scores.data?.length ? (
-        <Text size="sm" c="dimmed">
-          No scored cards yet. Cards are scored once the results are in.{" "}
-          <Anchor component={Link} to="/">
-            Make your picks →
-          </Anchor>
-        </Text>
-      ) : (
-        <Stack gap={8}>
-          {scores.data.map((s) => (
-            <Group key={s.eventId} justify="space-between" wrap="nowrap">
-              <div style={{ minWidth: 0 }}>
-                <Text size="sm" fw={600} truncate>
-                  {s.name}
-                </Text>
-                <Text size="xs" c="dimmed">
-                  {day(s.startsOn)} · {s.correct}/{s.picked} right
-                </Text>
-              </div>
-              <Text fw={800} style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
-                {s.points} pts
-              </Text>
-            </Group>
-          ))}
-        </Stack>
-      )}
-    </Paper>
   );
 }
 
