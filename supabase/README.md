@@ -29,6 +29,8 @@ backend in the same folder stands in for it during development) and `web/src/aut
 | `events`, `bouts` | the data pipeline (cards, segments, results) | everyone |
 | `picks` | each user, their own, until the event locks | only the owner |
 | `scores` | the scoring job | everyone (`leaderboard` view) |
+| `leagues`, `league_members` | through functions (create, join, leave) | members only |
+| `friendships` | through functions (request, accept, remove) | the two people in it |
 
 `delete_my_account()` removes a user and everything of theirs. `score_event(id)` scores an
 event from its results (10 for the right winner, +5 for the method, +5 for an underdog); only

@@ -1,10 +1,11 @@
 // The header's account corner: "Sign in", or the signed-in user's avatar with a menu (profile,
 // Pick'em, sign out). Renders nothing when accounts are off.
 
-import { Button, Menu, Modal, Stack, Text, UnstyledButton } from "@mantine/core";
+import { Button, Indicator, Menu, Modal, Stack, Text, UnstyledButton } from "@mantine/core";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
+import { useFriends } from "../features/friends/useFriends";
 import { useAuth } from "./AuthProvider";
 import { PasswordModal } from "./PasswordModal";
 import { PlayerAvatar } from "./PlayerAvatar";
@@ -14,6 +15,8 @@ import { SignInModal } from "./SignInModal";
 export function UserMenu() {
   const { enabled, loading, user, profile, backend, recovering, endRecovery, linkError, clearLinkError } = useAuth();
   const [signingIn, setSigningIn] = useState(false);
+  const friends = useFriends();
+  const requests = (friends.data ?? []).filter((f) => f.status === "incoming").length;
 
   if (!enabled || loading) return null;
 
@@ -49,13 +52,22 @@ export function UserMenu() {
       <Menu position="bottom-end" withArrow>
         <Menu.Target>
           <UnstyledButton aria-label="Account">
-            <PlayerAvatar name={name} avatar={profile?.avatar} size={28} />
+            {/* A dot when someone's waiting for you to accept their friend request. */}
+            <Indicator disabled={!requests} color="red" size={10} offset={3} withBorder>
+              <PlayerAvatar name={name} avatar={profile?.avatar} size={28} />
+            </Indicator>
           </UnstyledButton>
         </Menu.Target>
         <Menu.Dropdown>
           <Menu.Label>{name}</Menu.Label>
           <Menu.Item component={Link} to="/me">
             Your profile
+            {requests > 0 && (
+              <Text span c="red.4" size="xs" fw={700}>
+                {" "}
+                · {requests} friend {requests === 1 ? "request" : "requests"}
+              </Text>
+            )}
           </Menu.Item>
           <Menu.Item component={Link} to="/">
             Pick'em

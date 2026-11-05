@@ -11,6 +11,7 @@ import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../../auth/AuthProvider";
 import { PlayerAvatar } from "../../auth/PlayerAvatar";
 import { usePredictor } from "../../data/client";
+import { FriendButton } from "../friends/FriendButton";
 import { History, Stats } from "./PlayerStats";
 
 const joined = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
@@ -60,10 +61,12 @@ export default function PlayerPage() {
               {fighter && <> · repping {fighter.name}</>}
             </Text>
           </Stack>
-          {isMe && (
+          {isMe ? (
             <Button component={Link} to="/me" variant="light" size="xs">
               Edit your profile
             </Button>
+          ) : (
+            <FriendButton userId={p.id} displayName={p.displayName} />
           )}
         </Group>
       </Paper>

@@ -103,6 +103,14 @@ export interface EventScore {
   picked: number;
 }
 
+/** A friend, or an open friend request: "incoming" (they asked you) or "outgoing" (you asked). */
+export interface Friend {
+  userId: string;
+  displayName: string;
+  avatar: string | null;
+  status: "friends" | "incoming" | "outgoing";
+}
+
 /** Everything the app asks of a backend. One implementation today (Supabase, supabase.ts). */
 export interface Backend {
   auth: {
@@ -156,6 +164,18 @@ export interface Backend {
     myScores(): Promise<EventScore[]>;
     /** Any player's scored events, latest first (scores are public, like the leaderboard). */
     scoresOf(userId: string): Promise<EventScore[]>;
+  };
+  /** Mutual friends: one asks, the other accepts. */
+  friends: {
+    /** Your friends and open requests. */
+    list(): Promise<Friend[]>;
+    /** Ask someone to be friends (accepts instead, if they already asked you). */
+    request(userId: string): Promise<"requested" | "accepted">;
+    accept(userId: string): Promise<void>;
+    /** Unfriend, decline, or take back a request. */
+    remove(userId: string): Promise<void>;
+    /** You and your friends, by points. */
+    standings(): Promise<LeaderboardRow[]>;
   };
   leagues: {
     mine(): Promise<League[]>;

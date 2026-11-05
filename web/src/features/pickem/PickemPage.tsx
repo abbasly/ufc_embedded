@@ -21,6 +21,7 @@ import { Leagues, playerPath } from "./Leagues";
 import { boutPoints, isUnderdog, marketChance, METHOD_LABEL, POINTS, scores } from "./scoring";
 import {
   EVERYONE,
+  FRIENDS,
   PICK_MUTATION,
   useCard,
   useEventLeaderboard,
@@ -111,7 +112,8 @@ export default function PickemPage() {
   // Friends' faces come from the league open on the leaderboard, never a mix of leagues.
   const [league, setLeague] = useLeagueChoice();
   const members = useLeagueMembers(league);
-  const leagueName = useLeagues().data?.find((l) => l.id === league)?.name ?? "";
+  const leagues = useLeagues();
+  const leagueName = league === FRIENDS ? "Friends" : (leagues.data?.find((l) => l.id === league)?.name ?? "");
   const inLeague = useMemo(() => new Set(league === EVERYONE ? [] : (members.data ?? [])), [league, members.data]);
   // Phones show the fights or the leaderboard (a tap apart); wider screens show both.
   const [view, setView] = useState<"fights" | "board">("fights");

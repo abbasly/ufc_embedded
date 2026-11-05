@@ -16,6 +16,7 @@ import { usePredictor } from "../../data/client";
 import type { League } from "../../backend";
 import { copyInviteLink } from "../pickem/Leagues";
 import { useLeagues, useStandings } from "../pickem/usePickem";
+import { FriendsList } from "../friends/FriendsList";
 import { History, Stats } from "./PlayerStats";
 
 const VALID_NAME = /^[A-Za-z0-9_.-]{3,24}$/;
@@ -49,6 +50,7 @@ function Own({ displayName }: { displayName: string }) {
     <Stack gap="lg" maw={720} mx="auto" pt={4}>
       <Identity />
       <Stats scores={scores.data} displayName={displayName} />
+      <FriendsList />
       <MyLeagues />
       <History scores={scores.data} loading={scores.isPending} own />
       <Account />
