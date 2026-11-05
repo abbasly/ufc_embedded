@@ -15,13 +15,17 @@ const MmaMathPage = lazyPage(() => import("../features/mma-math/MmaMathPage"));
 const PredictorPage = lazyPage(() => import("../features/predictor/PredictorPage"));
 const LadderPage = lazyPage(() => import("../features/ladder/LadderPage"));
 
-// `short` labels are used on phones so all tabs fit next to the logo; `fresh` tabs get a
-// "NEW" tag.
-const NAV: { to: string; label: string; short?: string; fresh?: boolean }[] = [
+// Pick'em is in beta on its own site (VITE_BETA_URL, set in CI): a tab links there.
+const BETA_URL: string | undefined = import.meta.env.VITE_BETA_URL || undefined;
+
+// `short` labels are used on phones so all tabs fit next to the logo; `fresh` tabs get a tag
+// ("NEW", or `tag`).
+const NAV: { to: string; label: string; short?: string; fresh?: boolean; tag?: string }[] = [
   { to: "/style-map", label: "Style Map", short: "Map" },
   { to: "/predictor", label: "Predictor", short: "Predict" },
+  ...(BETA_URL ? [{ to: BETA_URL, label: "Pick'em", short: "Picks", fresh: true, tag: "BETA" }] : []),
   { to: "/ladder", label: "Ladder" },
-  { to: "/mma-math", label: "MMA Math", short: "Math", fresh: true },
+  { to: "/mma-math", label: "MMA Math", short: "Math", fresh: !BETA_URL },
   { to: "/", label: "About" }, // the landing page
 ];
 
@@ -84,7 +88,7 @@ export function App() {
               <Button
                 key={item.to}
                 component={Link}
-                to={item.to}
+                to={item.to} // a full URL for tabs to another site: Link opens those as normal links
                 variant={pathname === item.to ? "filled" : "subtle"}
                 color={pathname === item.to ? "red" : "gray"}
                 size="compact-sm"
@@ -96,7 +100,7 @@ export function App() {
                 {item.fresh && (
                   <>
                     <Text span className="nav-new" visibleFrom="xs">
-                      NEW
+                      {item.tag ?? "NEW"}
                     </Text>
                     <Text span className="nav-new-dot" hiddenFrom="xs" />
                   </>

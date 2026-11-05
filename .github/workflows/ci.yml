@@ -44,6 +44,8 @@ jobs:
           VITE_CF_ANALYTICS_TOKEN: ${{ vars.CF_ANALYTICS_TOKEN }}
           VITE_VISITS_URL: ${{ vars.VISITS_URL }}
           VITE_GOATCOUNTER: ${{ vars.GOATCOUNTER_CODE }}
+          # The Pick'em beta (Cloudflare, from the beta branch): a "Pick'em BETA" tab links there.
+          VITE_BETA_URL: https://beta.anarli.com/pickem
           BASE_PATH: ${{ vars.SITE_DOMAIN && '/' || format('/{0}/', github.event.repository.name) }}
           VITE_SITE_URL: ${{ vars.SITE_DOMAIN && format('https://{0}', vars.SITE_DOMAIN) || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
       - uses: actions/upload-pages-artifact@v3
