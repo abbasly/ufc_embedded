@@ -52,9 +52,14 @@ export interface Pick {
 /** A league-mate's pick, visible once the card has locked. */
 export interface MatePick {
   displayName: string;
+  avatar: string | null;
   boutId: string;
   winner: string;
+  method: Method | null;
 }
+
+/** How many players picked each fighter: bout id -> fighter id -> picks. Empty until the lock. */
+export type PickSplit = Record<string, Record<string, number>>;
 
 /** A private group of friends with its own leaderboard, joined with an invite code. */
 export interface League {
@@ -114,6 +119,8 @@ export interface Backend {
     leaderboard(limit?: number): Promise<LeaderboardRow[]>;
     /** League-mates' picks on an event (empty until it locks). */
     matesPicks(eventId: string): Promise<MatePick[]>;
+    /** How everyone picked, in counts (empty until it locks). */
+    pickSplit(eventId: string): Promise<PickSplit>;
     /** The signed-in user's scored events, latest first. */
     myScores(): Promise<EventScore[]>;
   };

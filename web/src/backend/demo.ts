@@ -33,7 +33,10 @@ function save(s: Stored) {
 /** A sample card a week out, so the Pick'em screens have something to show. */
 function sampleCard(): { event: PickemEvent; bouts: PickemBout[] } {
   const day = new Date(Date.now() + 7 * 86400e3).toISOString().slice(0, 10);
-  const event: PickemEvent = { id: `${day}-demo`, name: "UFC Demo Night", startsOn: day, locksAt: `${day}T22:00:00Z`, scoredAt: null };
+  // ?locked in the URL shows the card as locked (to try the after-lock views).
+  const locked = new URLSearchParams(window.location.search).has("locked");
+  const locksAt = locked ? new Date(Date.now() - 3600e3).toISOString() : `${day}T22:00:00Z`;
+  const event: PickemEvent = { id: `${day}-demo`, name: "UFC Demo Night", startsOn: day, locksAt, scoredAt: null };
   const bout = (position: number, a: string, b: string, aName: string, bName: string, p: number): PickemBout => ({
     id: `${event.id}:${a}:${b}`,
     eventId: event.id,
@@ -129,7 +132,18 @@ export function demoBackend(): Backend {
         const s = load();
         return s.profile ? [{ displayName: s.profile.displayName, avatar: s.profile.avatar, points: 0, correct: 0, picked: s.picks.length, events: 0 }] : [];
       },
-      matesPicks: async () => [],
+      matesPicks: async () => {
+        const [b0, b1] = sampleCard().bouts as [PickemBout, PickemBout];
+        return [
+          { displayName: "olga", avatar: "islam-makhachev", boutId: b0.id, winner: b0.fighterA, method: "SUB" as const },
+          { displayName: "fred", avatar: null, boutId: b0.id, winner: b0.fighterB, method: "KO/TKO" as const },
+          { displayName: "olga", avatar: "islam-makhachev", boutId: b1.id, winner: b1.fighterA, method: null },
+        ];
+      },
+      pickSplit: async () => {
+        const [b0, b1] = sampleCard().bouts as [PickemBout, PickemBout];
+        return { [b0.id]: { [b0.fighterA]: 62, [b0.fighterB]: 38 }, [b1.id]: { [b1.fighterA]: 15, [b1.fighterB]: 30 } };
+      },
       myScores: async () =>
         load().signedIn ? [{ eventId: "demo-past", name: "UFC 333: Demo vs. Results", startsOn: "2026-10-31", points: 45, correct: 4, picked: 6 }] : [],
     },

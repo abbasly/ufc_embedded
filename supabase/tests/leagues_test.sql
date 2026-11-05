@@ -61,6 +61,9 @@ select pg_temp.expect_count($$select 1 from public.leagues where name = 'Gym boy
 delete from public.leagues where name = 'Gym boys';
 select pg_temp.expect_count($$select 1 from public.leagues where name = 'Gym boys'$$, 1, 'the league after Fred tried to delete it');
 
+-- The crowd's split stays hidden until the lock.
+select pg_temp.expect_count($$select 1 from public.pick_split('lg-open')$$, 0, 'the pick split before the lock');
+
 -- ---- After the lock: league-mates see each other's picks; outsiders still don't -----------------
 reset role;
 update public.events set locks_at = now() - interval '1 minute' where id = 'lg-open';
@@ -72,6 +75,12 @@ select pg_temp.expect_count(format($$select 1 from public.league_standings(%L) w
   (select id from public.leagues limit 1)), 1, 'the league standings');
 set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000c';
 select pg_temp.expect_count($$select 1 from public.picks$$, 0, 'an outsider seeing league picks after the lock');
+-- After it, anyone sees the counts (one pick each for x and y), but still not whose they are.
+select pg_temp.expect_count($$select 1 from public.pick_split('lg-open') where picks = 1$$, 2, 'the pick split after the lock');
+set role anon;
+reset request.jwt.claim.sub;
+select pg_temp.expect_count($$select 1 from public.pick_split('lg-open')$$, 2, 'a visitor seeing the pick split');
+set role authenticated;
 
 -- ---- Fred leaves; Olga (the owner) leaving deletes the league --------------------------------------
 set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000000b';
