@@ -12,6 +12,7 @@ import type { LeaderboardRow } from "../../backend";
 import { useLeaderboard, useLeagueActions, useLeagues, useStandings } from "./usePickem";
 
 const EVERYONE = "everyone";
+const TOP = 25;
 
 export function Leagues() {
   const { user, profile } = useAuth();
@@ -162,9 +163,17 @@ function Standings({ rows, loading, me, inLeague }: { rows?: LeaderboardRow[]; l
         {inLeague ? "Nobody here yet: send your friends the invite link." : "No scores yet. Picks are scored after each event: get yours in and be first on the board."}
       </Text>
     );
+  // Big boards (a subreddit's league): the top 25, plus your own row if you're further down.
+  const mine = rows.findIndex((r) => r.displayName === me);
+  const shown = rows.map((row, i) => ({ row, i })).filter(({ i }) => i < TOP || i === mine);
   return (
     <Stack gap={6}>
-      {rows.map((row, i) => (
+      {rows.length > TOP && (
+        <Text size="xs" c="dimmed">
+          {rows.length} players
+        </Text>
+      )}
+      {shown.map(({ row, i }) => (
         <Group key={row.displayName} justify="space-between" wrap="nowrap" className="pickem-row" data-me={row.displayName === me || undefined}>
           <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
             <Text size="sm" c="dimmed" w={20} ta="right">

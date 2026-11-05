@@ -78,7 +78,8 @@ function goatcounter(code: string | undefined): Plugin {
           // Record "/predictor/" (how GitHub Pages serves a page on reload) as "/predictor", like
           // the app does, so each page has one count. Must be set before count.js loads.
           tag: "script",
-          children: `window.goatcounter = { path: function (p) { return p.replace(/(.)\\/$/, "$1"); } };`,
+          // The beta site (beta.*) counts under /beta/..., so one dashboard keeps the two apart.
+          children: `window.goatcounter = { path: function (p) { return (location.hostname.indexOf("beta.") === 0 ? "/beta" : "") + p.replace(/(.)\\/$/, "$1"); } };`,
           injectTo: "body",
         },
         {

@@ -7,12 +7,33 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../../auth/AuthProvider";
 import type { Method, Pick } from "../../backend";
 
-export function useCurrentEvent() {
+export function useEvents() {
   const { backend } = useAuth();
   return useQuery({
-    queryKey: ["pickem", "event"],
-    queryFn: () => backend!.pickem.currentEvent(),
+    queryKey: ["pickem", "events"],
+    queryFn: () => backend!.pickem.events(),
     enabled: !!backend,
+    staleTime: 60_000,
+  });
+}
+
+export function useCard(eventId: string | undefined) {
+  const { backend } = useAuth();
+  return useQuery({
+    queryKey: ["pickem", "card", eventId],
+    queryFn: () => backend!.pickem.card(eventId!),
+    enabled: !!backend && !!eventId,
+    staleTime: 60_000,
+  });
+}
+
+/** Everyone's points on a scored event. */
+export function useEventLeaderboard(eventId: string | undefined, scored: boolean) {
+  const { backend } = useAuth();
+  return useQuery({
+    queryKey: ["pickem", "event-leaderboard", eventId],
+    queryFn: () => backend!.pickem.eventLeaderboard(eventId!, 100),
+    enabled: !!backend && !!eventId && scored,
     staleTime: 60_000,
   });
 }

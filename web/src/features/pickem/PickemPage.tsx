@@ -8,17 +8,18 @@ import "./Pickem.css";
 import { Alert, Anchor, Avatar, Badge, Button, Center, Grid, Group, Loader, Paper, Stack, Text, Title, UnstyledButton } from "@mantine/core";
 import { useIsMutating } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import { useAuth } from "../../auth/AuthProvider";
+import { PlayerAvatar } from "../../auth/PlayerAvatar";
 import { SignInModal } from "../../auth/SignInModal";
-import { type MatePick, METHODS, type Method, type Pick, type PickemBout, type Segment } from "../../backend";
+import { type LeaderboardRow, type MatePick, METHODS, type Method, type Pick, type PickemBout, type PickemEvent, type Segment } from "../../backend";
 import { usePredictor } from "../../data/client";
 import type { PredictorData, PredictorFighter } from "../../data/types";
 import { winProb } from "../predictor/model";
 import { Leagues } from "./Leagues";
 import { boutPoints, isUnderdog, METHOD_LABEL, POINTS } from "./scoring";
-import { PICK_MUTATION, useCurrentEvent, useMatesPicks, useMyPicks, usePick } from "./usePickem";
+import { PICK_MUTATION, useCard, useEventLeaderboard, useEvents, useMatesPicks, useMyPicks, usePick } from "./usePickem";
 
 /** The current time, ticking every ``ms``: for the lock countdown. */
 function useNow(ms: number) {
@@ -30,14 +31,37 @@ function useNow(ms: number) {
   return now;
 }
 
-/** "2d 4h", "3h 12m", "45m": time left until the card locks. */
+/** "2d 04h 13m 09s": time left until the card locks. */
 function timeLeft(ms: number): string {
-  const m = Math.floor(ms / 60_000);
-  const d = Math.floor(m / 1440);
-  const h = Math.floor((m % 1440) / 60);
-  if (d > 0) return `${d}d ${h}h`;
-  if (h > 0) return `${h}h ${m % 60}m`;
-  return `${Math.max(1, m)}m`;
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const d = Math.floor(total / 86400);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const hms = `${pad(Math.floor((total % 86400) / 3600))}h ${pad(Math.floor((total % 3600) / 60))}m ${pad(total % 60)}s`;
+  return d > 0 ? `${d}d ${hms}` : hms;
+}
+
+/** The lock countdown, ticking every second (on its own, so the page doesn't re-render). */
+function Countdown({ until }: { until: string }) {
+  const now = useNow(1000);
+  return (
+    <Badge size="lg" variant="light" color="red" style={{ fontVariantNumeric: "tabular-nums" }}>
+      Picks close in {timeLeft(new Date(until).getTime() - now)}
+    </Badge>
+  );
+}
+
+/** "Sat 7 Nov, 17:00" in the visitor's own time zone. */
+const lockLabel = (iso: string) =>
+  new Date(iso).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
+/** "UFC 334 · 14 Nov": a short name for the event switcher. */
+const shortName = (e: PickemEvent) =>
+  `${e.name.split(":")[0]} · ${new Date(`${e.startsOn}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
+
+/** The card to show first: the earliest one not scored yet (the one being fought, or the next
+ * one), else the most recent. */
+function defaultEvent(events: PickemEvent[]): PickemEvent | undefined {
+  return events.find((e) => !e.scoredAt) ?? events.at(-1);
 }
 
 const dateLabel = (day: string) =>
@@ -57,21 +81,26 @@ function modelChance(data: PredictorData | undefined, byId: Map<string, Predicto
 }
 
 export default function PickemPage() {
-  const { enabled, user, loading: authLoading } = useAuth();
+  const { enabled, user, profile, loading: authLoading } = useAuth();
   const { data: predictor } = usePredictor();
-  const event = useCurrentEvent();
-  const picks = useMyPicks(event.data?.event.id);
-  const pick = usePick(event.data?.event.id);
+  const [params, setParams] = useSearchParams();
+  const events = useEvents();
+  const eventId = params.get("event") ?? defaultEvent(events.data ?? [])?.id;
+  const event = useCard(eventId);
+  const picks = useMyPicks(eventId);
+  const pick = usePick(eventId);
   const saving = useIsMutating({ mutationKey: PICK_MUTATION }) > 0;
-  const now = useNow(30_000);
+  const now = useNow(15_000); // the countdown badge ticks by itself, every second
   const locked = !!event.data && new Date(event.data.event.locksAt).getTime() <= now;
-  const mates = useMatesPicks(event.data?.event.id, locked);
+  const mates = useMatesPicks(eventId, locked);
+  const results = useEventLeaderboard(eventId, !!event.data?.event.scoredAt);
   const [signingIn, setSigningIn] = useState(false);
   const byId = useMemo(() => new Map(predictor?.fighters.map((f) => [f.id, f])), [predictor]);
 
   if (!enabled) return <Alert title="Pick'em isn't available here">Accounts are switched off on this site.</Alert>;
-  if (event.isPending || authLoading) return <Center h="60vh"><Loader /></Center>;
-  if (event.error) return <Alert color="red" title="Couldn't load the card">{event.error.message}</Alert>;
+  if (events.isPending || authLoading || (eventId && event.isPending)) return <Center h="60vh"><Loader /></Center>;
+  const failed = events.error ?? event.error;
+  if (failed) return <Alert color="red" title="Couldn't load the card">{failed.message}</Alert>;
   if (!event.data) return <Alert title="No card yet">The next UFC card shows up here once it's announced.</Alert>;
 
   const { event: card, bouts } = event.data;
@@ -81,6 +110,7 @@ export default function PickemPage() {
   const picked = bouts.filter((b) => mine.has(b.id)).length;
   const earned = bouts.reduce((n, b) => n + (boutPoints(b, mine.get(b.id)) ?? 0), 0);
   const mainBouts = bouts.filter((b) => b.segment === "main");
+  const choose = (id: string) => setParams((p) => (p.set("event", id), p), { replace: true });
 
   const renderBout = (bout: PickemBout) => {
     const choice = mine.get(bout.id);
@@ -102,6 +132,15 @@ export default function PickemPage() {
 
   return (
     <Stack gap="lg" maw={1100} mx="auto" pt={4}>
+      {(events.data?.length ?? 0) > 1 && (
+        <Group gap={6} wrap="wrap">
+          {events.data!.map((e) => (
+            <UnstyledButton key={e.id} className="pickem-method" data-chosen={e.id === card.id || undefined} onClick={() => choose(e.id)}>
+              {shortName(e)}
+            </UnstyledButton>
+          ))}
+        </Group>
+      )}
       <Group justify="space-between" align="flex-end" wrap="wrap" gap="sm">
         <div>
           <Text size="xs" fw={800} c="red.4" tt="uppercase" style={{ letterSpacing: "0.12em" }}>
@@ -116,14 +155,15 @@ export default function PickemPage() {
         </div>
         <Stack gap={4} align="flex-end">
           {open ? (
-            <Badge size="lg" variant="light" color="red">
-              Picks close in {timeLeft(lockIn)}
-            </Badge>
+            <Countdown until={card.locksAt} />
           ) : (
             <Badge size="lg" variant="light" color="gray">
               {card.scoredAt ? "Results are in" : "Picks are locked"}
             </Badge>
           )}
+          <Text size="xs" c="dimmed">
+            {open ? "Closes" : "Closed"} {lockLabel(card.locksAt)}
+          </Text>
           {user && (
             <Text size="sm" c="dimmed" style={{ fontVariantNumeric: "tabular-nums" }}>
               {card.scoredAt ? `${earned} points from ` : "You've picked "}
@@ -133,6 +173,16 @@ export default function PickemPage() {
           )}
         </Stack>
       </Group>
+
+      {card.scoredAt && results.data && <Results rows={results.data} me={profile?.displayName} />}
+      {!open && !card.scoredAt && (
+        <Paper p="sm" radius="md" className="pickem-board">
+          <Text size="sm">
+            Picks are locked: no more changes. Points and the final ranking come in once the results are in, usually the
+            morning after the fights.
+          </Text>
+        </Paper>
+      )}
 
       {!user && (
         <Paper p="md" radius="md" className="pickem-cta">
@@ -177,6 +227,50 @@ export default function PickemPage() {
         </Grid.Col>
       </Grid>
     </Stack>
+  );
+}
+
+/** After the event: the top three, and where you finished. */
+function Results({ rows, me }: { rows: LeaderboardRow[]; me?: string }) {
+  if (!rows.length) return null;
+  const myRank = rows.findIndex((r) => r.displayName === me);
+  const medals = ["#f4c430", "#c0c6cf", "#cd7f32"];
+  return (
+    <Paper p="md" radius="md" className="pickem-board pickem-results">
+      <Group justify="space-between" align="flex-start" wrap="wrap" gap="md">
+        <div>
+          <Text size="xs" fw={800} c="yellow.5" tt="uppercase" style={{ letterSpacing: "0.12em" }}>
+            Final standings
+          </Text>
+          <Text size="sm" c="dimmed">
+            {rows.length} {rows.length === 1 ? "player" : "players"}
+            {myRank >= 0 && (
+              <>
+                {" "}
+                · you finished <b style={{ color: "var(--mantine-color-white)" }}>#{myRank + 1}</b> with {rows[myRank]?.points} points
+              </>
+            )}
+          </Text>
+        </div>
+        <Group gap="lg" wrap="wrap">
+          {rows.slice(0, 3).map((r, i) => (
+            <Group key={r.displayName} gap={8} wrap="nowrap">
+              <div style={{ position: "relative" }}>
+                <PlayerAvatar name={r.displayName} avatar={r.avatar} size={i === 0 ? 48 : 40} style={{ border: `2px solid ${medals[i]}` }} />
+              </div>
+              <div>
+                <Text size="sm" fw={700} lh={1.2}>
+                  {i + 1}. {r.displayName}
+                </Text>
+                <Text size="xs" c="dimmed">
+                  {r.points} pts · {r.correct}/{r.picked}
+                </Text>
+              </div>
+            </Group>
+          ))}
+        </Group>
+      </Group>
+    </Paper>
   );
 }
 
