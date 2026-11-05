@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { useAuth } from "../../auth/AuthProvider";
+import { useFriends } from "../friends/useFriends";
 import type { Method, Pick } from "../../backend";
 
 export function useEvents() {
@@ -125,28 +126,34 @@ export function useLeagues() {
 }
 
 export const EVERYONE = "everyone";
+export const FRIENDS = "friends";
 
-/** The league open on the leaderboard (or EVERYONE). Until someone picks one, it's the one in
- * the address (?league=..., from the profile page) or their first league, so friends' faces
- * show from the start. */
+/** The board open on the leaderboard: a league, FRIENDS or EVERYONE. Until someone picks one,
+ * it's the one in the address (?league=..., from the profile page), else their first league,
+ * else their friends, so familiar faces show from the start. */
 export function useLeagueChoice() {
   const leagues = useLeagues();
+  const friends = useFriends();
   const [params] = useSearchParams();
   const [chosen, setChosen] = useState<string | null>(() => params.get("league"));
-  const ids = leagues.data?.map((l) => l.id) ?? [];
+  const hasFriends = (friends.data ?? []).some((f) => f.status === "friends");
+  const ids = [...(leagues.data?.map((l) => l.id) ?? []), ...(hasFriends ? [FRIENDS] : [])];
   const selected = chosen && (chosen === EVERYONE || ids.includes(chosen)) ? chosen : (ids[0] ?? EVERYONE);
   return [selected, setChosen] as const;
 }
 
-/** The display names of a league's members (empty for EVERYONE). */
+/** The display names on a board: a league's members, or your friends (none for EVERYONE). */
 export function useLeagueMembers(leagueId: string) {
   const { backend } = useAuth();
-  return useQuery({
+  const friends = useFriends();
+  const league = useQuery({
     queryKey: ["leagues", "members", leagueId],
     queryFn: () => backend!.leagues.members(leagueId),
-    enabled: !!backend && leagueId !== EVERYONE,
+    enabled: !!backend && leagueId !== EVERYONE && leagueId !== FRIENDS,
     staleTime: 60_000,
   });
+  if (leagueId === FRIENDS) return { data: (friends.data ?? []).filter((f) => f.status === "friends").map((f) => f.displayName) };
+  return league;
 }
 
 export function useStandings(leagueId: string | null) {

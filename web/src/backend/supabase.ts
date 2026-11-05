@@ -4,7 +4,7 @@
 
 import { type SupabaseClient, type User as SupabaseUser, createClient } from "@supabase/supabase-js";
 
-import { type Backend, BackendError, type LeaderboardRow, type Method, type PickemBout, type EventScore, type PickemEvent, type PickSplit, type Segment, type User } from "./types";
+import { type Backend, BackendError, type LeaderboardRow, type Method, type PickemBout, type EventScore, type Friend, type PickemEvent, type PickSplit, type Segment, type User } from "./types";
 
 const toRow = (r: Record<string, unknown>): LeaderboardRow => ({
   displayName: r.display_name as string,
@@ -292,6 +292,39 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
         return id ? scoresOf(id) : [];
       },
       scoresOf,
+    },
+
+    friends: {
+      async list() {
+        const id = await userId().catch(() => null);
+        if (!id) return [];
+        const { data, error } = await db.rpc("my_friends");
+        if (error) throw friendly(error);
+        return (data as { user_id: string; display_name: string; avatar: string | null; status: Friend["status"] }[]).map((f) => ({
+          userId: f.user_id,
+          displayName: f.display_name,
+          avatar: f.avatar,
+          status: f.status,
+        }));
+      },
+      async request(other) {
+        const { data, error } = await db.rpc("friend_request", { other });
+        if (error) throw friendly(error);
+        return data as "requested" | "accepted";
+      },
+      async accept(other) {
+        const { error } = await db.rpc("friend_accept", { other });
+        if (error) throw friendly(error);
+      },
+      async remove(other) {
+        const { error } = await db.rpc("friend_remove", { other });
+        if (error) throw friendly(error);
+      },
+      async standings() {
+        const { data, error } = await db.rpc("friends_standings");
+        if (error) throw friendly(error);
+        return (data as Record<string, unknown>[]).map(toRow);
+      },
     },
 
     leagues: {

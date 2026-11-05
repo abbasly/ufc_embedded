@@ -9,7 +9,8 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/AuthProvider";
 import { PlayerAvatar } from "../../auth/PlayerAvatar";
 import type { LeaderboardRow } from "../../backend";
-import { EVERYONE, useLeaderboard, useLeagueActions, useLeagues, useStandings } from "./usePickem";
+import { useFriends, useFriendsStandings } from "../friends/useFriends";
+import { EVERYONE, FRIENDS, useLeaderboard, useLeagueActions, useLeagues, useStandings } from "./usePickem";
 
 const TOP = 10; // rows shown before "Show all"
 const MEDALS = ["#f4c430", "#c0c6cf", "#cd7f32"];
@@ -58,9 +59,18 @@ export function Leagues({ selected, setSelected }: Props) {
   }, [invite, user, profile]);
 
   const league = leagues.data?.find((l) => l.id === selected) ?? null;
+  const friends = useFriends();
+  const hasFriends = (friends.data ?? []).some((f) => f.status === "friends");
+  const showFriends = selected === FRIENDS && hasFriends;
   const everyone = useLeaderboard();
   const standings = useStandings(league?.id ?? null);
-  const rows = league ? standings : everyone;
+  const friendsBoard = useFriendsStandings(showFriends);
+  const rows = league ? standings : showFriends ? friendsBoard : everyone;
+  const boards = [
+    { value: EVERYONE, label: "Everyone" },
+    ...(hasFriends ? [{ value: FRIENDS, label: "Friends" }] : []),
+    ...(leagues.data ?? []).map((l) => ({ value: l.id, label: l.name })),
+  ];
   const error = actions.create.error ?? actions.join.error ?? actions.leave.error;
 
   const copyInvite = async () => {
@@ -74,13 +84,13 @@ export function Leagues({ selected, setSelected }: Props) {
     <Paper p="lg" radius="md" className="pickem-board">
       <Stack gap="md">
         <Title order={3}>Leaderboard</Title>
-        {user && (leagues.data?.length ?? 0) > 0 && (
+        {user && boards.length > 1 && (
           <SegmentedControl
             size="xs"
             fullWidth
-            value={league ? league.id : EVERYONE}
+            value={league ? league.id : showFriends ? FRIENDS : EVERYONE}
             onChange={setSelected}
-            data={[{ value: EVERYONE, label: "Everyone" }, ...(leagues.data ?? []).map((l) => ({ value: l.id, label: l.name }))]}
+            data={boards}
           />
         )}
         {invite && !user && (

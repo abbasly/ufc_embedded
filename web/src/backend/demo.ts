@@ -3,7 +3,7 @@
 // kept in localStorage. Same Backend interface, so features can't tell the difference.
 // Turned on with VITE_ACCOUNTS=demo (local development only; see backend/index.ts).
 
-import { type Backend, BackendError, type LeaderboardRow, type League, type Method, type Pick, type PickemBout, type PickemEvent, type Profile, type User } from "./types";
+import { type Backend, BackendError, type Friend, type LeaderboardRow, type League, type Method, type Pick, type PickemBout, type PickemEvent, type Profile, type User } from "./types";
 
 const KEY = "ufc-embedded-demo-backend";
 const DEMO_USER: User = { id: "demo-user", email: "demo@example.com" };
@@ -13,7 +13,14 @@ interface Stored {
   profile: Profile | null;
   picks: Pick[];
   leagues: League[];
+  friends?: Friend[];
 }
+
+/** Demo friends to start with: one friend and one request waiting for you. */
+const DEMO_FRIENDS: Friend[] = [
+  { userId: "sample-0", displayName: "olga", avatar: "islam-makhachev", status: "friends" },
+  { userId: "sample-2", displayName: "ko_king", avatar: "ilia-topuria", status: "incoming" },
+];
 
 function load(): Stored {
   try {
@@ -220,6 +227,38 @@ export function demoBackend(): Backend {
               { eventId: "demo-past", name: "UFC 333: Demo vs. Results", startsOn: "2026-10-31", points: 95, correct: 8, picked: 10 },
               { eventId: "demo-older", name: "UFC Fight Night: Sample vs. Card", startsOn: "2026-10-24", points: 70, correct: 6, picked: 10 },
             ],
+    },
+    friends: {
+      list: async () => (load().signedIn ? (load().friends ?? DEMO_FRIENDS) : []),
+      async request(userId) {
+        signedIn();
+        const s = load();
+        const list = s.friends ?? DEMO_FRIENDS;
+        const existing = list.find((f) => f.userId === userId);
+        if (existing?.status === "incoming") {
+          save({ ...s, friends: list.map((f) => (f.userId === userId ? { ...f, status: "friends" as const } : f)) });
+          return "accepted";
+        }
+        if (!existing) {
+          const i = Number(userId.replace("sample-", ""));
+          const name = SAMPLE_NAMES[i] ?? userId;
+          save({ ...s, friends: [...list, { userId, displayName: name, avatar: AVATARS[i % AVATARS.length] ?? null, status: "outgoing" }] });
+        }
+        return "requested";
+      },
+      async accept(userId) {
+        const s = load();
+        save({ ...s, friends: (s.friends ?? DEMO_FRIENDS).map((f) => (f.userId === userId ? { ...f, status: "friends" as const } : f)) });
+      },
+      async remove(userId) {
+        const s = load();
+        save({ ...s, friends: (s.friends ?? DEMO_FRIENDS).filter((f) => f.userId !== userId) });
+      },
+      standings: async () => {
+        const s = load();
+        const names = new Set((s.friends ?? DEMO_FRIENDS).filter((f) => f.status === "friends").map((f) => f.displayName));
+        return sampleBoard(s.profile, s.picks.length).filter((r) => names.has(r.displayName) || r.displayName === s.profile?.displayName);
+      },
     },
     // Demo leagues: yours, plus two made-up friends in every league you join.
     leagues: {
