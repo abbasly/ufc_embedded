@@ -1,0 +1,12 @@
+// The beta site (beta.anarli.com) on Cloudflare Workers: Cloudflare builds the `beta` branch
+// (build command `cd web && npm ci && npm run build`) and serves web/dist as static files.
+// The live site is still GitHub Pages, deployed by CI from master.
+{
+  "name": "ufc-embedded-beta",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./web/dist",
+    // Routes without their own file (/pickem, /me...) get the app, which handles them.
+    "not_found_handling": "single-page-application"
+  }
+}
