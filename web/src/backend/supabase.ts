@@ -27,7 +27,8 @@ const toUser = (u: SupabaseUser | null | undefined): User | null => (u ? { id: u
 
 /** Postgres and Supabase Auth error codes worth explaining to the user. */
 function friendly(error: { code?: string; message: string }): Error {
-  if (error.code === "invalid_credentials") return new BackendError("Wrong email or password.");
+  if (error.code === "invalid_credentials")
+    return new BackendError("Wrong email or password. If you joined with Google, use Continue with Google (or reset your password to add one).");
   if (error.code === "email_not_confirmed") return new BackendError("Confirm your email first: check your inbox for the link.");
   if (error.code === "user_already_exists") return new BackendError("There's already an account with that email. Sign in instead.");
   if (error.code === "weak_password") return new BackendError("Pick a longer password: at least 8 characters.");
@@ -71,6 +72,13 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
       async signUp(email, password) {
         const { data, error } = await db.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo() } });
         if (error) throw friendly(error);
+        // An address that already has an account (e.g. through Google) comes back as a stand-in
+        // user with no identities, and no email is sent: say so rather than "check your email".
+        if (data.user && data.user.identities?.length === 0) {
+          throw new BackendError(
+            "There's already an account with this email. Sign in, or use Continue with Google if that's how you joined. No password yet? Use \"Forgot your password?\" to add one.",
+          );
+        }
         return data.session ? "signed-in" : "confirm";
       },
       async signInWithPassword(email, password) {
