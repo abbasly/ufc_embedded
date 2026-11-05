@@ -23,7 +23,7 @@ export function Leagues({ selected, setSelected }: Props) {
   const { user, profile } = useAuth();
   const leagues = useLeagues();
   const actions = useLeagueActions();
-  const [dialog, setDialog] = useState<"create" | "join" | null>(null);
+  const [dialog, setDialog] = useState<"create" | "join" | "leave" | null>(null);
   const [copied, setCopied] = useState(false);
   const [params, setParams] = useSearchParams();
   const invite = params.get("join");
@@ -93,7 +93,7 @@ export function Leagues({ selected, setSelected }: Props) {
               variant="subtle"
               color="gray"
               ml="auto"
-              onClick={() => actions.leave.mutate(league.id, { onSuccess: () => setSelected(EVERYONE) })}
+              onClick={() => setDialog("leave")}
             >
               {league.isOwner ? "Delete league" : "Leave"}
             </Button>
@@ -121,6 +121,40 @@ export function Leagues({ selected, setSelected }: Props) {
         )}
       </Stack>
 
+      {/* Leaving, and above all deleting, is final: ask first. */}
+      <Modal
+        opened={dialog === "leave" && !!league}
+        onClose={() => setDialog(null)}
+        title={league?.isOwner ? `Delete "${league?.name}"?` : `Leave "${league?.name}"?`}
+        centered
+        size="sm"
+      >
+        <Stack gap="sm">
+          <Text size="sm">
+            {league?.isOwner
+              ? "This deletes the league for everyone in it: its standings and invite link go too. Everyone keeps their own picks and points. It can't be undone."
+              : "You'll leave its leaderboard. You can rejoin any time with the invite link."}
+          </Text>
+          <Button
+            color="red"
+            loading={actions.leave.isPending}
+            onClick={() =>
+              league &&
+              actions.leave.mutate(league.id, {
+                onSuccess: () => {
+                  setSelected(EVERYONE);
+                  setDialog(null);
+                },
+              })
+            }
+          >
+            {league?.isOwner ? "Delete league" : "Leave league"}
+          </Button>
+          <Button variant="subtle" onClick={() => setDialog(null)}>
+            Cancel
+          </Button>
+        </Stack>
+      </Modal>
       <NameDialog
         opened={dialog === "create"}
         title="New league"
