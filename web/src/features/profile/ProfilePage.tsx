@@ -221,7 +221,7 @@ function History() {
       ) : !scores.data?.length ? (
         <Text size="sm" c="dimmed">
           No scored cards yet. Cards are scored once the results are in.{" "}
-          <Anchor component={Link} to="/pickem">
+          <Anchor component={Link} to="/">
             Make your picks →
           </Anchor>
         </Text>

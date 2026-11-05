@@ -91,6 +91,17 @@ export function useMatesPicks(eventId: string | undefined, locked: boolean) {
   });
 }
 
+/** Which league-mates have picked each bout (not whom). */
+export function useMatesWhoPicked(eventId: string | undefined, enabled: boolean) {
+  const { backend, user } = useAuth();
+  return useQuery({
+    queryKey: ["pickem", "mates-who-picked", eventId, user?.id],
+    queryFn: () => backend!.pickem.matesWhoPicked(eventId!),
+    enabled: !!backend && !!user && !!eventId && enabled,
+    staleTime: 30_000,
+  });
+}
+
 /** How everyone picked (counts per fighter): empty until the card locks. */
 export function usePickSplit(eventId: string | undefined, locked: boolean) {
   const { backend } = useAuth();

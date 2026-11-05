@@ -5,7 +5,7 @@
 
 import "./Pickem.css";
 
-import { Alert, Anchor, Avatar, Badge, Button, Center, Grid, Group, Loader, Paper, Stack, Text, Title, Tooltip, UnstyledButton } from "@mantine/core";
+import { Alert, Anchor, Avatar, Badge, Button, Center, Collapse, Grid, Group, Loader, Paper, SegmentedControl, Stack, Text, Title, Tooltip, UnstyledButton } from "@mantine/core";
 import { useIsMutating } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -13,13 +13,23 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/AuthProvider";
 import { PlayerAvatar } from "../../auth/PlayerAvatar";
 import { SignInModal } from "../../auth/SignInModal";
-import { type LeaderboardRow, type MatePick, METHODS, type Method, type Pick, type PickemBout, type PickemEvent, type PickSplit, type Segment } from "../../backend";
+import { type LeaderboardRow, type MatePick, type MateWhoPicked, METHODS, type Method, type Pick, type PickemBout, type PickemEvent, type PickSplit, type Segment } from "../../backend";
 import { usePredictor } from "../../data/client";
 import type { PredictorData, PredictorFighter } from "../../data/types";
 import { winProb } from "../predictor/model";
 import { Leagues } from "./Leagues";
-import { boutPoints, isUnderdog, marketChance, METHOD_LABEL, POINTS } from "./scoring";
-import { PICK_MUTATION, useCard, useEventLeaderboard, useEvents, useMatesPicks, useMyPicks, usePick, usePickSplit } from "./usePickem";
+import { boutPoints, isUnderdog, marketChance, METHOD_LABEL, POINTS, scores } from "./scoring";
+import {
+  PICK_MUTATION,
+  useCard,
+  useEventLeaderboard,
+  useEvents,
+  useMatesPicks,
+  useMatesWhoPicked,
+  useMyPicks,
+  usePick,
+  usePickSplit,
+} from "./usePickem";
 
 /** The current time, ticking every ``ms``: for the lock countdown. */
 function useNow(ms: number) {
@@ -67,8 +77,7 @@ function defaultEvent(events: PickemEvent[]): PickemEvent | undefined {
 const dateLabel = (day: string) =>
   new Date(`${day}T12:00:00`).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
 
-const SEGMENTS: { key: Segment; label: string }[] = [
-  { key: "main", label: "Main card" },
+const PRELIMS: { key: Segment; label: string }[] = [
   { key: "prelims", label: "Prelims" },
   { key: "early", label: "Early prelims" },
 ];
@@ -94,6 +103,10 @@ export default function PickemPage() {
   const locked = !!event.data && new Date(event.data.event.locksAt).getTime() <= now;
   const mates = useMatesPicks(eventId, locked);
   const split = usePickSplit(eventId, locked);
+  const whoPicked = useMatesWhoPicked(eventId, !locked);
+  // Phones show the fights or the leaderboard (a tap apart); wider screens show both.
+  const [view, setView] = useState<"fights" | "board">("fights");
+  const [prelimsOpen, setPrelimsOpen] = useState(false);
   const results = useEventLeaderboard(eventId, !!event.data?.event.scoredAt);
   const [signingIn, setSigningIn] = useState(false);
   const byId = useMemo(() => new Map(predictor?.fighters.map((f) => [f.id, f])), [predictor]);
@@ -108,9 +121,10 @@ export default function PickemPage() {
   const lockIn = new Date(card.locksAt).getTime() - now;
   const open = lockIn > 0;
   const mine = new Map((picks.data ?? []).map((p) => [p.boutId, p]));
-  const picked = bouts.filter((b) => mine.has(b.id)).length;
-  const earned = bouts.reduce((n, b) => n + (boutPoints(b, mine.get(b.id)) ?? 0), 0);
-  const mainBouts = bouts.filter((b) => b.segment === "main");
+  const mainBouts = bouts.filter(scores);
+  const prelims = bouts.filter((b) => !scores(b));
+  const picked = mainBouts.filter((b) => mine.has(b.id)).length;
+  const earned = mainBouts.reduce((n, b) => n + (boutPoints(b, mine.get(b.id)) ?? 0), 0);
   const choose = (id: string) => setParams((p) => (p.set("event", id), p), { replace: true });
 
   const renderBout = (bout: PickemBout) => {
@@ -126,6 +140,7 @@ export default function PickemPage() {
         chance={modelChance(predictor, byId, bout)}
         canPick={!!user && open}
         mates={(mates.data ?? []).filter((m) => m.boutId === bout.id)}
+        pickedBy={(whoPicked.data ?? []).filter((m) => m.boutId === bout.id)}
         split={split.data?.[bout.id]}
         onPick={(winner, method) => pick.mutate({ boutId: bout.id, winner, method })}
       />
@@ -169,7 +184,8 @@ export default function PickemPage() {
           {user && (
             <Text size="sm" c="dimmed" style={{ fontVariantNumeric: "tabular-nums" }}>
               {card.scoredAt ? `${earned} points from ` : "You've picked "}
-              {picked} of {bouts.length}
+              {picked} of {mainBouts.length}
+              {prelims.length > 0 && " main-card fights"}
               {open && picked > 0 && <span className="pickem-saved"> · {saving ? "Saving…" : "✓ Saved"}</span>}
             </Text>
           )}
@@ -201,30 +217,65 @@ export default function PickemPage() {
         </Alert>
       )}
 
-      <Grid gap="xl">
-        <Grid.Col span={{ base: 12, md: 8 }}>
+      <SegmentedControl
+        hiddenFrom="md"
+        fullWidth
+        value={view}
+        onChange={(v) => setView(v as "fights" | "board")}
+        data={[
+          { value: "fights", label: "Fights" },
+          { value: "board", label: "Leaderboard" },
+        ]}
+      />
+      <Grid gap="xl" className="pickem-columns" data-view={view}>
+        <Grid.Col span={{ base: 12, md: 8 }} className="pickem-col-fights">
           <Stack gap="lg">
-            {SEGMENTS.map(({ key, label }) => {
-              const segment = bouts.filter((b) => b.segment === key);
-              if (!segment.length) return null;
-              return (
-                <Stack key={key} gap="sm">
-                  {/* A single list (no Wikipedia card yet) needs no heading. */}
-                  {segment.length !== bouts.length && (
-                    <Text size="xs" fw={800} c="dimmed" tt="uppercase" className="pickem-segment">
-                      {label}
-                    </Text>
-                  )}
-                  {segment.map(renderBout)}
-                </Stack>
-              );
-            })}
+            <Stack gap="sm">
+              {/* A single list (no Wikipedia card yet) needs no heading. */}
+              {prelims.length > 0 && (
+                <Text size="xs" fw={800} c="dimmed" tt="uppercase" className="pickem-segment">
+                  Main card
+                </Text>
+              )}
+              {mainBouts.map(renderBout)}
+            </Stack>
+            {prelims.length > 0 && (
+              // The prelims fold away: they don't score, and a full card is a long scroll.
+              <Stack gap="sm">
+                <UnstyledButton className="pickem-prelims-toggle" onClick={() => setPrelimsOpen((o) => !o)} aria-expanded={prelimsOpen}>
+                  <span>
+                    <b>Prelims</b> · {prelims.length} {prelims.length === 1 ? "fight" : "fights"} · for fun, no points
+                  </span>
+                  <span className="pickem-chevron" data-open={prelimsOpen || undefined} aria-hidden>
+                    ▾
+                  </span>
+                </UnstyledButton>
+                <Collapse expanded={prelimsOpen}>
+                  <Stack gap="sm">
+                    {PRELIMS.map(({ key, label }) => {
+                      const segment = prelims.filter((b) => b.segment === key);
+                      if (!segment.length) return null;
+                      return (
+                        <Stack key={key} gap="sm">
+                          {key === "early" && (
+                            <Text size="xs" fw={800} c="dimmed" tt="uppercase" className="pickem-segment">
+                              {label}
+                            </Text>
+                          )}
+                          {segment.map(renderBout)}
+                        </Stack>
+                      );
+                    })}
+                  </Stack>
+                </Collapse>
+              </Stack>
+            )}
           </Stack>
         </Grid.Col>
-        <Grid.Col span={{ base: 12, md: 4 }}>
+        <Grid.Col span={{ base: 12, md: 4 }} className="pickem-col-board">
           <Stack gap="md">
-            <Rules />
             <Leagues />
+            <Rules />
           </Stack>
         </Grid.Col>
       </Grid>
@@ -294,7 +345,7 @@ function Rules() {
         </Text>
       </Stack>
       <Text size="xs" c="dimmed" mt={6}>
-        Picks save as you tap. Change them until the card locks.
+        Main card only: prelims are for fun. Picks save as you tap; change them until the card locks.
       </Text>
     </Paper>
   );
@@ -308,11 +359,12 @@ interface BoutProps {
   chance: number | null; // the model's P(A wins)
   canPick: boolean;
   mates: MatePick[]; // league-mates' picks (after the lock)
+  pickedBy: MateWhoPicked[]; // league-mates who have picked (before the lock; not whom)
   split: PickSplit[string] | undefined; // how everyone picked (after the lock)
   onPick: (winner: string | null, method: Method | null) => void;
 }
 
-function Bout({ bout, label, choice, byId, chance, canPick, mates, split, onPick }: BoutProps) {
+function Bout({ bout, label, choice, byId, chance, canPick, mates, pickedBy, split, onPick }: BoutProps) {
   const choose = (id: string) => (choice?.winner === id ? onPick(null, null) : onPick(id, choice?.method ?? null));
   const points = boutPoints(bout, choice);
   const surname = (id: string) => (id === bout.fighterA ? bout.aName : bout.bName).split(" ").at(-1);
@@ -390,7 +442,7 @@ function Bout({ bout, label, choice, byId, chance, canPick, mates, split, onPick
           )}
         </Group>
       )}
-      <BoutFooter bout={bout} known={byId.has(bout.fighterA) && byId.has(bout.fighterB)} />
+      <BoutFooter bout={bout} known={byId.has(bout.fighterA) && byId.has(bout.fighterB)} pickedBy={pickedBy} />
     </Paper>
   );
 }
@@ -476,22 +528,14 @@ function Crowd({ bout, mates, split, surname }: { bout: PickemBout; mates: MateP
   const faces = (fighter: string) => {
     const backers = mates.filter((m) => m.winner === fighter);
     if (!backers.length) return <div className="pickem-faces" />;
-    const shown = backers.slice(0, 4);
+    const how = new Map(backers.map((m) => [m.displayName, m.method]));
     return (
-      <Avatar.Group spacing={8} className="pickem-faces">
-        {shown.map((m) => (
-          <Tooltip key={m.displayName} label={`${m.displayName}: ${surname(m.winner)}${m.method ? ` by ${METHOD_LABEL[m.method]}` : ""}`} withArrow>
-            <PlayerAvatar name={m.displayName} avatar={m.avatar} size={24} />
-          </Tooltip>
-        ))}
-        {backers.length > shown.length && (
-          <Tooltip label={backers.slice(4).map((m) => m.displayName).join(", ")} withArrow>
-            <Avatar size={24} radius="xl">
-              +{backers.length - shown.length}
-            </Avatar>
-          </Tooltip>
-        )}
-      </Avatar.Group>
+      <div className="pickem-faces">
+        <Faces
+          people={backers}
+          tip={(name) => `${name}: ${surname(fighter)}${how.get(name) ? ` by ${METHOD_LABEL[how.get(name)!]}` : ""}`}
+        />
+      </div>
     );
   };
   return (
@@ -522,17 +566,51 @@ function Crowd({ bout, mates, split, surname }: { bout: PickemBout; mates: MateP
   );
 }
 
-/** Under each bout: links to the site's deeper looks at the matchup. */
-function BoutFooter({ bout, known }: { bout: PickemBout; known: boolean }) {
-  if (!known) return null;
+/** Up to four faces, then "+n"; each with its own tooltip. */
+function Faces({ people, tip }: { people: { displayName: string; avatar: string | null }[]; tip: (name: string) => string }) {
+  const shown = people.slice(0, 4);
   return (
-    <Group gap="md" wrap="wrap" px={4}>
-      <Anchor component={Link} to={`/predictor?a=${bout.fighterA}&b=${bout.fighterB}`} size="xs" c="dimmed">
-        Full prediction →
-      </Anchor>
-      <Anchor component={Link} to={`/mma-math?winner=${bout.fighterA}&loser=${bout.fighterB}`} size="xs" c="dimmed">
-        MMA math →
-      </Anchor>
+    <Avatar.Group spacing={8}>
+      {shown.map((m) => (
+        <Tooltip key={m.displayName} label={tip(m.displayName)} withArrow events={{ hover: true, focus: false, touch: true }}>
+          <PlayerAvatar name={m.displayName} avatar={m.avatar} size={24} />
+        </Tooltip>
+      ))}
+      {people.length > shown.length && (
+        <Tooltip label={people.slice(4).map((m) => m.displayName).join(", ")} withArrow events={{ hover: true, focus: false, touch: true }}>
+          <Avatar size={24} radius="xl">
+            +{people.length - shown.length}
+          </Avatar>
+        </Tooltip>
+      )}
+    </Avatar.Group>
+  );
+}
+
+/** Under each bout: links to the site's deeper looks at the matchup, and (before the lock)
+ * which league-mates have already picked it. */
+function BoutFooter({ bout, known, pickedBy }: { bout: PickemBout; known: boolean; pickedBy: MateWhoPicked[] }) {
+  if (!known && !pickedBy.length) return null;
+  return (
+    <Group gap="md" wrap="wrap" px={4} align="center">
+      {known && (
+        <>
+          <Anchor component={Link} to={`/predictor?a=${bout.fighterA}&b=${bout.fighterB}`} size="xs" c="dimmed">
+            Full prediction →
+          </Anchor>
+          <Anchor component={Link} to={`/mma-math?winner=${bout.fighterA}&loser=${bout.fighterB}`} size="xs" c="dimmed">
+            MMA math →
+          </Anchor>
+        </>
+      )}
+      {pickedBy.length > 0 && (
+        <Group gap={6} ml="auto" wrap="nowrap">
+          <Text size="xs" c="dimmed">
+            Picked
+          </Text>
+          <Faces people={pickedBy} tip={(name) => `${name} has picked: you'll see whom when the card locks`} />
+        </Group>
+      )}
     </Group>
   );
 }

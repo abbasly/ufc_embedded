@@ -42,7 +42,7 @@ export function UserMenu() {
           <Menu.Item component={Link} to="/me">
             Your profile
           </Menu.Item>
-          <Menu.Item component={Link} to="/pickem">
+          <Menu.Item component={Link} to="/">
             Pick'em
           </Menu.Item>
           <Menu.Divider />
