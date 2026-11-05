@@ -6,6 +6,7 @@ import { type CSSProperties, Fragment, useEffect, useRef, useState } from "react
 import { Link } from "react-router-dom";
 
 import { type RecentVisits, recentVisits } from "../app/visits";
+import { accountsEnabled } from "../backend";
 
 const REPO = "https://github.com/abbasly/ufc_embedded";
 
@@ -13,6 +14,7 @@ interface FlowItem {
   title: string;
   text: string;
   to?: string;
+  tag?: string; // e.g. "BETA"
 }
 
 // How the site fits together: where the data comes from, what the Python side does with it,
@@ -24,7 +26,7 @@ const FLOW: { label: string; hint?: string; core?: boolean; items: FlowItem[] }[
       { title: "UFCStats", text: "Every fight since 1994, round by round" },
       { title: "Betting odds", text: "Past fights and upcoming cards" },
       { title: "Official rankings", text: "Champions and top 15s" },
-      { title: "Wikipedia", text: "Photos and scheduled events" },
+      { title: "Wikipedia", text: "Photos, events and fight cards" },
     ],
   },
   {
@@ -45,6 +47,7 @@ const FLOW: { label: string; hint?: string; core?: boolean; items: FlowItem[] }[
     items: [
       { title: "Style Map", text: "Fighters in 3D by how they fight", to: "/style-map" },
       { title: "Fight Predictor", text: "Win chance and how it ends", to: "/predictor" },
+      ...(accountsEnabled ? [{ title: "Pick'em", tag: "BETA", text: "Pick every fight, beat your friends", to: "/pickem" }] : []),
       { title: "Elo Ladder", text: "Chess-style ratings vs official ranks", to: "/ladder" },
       { title: "MMA Math", text: "Anyone beats anyone, in circles", to: "/mma-math" },
     ],
@@ -131,7 +134,10 @@ function HowItFits({ first }: { first: number }) {
               item.to ? (
                 <Link key={item.title} to={item.to} className="flow-item flow-link reveal" style={step(i++)}>
                   <div>
-                    <b>{item.title}</b>
+                    <b>
+                      {item.title}
+                      {item.tag && <em className="flow-tag">{item.tag}</em>}
+                    </b>
                     <span>{item.text}</span>
                   </div>
                   <span className="flow-arrow" aria-hidden>
@@ -163,7 +169,8 @@ function GitHubMark({ size = 20 }: { size?: number }) {
 
 export function AboutPage() {
   const flowStart = 1;
-  const statsStart = flowStart + 18; // after the diagram's labels, rails and items
+  // After the diagram's labels, rails and items.
+  const statsStart = flowStart + FLOW.length * 2 - 1 + FLOW.reduce((n, col) => n + col.items.length, 0);
   return (
     // Everything but the disclaimer fits on one laptop screen, so there's no big title.
     <Container size="md" py="lg" className="about">

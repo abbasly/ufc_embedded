@@ -173,6 +173,20 @@
   line-height: 1.35;
 }
 
+/* "BETA" next to a page's name. */
+.flow-tag {
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  vertical-align: 2px;
+  color: #fff;
+  background: linear-gradient(135deg, #ff9f43, #ff3b3b 60%, #e0218a);
+}
+
 /* The pipeline in the middle is the heart of it: a faint red wash. */
 .flow-core .flow-item {
   background: rgba(250, 82, 82, 0.07);

@@ -6,8 +6,8 @@ Every active UFC fighter, mapped by how they fight.
 
 A personal ML engineering project: three decades of UFC fights turned into interactive,
 explorable models. Data is current to the latest UFC event (fights, records, rankings and odds
-from UFCStats and bookmakers, via Kaggle). Works on desktop and phone; fully static, hosted free
-on GitHub Pages.
+from UFCStats and bookmakers, via Kaggle). Works on desktop and phone; the models are static
+files hosted free on GitHub Pages, and Pick'em (beta) adds accounts on Supabase.
 
 <table>
   <tr>
@@ -28,6 +28,16 @@ on GitHub Pages.
     <td width="50%" valign="top">
       <a href="https://ufc.anarli.com/ladder"><img src="docs/screenshots/ladder.png" alt="Elo ladder"></a><br>
       <sub><b>Elo Ladder</b>: ratings, official ranks, climbers and drops</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="https://ufc.anarli.com/pickem"><img src="docs/screenshots/pickem.png" alt="Pick'em"></a><br>
+      <sub><b>Pick'em</b> (beta): pick every fight on the next UFC card</sub>
+    </td>
+    <td width="50%" valign="top">
+      <a href="https://ufc.anarli.com/pickem"><img src="docs/screenshots/pickem-locked.png" alt="Pick'em after the lock"></a><br>
+      <sub>After the lock: your league's picks, the crowd's split, standings</sub>
     </td>
   </tr>
   <tr>
@@ -53,6 +63,13 @@ on GitHub Pages.
   likely outcome (who, and by KO / submission / decision), what drives the call, past meetings
   and common opponents, and a tale of the tape. Upcoming UFC cards scroll past in a ticker
   (from bookmakers' listings); click a fight to load it, with our pick next to the bookies'.
+- **[Pick'em](https://ufc.anarli.com/pickem)** (beta): sign in with Google or an email link, pick the winner of
+  every fight on the next UFC card (and, for a bonus, how they win) before it locks on fight
+  day. Cards come from Wikipedia with the main card, prelims and title fights; results are
+  scored automatically (10 for the winner, +5 for the method, +5 for calling an underdog).
+  Private leagues with invite links; once a card locks, you see your league-mates' picks and
+  how the whole crowd picked. Each bout links to its full prediction and MMA math. Profiles
+  have a fighter of your choice as the picture, your points and past cards.
 - **[Elo Ladder](https://ufc.anarli.com/ladder)**: every fighter rated chess-style from every UFC fight since 1994,
   next to their official rank, with the year's biggest climbers and drops.
 - **[MMA Math](https://ufc.anarli.com/mma-math)**: a calculator that "proves" any fighter beats any other with a chain of
@@ -188,7 +205,8 @@ bigger gaps, so the model has learned nothing about size beyond that.
 ## Architecture
 
 The Python side runs offline and writes JSON files; the website is a separate static app
-that only reads them. No server needed, so it hosts for free on GitHub Pages.
+that only reads them. No server needed, so it hosts for free on GitHub Pages (Pick'em's
+accounts are the one exception: see below).
 
 ```mermaid
 flowchart LR
@@ -214,23 +232,38 @@ flowchart LR
         client["data/client.ts<br/>only place that fetches"] --> feat["features/style-map<br/>React + three.js"]
         client --> mmaui["features/mma-math<br/>chains + loops"]
         client --> predui["features/predictor<br/>cards + predictions"]
+        backend["backend/<br/>Supabase or demo"] --> pickui["features/pickem<br/>picks, leagues, profiles"]
     end
 
     json --> client
     web -->|"GitHub Actions"| pages(["GitHub Pages<br/>ufc.anarli.com"])
     worker(["Cloudflare Worker<br/>visit count"]) --> web
+    wiki --> sync["pickem_sync.py<br/>fight cards, results"]
+    sync --> supa[("Supabase<br/>accounts, picks, scores, leagues")]
+    supa <-->|"row level security"| backend
 ```
 
 - **Data contract:** `export.py` writes JSON with a `schema_version`; `web/src/data/types.ts`
   mirrors it. Moving to a real API later only changes `client.ts`.
 - **Features are modular:** each product lives in `web/src/features/<name>/` and is lazy-loaded
   by its route.
-- **CI/CD:** every push to `master` runs ruff, mypy, pytest, the web tests and build, then deploys.
+- **Accounts (Pick'em):** the only server-side part. Supabase (Postgres + Auth, Frankfurt) is
+  reached straight from the browser with its public key; what each visitor may read and write
+  is enforced by row level security in the database, tested on every push
+  (`supabase/tests`). `web/src/backend/` is the only code that knows it's Supabase, behind a
+  `Backend` interface (with an in-browser demo backend for development). Cards, results and
+  scoring come from `pickem_sync.py` (Wikipedia fight cards + bookmakers' odds). See
+  [supabase/README.md](supabase/README.md).
+- **CI/CD:** every push to `master` runs ruff, mypy, pytest, the database tests, the web tests
+  and build, then deploys. The `beta` branch is built separately (Cloudflare) at
+  beta.anarli.com, for trying things before they reach the live site.
 
 ## Stack
 
 Python 3.12 with uv, pandas, scikit-learn, networkx; ruff, mypy (strict), pytest.
 Web: Vite, React, TypeScript, Mantine, react-three-fiber/drei, TanStack Query; vitest.
+Accounts: Supabase (Postgres with row level security, Auth with Google and email links), Resend
+for email.
 
 ## Running it
 
@@ -244,6 +277,10 @@ uv run pytest                            # Python tests
 cd web && npm install
 npm run dev                              # http://localhost:5173
 npm test                                 # web tests
+VITE_ACCOUNTS=demo npm run dev           # Pick'em with an in-browser demo backend
+
+uv run python -m ufc_embedded.pickem_sync | pbcopy   # Pick'em cards + results as SQL (see supabase/README.md)
+supabase/tests/run.sh                    # database security tests (needs a local Postgres)
 ```
 
 Raw data isn't committed. Download these regularly updated Kaggle datasets into
