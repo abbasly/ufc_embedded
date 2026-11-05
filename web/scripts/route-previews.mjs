@@ -49,6 +49,13 @@ const ROUTES = [
     image: "og-mma-math.png",
     text: "MMA math: loops of UFC fighters who beat each other in a circle, and a calculator that finds a chain of wins from any fighter to any other.",
   },
+  {
+    path: "pickem",
+    title: "Pick'em: pick the winners of the next UFC card | UFC Embedded",
+    description: "Pick the winner and the method of every fight on the next UFC card, then compete with friends in your own league. Free.",
+    image: "og-predictor.png",
+    text: "UFC Pick'em: pick who wins every fight on the next card, and how, before it locks. Points for every right call, leaderboards and private leagues with friends.",
+  },
 ];
 
 const escape = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");

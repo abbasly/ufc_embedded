@@ -23,13 +23,12 @@ const LadderPage = lazyPage(() => import("../features/ladder/LadderPage"));
 const PickemPage = lazyPage(() => import("../features/pickem/PickemPage"));
 const ProfilePage = lazyPage(() => import("../features/profile/ProfilePage"));
 
-// `short` labels are used on phones so all tabs fit next to the logo; `fresh` tabs get a
-// "NEW" tag.
-// Pick'em (and its NEW tag) only where accounts are on.
-const NAV: { to: string; label: string; short?: string; fresh?: boolean }[] = [
+// `short` labels are used on phones so all tabs fit next to the logo; `fresh` tabs get a tag
+// ("NEW", or `tag`). Pick'em (tagged BETA) only where accounts are on.
+const NAV: { to: string; label: string; short?: string; fresh?: boolean; tag?: string }[] = [
   { to: "/style-map", label: "Style Map", short: "Map" },
   { to: "/predictor", label: "Predictor", short: "Predict" },
-  ...(accountsEnabled ? [{ to: "/pickem", label: "Pick'em", short: "Picks", fresh: true }] : []),
+  ...(accountsEnabled ? [{ to: "/pickem", label: "Pick'em", short: "Picks", fresh: true, tag: "BETA" }] : []),
   { to: "/ladder", label: "Ladder" },
   { to: "/mma-math", label: "MMA Math", short: "Math", fresh: !accountsEnabled },
   { to: "/", label: "About" }, // the landing page
@@ -97,7 +96,7 @@ export function App() {
               <Button
                 key={item.to}
                 component={Link}
-                to={item.to}
+                to={item.to} // a full URL for tabs to another site: Link opens those as normal links
                 variant={pathname === item.to ? "filled" : "subtle"}
                 color={pathname === item.to ? "red" : "gray"}
                 size="compact-sm"
@@ -110,7 +109,7 @@ export function App() {
                 {item.fresh && (
                   <>
                     <Text span className="nav-new" visibleFrom="xs">
-                      NEW
+                      {item.tag ?? "NEW"}
                     </Text>
                     <Text span className="nav-new-dot" hiddenFrom="xs" />
                   </>
