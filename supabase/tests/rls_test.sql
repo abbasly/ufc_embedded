@@ -1,6 +1,7 @@
 -- Row level security tests: each block acts as a visitor (anon) or a signed-in user and checks
 -- what the database lets them do. A failed expectation raises "TEST FAILED: ...", which stops
--- the run (psql ON_ERROR_STOP). Run with supabase/tests/run.sh.
+-- the run (psql ON_ERROR_STOP). Run with supabase/tests/run.sh. Test files share one database,
+-- so each counts only its own fixtures.
 
 \set ON_ERROR_STOP 1
 \set QUIET 1
@@ -17,22 +18,7 @@ insert into public.bouts (id, event_id, position, fighter_a, fighter_b, a_name, 
   ('open:x:y', 'open', 1, 'x', 'y', 'X', 'Y'),
   ('locked:x:y', 'locked', 1, 'x', 'y', 'X', 'Y');
 
--- Expect the statement to be refused by row level security (or a check), else fail the run.
-create function pg_temp.refused(statement text, what text) returns void language plpgsql as $$
-begin
-  execute statement;
-  raise exception 'TEST FAILED: % was allowed', what;
-exception
-  when insufficient_privilege or check_violation or foreign_key_violation or unique_violation then null;
-end $$;
--- Expect a query's row count.
-create function pg_temp.expect_count(query text, expected int, what text) returns void language plpgsql as $$
-declare n int;
-begin
-  execute format('select count(*) from (%s) q', query) into n;
-  if n <> expected then raise exception 'TEST FAILED: % (got %, expected %)', what, n, expected; end if;
-end $$;
-grant execute on all functions in schema pg_temp to anon, authenticated;
+\ir helpers.sql
 
 -- ---- Alice signs in and sets up her profile and picks --------------------------------------
 set role authenticated;
@@ -44,7 +30,7 @@ select pg_temp.refused($$insert into public.profiles (id, display_name) values (
   'a display name under 3 characters');
 insert into public.picks (user_id, bout_id, winner) values ('aaaaaaaa-0000-0000-0000-000000000001', 'open:x:y', 'x');
 update public.picks set winner = 'y' where bout_id = 'open:x:y';
-select pg_temp.expect_count($$select 1 from public.picks where winner = 'y'$$, 1, 'Alice changing her open pick');
+select pg_temp.expect_count($$select 1 from public.picks where winner = 'y' and user_id = 'aaaaaaaa-0000-0000-0000-000000000001'$$, 1, 'Alice changing her open pick');
 select pg_temp.refused($$insert into public.picks (user_id, bout_id, winner) values ('aaaaaaaa-0000-0000-0000-000000000001', 'locked:x:y', 'x')$$,
   'picking after the event locked');
 select pg_temp.refused($$update public.picks set winner = 'nobody' where bout_id = 'open:x:y'$$,
@@ -69,9 +55,9 @@ update public.profiles set display_name = 'hacked' where id = 'aaaaaaaa-0000-000
 -- ---- A visitor who isn't signed in: read the public tables, write nothing --------------------
 set role anon;
 reset request.jwt.claim.sub;
-select pg_temp.expect_count($$select 1 from public.events$$, 2, 'visitors reading events');
-select pg_temp.expect_count($$select 1 from public.bouts$$, 2, 'visitors reading bouts');
-select pg_temp.expect_count($$select 1 from public.profiles$$, 2, 'visitors reading display names');
+select pg_temp.expect_count($$select 1 from public.events where id in ('open', 'locked')$$, 2, 'visitors reading events');
+select pg_temp.expect_count($$select 1 from public.bouts where event_id in ('open', 'locked')$$, 2, 'visitors reading bouts');
+select pg_temp.expect_count($$select 1 from public.profiles where display_name in ('alice', 'bob')$$, 2, 'visitors reading display names');
 select pg_temp.expect_count($$select 1 from public.picks$$, 0, 'visitors seeing anyone''s picks');
 select pg_temp.refused($$insert into public.picks (user_id, bout_id, winner) values ('aaaaaaaa-0000-0000-0000-000000000001', 'open:x:y', 'x')$$,
   'a visitor picking');
@@ -90,7 +76,7 @@ set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-000000000001';
 update public.picks set winner = 'x' where bout_id = 'open:x:y';
 delete from public.picks where bout_id = 'open:x:y';
 reset role;
-select pg_temp.expect_count($$select 1 from public.picks where winner = 'y'$$, 1, 'Alice''s pick frozen after the lock');
+select pg_temp.expect_count($$select 1 from public.picks where winner = 'y' and user_id = 'aaaaaaaa-0000-0000-0000-000000000001'$$, 1, 'Alice''s pick frozen after the lock');
 
 -- ---- The leaderboard shows totals only ---------------------------------------------------------
 insert into public.scores (user_id, event_id, correct, picked, points) values

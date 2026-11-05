@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Test the database migrations and their row level security on a throwaway local Postgres:
 # start a temporary server, load the Supabase stand-in, apply every migration in order, run
-# the tests, and remove the server again. Needs Postgres's command line tools (initdb, pg_ctl,
+# every tests/*_test.sql, and remove the server again. Needs Postgres's command line tools (initdb, pg_ctl,
 # psql), e.g. `brew install postgresql`.
 #
 # Supabase runs Postgres 15+. On an older local Postgres, the views' security_invoker option
@@ -26,4 +26,6 @@ for migration in "$here"/../migrations/*.sql; do
     psql_ -f "$migration"
   fi
 done
-psql_ -f "$here/rls_test.sql"
+for test in "$here"/*_test.sql; do
+  psql_ -f "$test"
+done
