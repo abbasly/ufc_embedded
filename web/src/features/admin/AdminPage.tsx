@@ -59,7 +59,7 @@ export default function AdminPage() {
         </Badge>
       </Group>
 
-      <SimpleGrid cols={{ base: 2, sm: 3, md: 4 }} spacing="sm">
+      <SimpleGrid cols={{ base: 3, sm: 4, md: 6 }} spacing={8}>
         {visits && <Tile label={`Visits, last ${visits.days} days`} value={visits.visits} />}
         {(overview.data ?? []).map((m) => (
           <Tile key={m.metric} label={m.metric} value={m.value} />
@@ -98,14 +98,15 @@ export default function AdminPage() {
   );
 }
 
+/** A small number with its label: compact, so all of them fit in two rows. */
 function Tile({ label, value }: { label: string; value: number }) {
   return (
-    <Paper p="md" radius="md" className="pickem-board">
-      <Text size="xs" c="dimmed" tt="uppercase" fw={700} style={{ letterSpacing: "0.06em" }} lineClamp={1}>
-        {label}
-      </Text>
-      <Text fz={26} fw={800} style={{ fontVariantNumeric: "tabular-nums" }}>
+    <Paper px="sm" py={8} radius="md" className="pickem-board">
+      <Text fz={20} fw={800} lh={1.2} style={{ fontVariantNumeric: "tabular-nums" }}>
         {value.toLocaleString("en-US")}
+      </Text>
+      <Text fz={11} c="dimmed" lh={1.3} lineClamp={2}>
+        {label}
       </Text>
     </Paper>
   );
