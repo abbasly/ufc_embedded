@@ -81,7 +81,7 @@ function sampleCard(): { event: PickemEvent; bouts: PickemBout[] } {
 
 /** A full-looking board for the demo: made-up players with made-up scores (local only). */
 const SAMPLE_NAMES = [
-  "olga", "fred", "ko_king", "sub_hunter", "leg_kick_larry", "the_clinch", "dec_merchant", "southpaw99",
+  "olga", "fred", "the_model", "ko_king", "sub_hunter", "leg_kick_larry", "the_clinch", "dec_merchant", "southpaw99",
   "octagon_owl", "gnp_greg", "rnc_rita", "spinning_back_steve", "jab_jab_cross", "cage_rat", "elbow_ella",
   "calf_slicer", "body_shot_bob", "flying_knee", "guard_puller", "sprawl_sam", "walkout_wally", "cutman_carl",
   "bell_saved", "scorecard_sue", "upset_ufo", "tko_tom", "mma_math_major", "chin_check", "takedown_tess", "ref_stoppage",

@@ -68,4 +68,17 @@ select pg_temp.expect_count($$select 1 from public.leaderboard where display_nam
 select pg_temp.expect_count($$select 1 from public.leaderboard where display_name = 'pia' and avatar = 'josh-hokit'$$, 1,
   'a user changing their own avatar');
 
+-- ---- The change log saw all of it, and only the owner can read it -------------------------------------
+select pg_temp.expect_count($$select 1 from public.pickem_log where event_id = 'sc' and kind = 'event added'$$, 1, 'the log: event added');
+select pg_temp.expect_count($$select 1 from public.pickem_log where event_id = 'sc' and kind = 'bout added'$$, 4, 'the log: bouts added');
+select pg_temp.expect_count($$select 1 from public.pickem_log where bout_id = 'sc:fav:dog' and kind = 'result' and detail = 'Fav vs Dog: Fav by KO/TKO'$$, 1, 'the log: a result');
+select pg_temp.expect_count($$select 1 from public.pickem_log where bout_id = 'sc:even:steven' and detail like '%: draw'$$, 1, 'the log: a draw');
+update public.bouts set winner = 'dog', method = 'DEC' where id = 'sc:fav:dog';
+select pg_temp.expect_count($$select 1 from public.pickem_log where bout_id = 'sc:fav:dog' and kind = 'result changed' and detail like '%Dog by DEC'$$, 1, 'the log: a corrected result');
+select pg_temp.expect_count($$select 1 from public.pickem_log where event_id = 'sc' and kind = 'scored'$$, 2, 'the log: scored (twice)');
+set role authenticated;
+set request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000f1';
+select pg_temp.refused($$select 1 from public.pickem_log$$, 'a player reading the change log');
+reset role;
+
 \echo 'All scoring tests passed.'

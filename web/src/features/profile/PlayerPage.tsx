@@ -12,6 +12,8 @@ import { useAuth } from "../../auth/AuthProvider";
 import { PlayerAvatar } from "../../auth/PlayerAvatar";
 import { usePredictor } from "../../data/client";
 import { FriendButton } from "../friends/FriendButton";
+import { ModelTag } from "../pickem/Leagues";
+import { MODEL_PLAYER } from "../pickem/scoring";
 import { History, Stats } from "./PlayerStats";
 
 const joined = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
@@ -55,17 +57,27 @@ export default function PlayerPage() {
           <Stack gap={4} style={{ flex: 1, minWidth: 200 }}>
             <Title order={2} lh={1.1}>
               {p.displayName}
+              {p.displayName === MODEL_PLAYER && <ModelTag />}
             </Title>
             <Text size="sm" c="dimmed">
-              Playing since {joined(p.joinedOn)}
-              {fighter && <> · repping {fighter.name}</>}
+              {p.displayName === MODEL_PLAYER ? (
+                <>
+                  Our prediction model, playing along: it picks the <Anchor component={Link} to="/predictor">predictor's</Anchor> favourite,
+                  and its most likely method, on every fight it knows both fighters of. Can you beat it?
+                </>
+              ) : (
+                <>
+                  Playing since {joined(p.joinedOn)}
+                  {fighter && <> · repping {fighter.name}</>}
+                </>
+              )}
             </Text>
           </Stack>
           {isMe ? (
             <Button component={Link} to="/me" variant="light" size="xs">
               Edit your profile
             </Button>
-          ) : (
+          ) : p.displayName === MODEL_PLAYER ? null : (
             <FriendButton userId={p.id} displayName={p.displayName} />
           )}
         </Group>

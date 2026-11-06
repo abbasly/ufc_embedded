@@ -17,8 +17,8 @@ import { type LeaderboardRow, type MatePick, type MateWhoPicked, METHODS, type M
 import { usePredictor } from "../../data/client";
 import type { PredictorData, PredictorFighter } from "../../data/types";
 import { winProb } from "../predictor/model";
-import { Leagues, playerPath } from "./Leagues";
-import { boutPoints, isUnderdog, marketChance, METHOD_LABEL, POINTS, scores } from "./scoring";
+import { Leagues, ModelTag, playerPath } from "./Leagues";
+import { boutPoints, isUnderdog, marketChance, METHOD_LABEL, MODEL_PLAYER, POINTS, scores } from "./scoring";
 import {
   EVERYONE,
   FRIENDS,
@@ -328,6 +328,7 @@ function Results({ rows, me }: { rows: LeaderboardRow[]; me?: string }) {
               <div>
                 <Text size="sm" fw={700} lh={1.2}>
                   {i + 1}. {r.displayName}
+                  {r.displayName === MODEL_PLAYER && <ModelTag />}
                 </Text>
                 <Text size="xs" c="dimmed">
                   {r.points} pts · {r.correct}/{r.picked}

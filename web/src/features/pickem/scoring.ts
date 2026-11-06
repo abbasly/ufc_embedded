@@ -6,6 +6,10 @@ import type { Method, Pick, PickemBout } from "../../backend";
 
 export const POINTS = { winner: 10, method: 5, underdog: 5 };
 
+/** The model's own Pick'em account: it picks the predictor's favourite, and its most likely
+ * method, on every bout it knows both fighters of (src/ufc_embedded/pickem_model.py). */
+export const MODEL_PLAYER = "the_model";
+
 export const METHOD_LABEL: Record<Method, string> = { "KO/TKO": "KO/TKO", SUB: "Submission", DEC: "Decision" };
 
 /** The bookmakers' chance for ``fighter`` in the bout, if they priced it. */
