@@ -19,7 +19,8 @@ const MEDALS = ["#f4c430", "#c0c6cf", "#cd7f32"];
 /** Marks the model's account on boards: it's the predictor playing, not a person. */
 export function ModelTag() {
   return (
-    <Badge size="xs" variant="light" color="grape" ml={6} style={{ verticalAlign: 2 }}>
+    // A span: it sits inside names' text (paragraphs, headings).
+    <Badge component="span" size="xs" variant="light" color="grape" ml={6} style={{ verticalAlign: 2 }}>
       Model
     </Badge>
   );
