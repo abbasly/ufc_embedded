@@ -17,6 +17,7 @@ import { type LeaderboardRow, type MatePick, type MateWhoPicked, METHODS, type M
 import { usePredictor } from "../../data/client";
 import type { PredictorData, PredictorFighter } from "../../data/types";
 import { winProb } from "../predictor/model";
+import { InstallBar } from "../../app/install";
 import { Leagues, ModelTag, playerPath } from "./Leagues";
 import { boutPoints, isUnderdog, marketChance, METHOD_LABEL, MODEL_PLAYER, places, POINTS, scores } from "./scoring";
 import {
@@ -242,6 +243,7 @@ export default function PickemPage() {
         </Paper>
       )}
 
+      <InstallBar />
       {/* No separate sign-in box: tapping a fighter while signed out opens sign-in. */}
       <SignInModal opened={signingIn} onClose={() => setSigningIn(false)} />
       {pick.error && (

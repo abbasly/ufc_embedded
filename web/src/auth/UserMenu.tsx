@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 
 import { useQuery } from "@tanstack/react-query";
 
+import { useInstall } from "../app/install";
 import { useFriends } from "../features/friends/useFriends";
 import { useAuth } from "./AuthProvider";
 import { PasswordModal } from "./PasswordModal";
@@ -19,6 +20,7 @@ export function UserMenu() {
   const [signingIn, setSigningIn] = useState(false);
   const friends = useFriends();
   const requests = (friends.data ?? []).filter((f) => f.status === "incoming").length;
+  const app = useInstall();
   // The admin link only for admins (the panel's data is refused to anyone else anyway).
   const admin = useQuery({ queryKey: ["admin", "is", user?.id], queryFn: () => backend!.admin.isAdmin(), enabled: !!backend && !!user, staleTime: Infinity });
 
@@ -51,6 +53,7 @@ export function UserMenu() {
     <>
       {linkNotice}
       <ProfileSetup />
+      {app.guide}
       {/* Arrived from a "reset your password" email: signed in, now pick a new one. */}
       <PasswordModal opened={recovering} onClose={endRecovery} title="Set a new password" />
       <Menu position="bottom-end" withArrow>
@@ -76,6 +79,7 @@ export function UserMenu() {
           <Menu.Item component={Link} to="/">
             Pick'em
           </Menu.Item>
+          {app.can && <Menu.Item onClick={app.install}>Install app</Menu.Item>}
           {admin.data && (
             <Menu.Item component={Link} to="/admin">
               Admin
