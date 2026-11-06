@@ -273,6 +273,8 @@ export function demoBackend(): Backend {
       async join(inviteCode) {
         signedIn();
         const code = inviteCode.trim().toUpperCase();
+        // Like the real thing: anything but an 8-character code finds no league.
+        if (!/^[A-Z0-9]{8}$/.test(code)) throw new BackendError("No league with that invite code.");
         const existing = load().leagues.find((l) => l.inviteCode === code);
         if (existing) return existing.id;
         const league: League = { id: `demo-${code}`, name: "Friends league", inviteCode: code, isOwner: false };

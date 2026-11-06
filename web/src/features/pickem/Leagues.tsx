@@ -81,7 +81,14 @@ export function Leagues({ selected, setSelected }: Props) {
     ...(hasFriends ? [{ value: FRIENDS, label: "Friends" }] : []),
     ...(leagues.data ?? []).map((l) => ({ value: l.id, label: l.name })),
   ];
-  const error = actions.create.error ?? actions.join.error ?? actions.leave.error;
+  const error = actions.leave.error;
+  // Opening or closing a dialog starts it clean (no error from an earlier try).
+  const openDialog = (d: "create" | "join" | "leave" | null) => {
+    actions.create.reset();
+    actions.join.reset();
+    actions.leave.reset();
+    setDialog(d);
+  };
 
   const copyInvite = async () => {
     if (!league) return;
@@ -118,7 +125,7 @@ export function Leagues({ selected, setSelected }: Props) {
               variant="subtle"
               color="gray"
               ml="auto"
-              onClick={() => setDialog("leave")}
+              onClick={() => openDialog("leave")}
             >
               {league.isOwner ? "Delete league" : "Leave"}
             </Button>
@@ -126,10 +133,10 @@ export function Leagues({ selected, setSelected }: Props) {
         )}
         {user && profile && (
           <Group gap="xs" grow>
-            <Button size="xs" variant="default" onClick={() => setDialog("create")}>
+            <Button size="xs" variant="default" onClick={() => openDialog("create")}>
               New league
             </Button>
-            <Button size="xs" variant="default" onClick={() => setDialog("join")}>
+            <Button size="xs" variant="default" onClick={() => openDialog("join")}>
               Join with code
             </Button>
           </Group>
@@ -187,7 +194,9 @@ export function Leagues({ selected, setSelected }: Props) {
         placeholder="e.g. Gym boys"
         action="Create"
         busy={actions.create.isPending}
-        onClose={() => setDialog(null)}
+        error={actions.create.error?.message}
+        onEdit={() => actions.create.reset()}
+        onClose={() => openDialog(null)}
         onSubmit={(name) =>
           actions.create.mutate(name, {
             onSuccess: (l) => {
@@ -204,7 +213,9 @@ export function Leagues({ selected, setSelected }: Props) {
         placeholder="e.g. AB12CD34"
         action="Join"
         busy={actions.join.isPending}
-        onClose={() => setDialog(null)}
+        error={actions.join.error?.message}
+        onEdit={() => actions.join.reset()}
+        onClose={() => openDialog(null)}
         onSubmit={(code) =>
           actions.join.mutate(code, {
             onSuccess: (id) => {
@@ -324,12 +335,18 @@ interface NameDialogProps {
   placeholder: string;
   action: string;
   busy: boolean;
+  error?: string; // shown under the field until the next edit
+  onEdit: () => void;
   onClose: () => void;
   onSubmit: (value: string) => void;
 }
 
-function NameDialog({ opened, title, label, placeholder, action, busy, onClose, onSubmit }: NameDialogProps) {
+function NameDialog({ opened, title, label, placeholder, action, busy, error, onEdit, onClose, onSubmit }: NameDialogProps) {
   const [value, setValue] = useState("");
+  // Each time it opens, it opens empty.
+  useEffect(() => {
+    if (opened) setValue("");
+  }, [opened]);
   return (
     <Modal opened={opened} onClose={onClose} title={title} centered size="sm">
       <form
@@ -339,7 +356,17 @@ function NameDialog({ opened, title, label, placeholder, action, busy, onClose, 
         }}
       >
         <Stack gap="sm">
-          <TextInput label={label} placeholder={placeholder} value={value} onChange={(e) => setValue(e.currentTarget.value)} data-autofocus />
+          <TextInput
+            label={label}
+            placeholder={placeholder}
+            value={value}
+            error={error}
+            onChange={(e) => {
+              setValue(e.currentTarget.value);
+              if (error) onEdit();
+            }}
+            data-autofocus
+          />
           <Button type="submit" loading={busy}>
             {action}
           </Button>
