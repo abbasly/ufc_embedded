@@ -36,6 +36,7 @@ function friendly(error: { code?: string; message: string }): Error {
   if (error.code === "over_email_send_rate_limit") return new BackendError("Too many emails just now. Try again in a few minutes.");
   if (error.code === "email_address_invalid") return new BackendError("That email address doesn't look right.");
   if (error.code === "23505") return new BackendError("That name is taken.");
+  if (error.code === "23514" && error.message.includes("not_reserved")) return new BackendError("That name is reserved: pick another.");
   if (error.code === "23514") return new BackendError("Names are 3-24 letters, digits, dots, dashes or underscores.");
   if (error.code === "42501") return new BackendError("Picks for this card are closed.");
   if (error.code === "P0002") return new BackendError("No league with that invite code.");
