@@ -310,6 +310,8 @@ export function demoBackend(): Backend {
       mine: async () => (load().signedIn ? load().leagues : []),
       async create(name) {
         signedIn();
+        // Like the real thing: up to 5 leagues of your own.
+        if (load().leagues.filter((l) => l.isOwner).length >= 5) throw new BackendError("You can own up to 5 leagues.");
         const league: League = { id: `demo-${Date.now()}`, name: name.trim(), inviteCode: Math.random().toString(36).slice(2, 10).toUpperCase(), isOwner: true };
         save({ ...load(), leagues: [...load().leagues, league] });
         return league;
