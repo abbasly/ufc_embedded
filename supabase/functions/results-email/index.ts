@@ -14,7 +14,7 @@ const BATCH = 100; // Resend's batch limit
 
 const reply = (status: number, body: string) => {
   console.log(`results-email: ${body}`);
-  return new Response(body, { status });
+  return new Response(`results-email: ${body}`, { status });
 };
 
 Deno.serve(async (req) => {
@@ -22,7 +22,9 @@ Deno.serve(async (req) => {
   if (!secret || req.headers.get("x-webhook-secret") !== secret) return reply(403, "forbidden");
 
   const { type, table, record } = await req.json();
-  if (type !== "UPDATE" || table !== "events" || !record?.scored_at) return reply(200, "ignored");
+  if (type !== "UPDATE" || table !== "events" || !record?.scored_at) {
+    return reply(200, `ignored (${type} on ${table}${record && !record.scored_at ? ", not scored" : ""})`);
+  }
   const eventId: string = record.id;
 
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
