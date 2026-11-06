@@ -3,6 +3,7 @@
 // kept in localStorage. Same Backend interface, so features can't tell the difference.
 // Turned on with VITE_ACCOUNTS=demo (local development only; see backend/index.ts).
 
+import { demoPastPicks, demoPastScores } from "./demoHistory";
 import { type Backend, BackendError, type Friend, type LeaderboardRow, type League, type Method, type Pick, type PickemBout, type PickemEvent, type Profile, type User } from "./types";
 
 const KEY = "ufc-embedded-demo-backend";
@@ -223,15 +224,10 @@ export function demoBackend(): Backend {
         const [b0, b1] = sampleCard().bouts as [PickemBout, PickemBout];
         return { [b0.id]: { [b0.fighterA]: 62, [b0.fighterB]: 38 }, [b1.id]: { [b1.fighterA]: 15, [b1.fighterB]: 30 } };
       },
-      myScores: async () =>
-        load().signedIn ? [{ eventId: "demo-past", name: "UFC 333: Demo vs. Results", startsOn: "2026-10-31", points: 45, correct: 4, picked: 6 }] : [],
-      scoresOf: async (id) =>
-        id === DEMO_USER.id
-          ? [{ eventId: "demo-past", name: "UFC 333: Demo vs. Results", startsOn: "2026-10-31", points: 45, correct: 4, picked: 6 }]
-          : [
-              { eventId: "demo-past", name: "UFC 333: Demo vs. Results", startsOn: "2026-10-31", points: 95, correct: 8, picked: 10 },
-              { eventId: "demo-older", name: "UFC Fight Night: Sample vs. Card", startsOn: "2026-10-24", points: 70, correct: 6, picked: 10 },
-            ],
+      // A made-up past season (demoHistory.ts) behind the profile's history, stats and badges.
+      myScores: async () => (load().signedIn ? demoPastScores(DEMO_USER.id) : []),
+      scoresOf: async (id) => demoPastScores(id),
+      pickHistory: async (id) => demoPastPicks(id),
     },
     friends: {
       list: async () => (load().signedIn ? (load().friends ?? DEMO_FRIENDS) : []),

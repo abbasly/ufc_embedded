@@ -4,7 +4,7 @@
 import "../pickem/Pickem.css";
 
 import { Anchor, Avatar, Button, Center, Group, Loader, Modal, Paper, Select, Stack, Text, TextInput, Title } from "@mantine/core";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -17,7 +17,7 @@ import type { League } from "../../backend";
 import { copyInviteLink } from "../pickem/Leagues";
 import { useLeagues, useStandings } from "../pickem/usePickem";
 import { FriendsList } from "../friends/FriendsList";
-import { History, Stats } from "./PlayerStats";
+import { PlayerRecord } from "./PlayerRecord";
 
 const VALID_NAME = /^[A-Za-z0-9_.-]{3,24}$/;
 
@@ -44,16 +44,14 @@ export default function ProfilePage() {
 
 /** Your own profile, once there's a display name. */
 function Own({ displayName }: { displayName: string }) {
-  const scores = useMyScores();
-
+  const { profile } = useAuth();
   return (
     <Stack gap="lg" maw={720} mx="auto" pt={4}>
       <Identity />
-      <Stats scores={scores.data} displayName={displayName} />
-      <MyLeagues />
-      <FriendsList />
-      <History scores={scores.data} loading={scores.isPending} own />
-      <Account />
+      <PlayerRecord userId={profile!.id} displayName={displayName} avatar={profile!.avatar} isMe after={<Account />}>
+        <MyLeagues />
+        <FriendsList />
+      </PlayerRecord>
     </Stack>
   );
 }
@@ -171,14 +169,6 @@ function Identity() {
   );
 }
 
-function useMyScores() {
-  const { backend, user } = useAuth();
-  return useQuery({
-    queryKey: ["pickem", "my-scores", user?.id],
-    queryFn: () => backend!.pickem.myScores(),
-    enabled: !!backend && !!user,
-  });
-}
 
 /** Your leagues, each with where you stand, a way in and its invite link. */
 function MyLeagues() {

@@ -14,7 +14,9 @@ import { usePredictor } from "../../data/client";
 import { FriendButton } from "../friends/FriendButton";
 import { ModelTag } from "../pickem/Leagues";
 import { MODEL_PLAYER } from "../pickem/scoring";
-import { History, Stats } from "./PlayerStats";
+import { HeadToHeadPanel } from "./Insights";
+import { PlayerRecord } from "./PlayerRecord";
+import { headToHead } from "./record";
 
 const joined = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
 
@@ -26,7 +28,13 @@ export default function PlayerPage() {
     queryFn: () => backend!.profiles.byName(name),
     enabled: !!backend,
   });
-  const scores = useQuery({
+  // How you do against them (signed in, on someone else's page).
+  const mine = useQuery({
+    queryKey: ["pickem", "scores-of", profile?.id],
+    queryFn: () => backend!.pickem.scoresOf(profile!.id),
+    enabled: !!backend && !!profile && !!player.data && profile.id !== player.data.id,
+  });
+  const theirs = useQuery({
     queryKey: ["pickem", "scores-of", player.data?.id],
     queryFn: () => backend!.pickem.scoresOf(player.data!.id),
     enabled: !!backend && !!player.data,
@@ -82,8 +90,9 @@ export default function PlayerPage() {
           )}
         </Group>
       </Paper>
-      <Stats scores={scores.data} displayName={p.displayName} />
-      <History scores={scores.data} loading={scores.isPending} own={isMe} />
+      <PlayerRecord userId={p.id} displayName={p.displayName} avatar={p.avatar} isMe={isMe}>
+        {!isMe && mine.data && theirs.data && mine.data.length > 0 && <HeadToHeadPanel h2h={headToHead(mine.data, theirs.data)} them={p.displayName} />}
+      </PlayerRecord>
     </Stack>
   );
 }

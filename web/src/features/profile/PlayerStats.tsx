@@ -2,10 +2,12 @@
 // their place on the overall leaderboard, and their scored cards. Built from scores, which are
 // public like the leaderboard (picks themselves stay private).
 
-import { Anchor, Group, Loader, Paper, SimpleGrid, Stack, Text, Title } from "@mantine/core";
+import { Anchor, Collapse, Group, Loader, Paper, SimpleGrid, Stack, Text, Title, UnstyledButton } from "@mantine/core";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
-import type { EventScore } from "../../backend";
+import type { EventScore, PastPick } from "../../backend";
+import { boutPoints, METHOD_LABEL } from "../pickem/scoring";
 import { useLeaderboard } from "../pickem/usePickem";
 
 const day = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
@@ -48,8 +50,10 @@ export function Stats({ scores, displayName }: { scores: EventScore[] | undefine
   );
 }
 
-/** Scored cards, latest first. ``own``: the empty state nudges you to make picks. */
-export function History({ scores, loading, own }: { scores: EventScore[] | undefined; loading: boolean; own?: boolean }) {
+/** Scored cards, latest first; tap one to see its picks (where they're visible: your own,
+ * friends', league-mates', the model's). ``own``: the empty state nudges you to make picks. */
+export function History({ scores, loading, own, history }: { scores: EventScore[] | undefined; loading: boolean; own?: boolean; history?: PastPick[] }) {
+  const [open, setOpen] = useState<string | null>(null);
   return (
     <Paper p="md" radius="md" className="pickem-board">
       <Title order={4} mb="sm">
@@ -70,24 +74,72 @@ export function History({ scores, loading, own }: { scores: EventScore[] | undef
           )}
         </Text>
       ) : (
-        <Stack gap={8}>
-          {scores.map((s) => (
-            <Group key={s.eventId} justify="space-between" wrap="nowrap">
-              <div style={{ minWidth: 0 }}>
-                <Text size="sm" fw={600} truncate>
-                  {s.name}
-                </Text>
-                <Text size="xs" c="dimmed">
-                  {day(s.startsOn)} · {s.correct}/{s.picked} right
-                </Text>
+        <Stack gap={4}>
+          {scores.map((s) => {
+            const picks = (history ?? []).filter((p) => p.bout.eventId === s.eventId).sort((a, b) => a.bout.position - b.bout.position);
+            const isOpen = open === s.eventId;
+            return (
+              <div key={s.eventId}>
+                <UnstyledButton className="history-row" onClick={() => setOpen(isOpen ? null : s.eventId)} disabled={!picks.length} aria-expanded={isOpen}>
+                  <Group justify="space-between" wrap="nowrap">
+                    <div style={{ minWidth: 0 }}>
+                      <Text size="sm" fw={600} truncate>
+                        {s.name}
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        {day(s.startsOn)} · {s.correct}/{s.picked} right{picks.length > 0 && (isOpen ? " · hide picks" : " · see picks")}
+                      </Text>
+                    </div>
+                    <Text fw={800} style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
+                      {s.points} pts
+                    </Text>
+                  </Group>
+                </UnstyledButton>
+                <Collapse expanded={isOpen}>
+                  <Stack gap={4} px={8} pb={8}>
+                    {picks.map((p) => (
+                      <PickLine key={p.bout.id} p={p} />
+                    ))}
+                  </Stack>
+                </Collapse>
               </div>
-              <Text fw={800} style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
-                {s.points} pts
-              </Text>
-            </Group>
-          ))}
+            );
+          })}
         </Stack>
       )}
     </Paper>
+  );
+}
+
+/** One past pick: the fight, whom they picked (and how), right or wrong, points. */
+function PickLine({ p }: { p: PastPick }) {
+  const name = (id: string | null) => (id === p.bout.fighterA ? p.bout.aName : p.bout.bName).split(" ").at(-1);
+  const result = p.bout.outcome === "win" ? p.pick.winner === p.bout.winner : null;
+  const pts = boutPoints(p.bout, p.pick);
+  return (
+    <Group justify="space-between" wrap="nowrap" gap="sm">
+      <div style={{ minWidth: 0 }}>
+        <Text size="xs" c="dimmed" truncate>
+          {p.bout.aName} vs {p.bout.bName}
+          {p.bout.segment !== "main" && " · prelim"}
+        </Text>
+        <Text size="sm" truncate>
+          <Text span c={result === null ? "dimmed" : result ? "green.4" : "red.4"} fw={800}>
+            {result === null ? "–" : result ? "✓" : "✗"}
+          </Text>{" "}
+          {name(p.pick.winner)}
+          {p.pick.method && ` by ${METHOD_LABEL[p.pick.method]}`}
+          {result === false && p.bout.winner && (
+            <Text span c="dimmed" size="xs">
+              {" "}
+              (it was {name(p.bout.winner)})
+            </Text>
+          )}
+        </Text>
+      </div>
+      <Text size="sm" fw={700} c={pts ? "green.4" : "dimmed"} style={{ whiteSpace: "nowrap" }}>
+        {pts === null ? "" : pts ? `+${pts}` : "0"}
+      </Text>
+    </Group>
   );
 }
