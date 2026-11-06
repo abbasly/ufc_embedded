@@ -23,6 +23,23 @@ const toEvent = (r: Record<string, unknown>): PickemEvent => ({
   scoredAt: (r.scored_at as string | null) ?? null,
 });
 
+const toBout = (b: Record<string, unknown>): PickemBout => ({
+  id: b.id as string,
+  eventId: b.event_id as string,
+  position: b.position as number,
+  fighterA: b.fighter_a as string,
+  fighterB: b.fighter_b as string,
+  aName: b.a_name as string,
+  bName: b.b_name as string,
+  modelPA: (b.model_p_a as number | null) ?? null,
+  marketPA: (b.market_p_a as number | null) ?? null,
+  segment: b.segment as Segment,
+  title: Boolean(b.title),
+  outcome: (b.outcome as PickemBout["outcome"]) ?? null,
+  winner: (b.winner as string | null) ?? null,
+  method: (b.method as Method | null) ?? null,
+});
+
 const toUser = (u: SupabaseUser | null | undefined): User | null => (u ? { id: u.id, email: u.email ?? null } : null);
 
 /** Postgres and Supabase Auth error codes worth explaining to the user. */
@@ -196,24 +213,7 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
         if (bouts.error) throw friendly(bouts.error);
         return {
           event: toEvent(event.data),
-          bouts: bouts.data.map(
-            (b): PickemBout => ({
-              id: b.id,
-              eventId: b.event_id,
-              position: b.position,
-              fighterA: b.fighter_a,
-              fighterB: b.fighter_b,
-              aName: b.a_name,
-              bName: b.b_name,
-              modelPA: b.model_p_a,
-              marketPA: b.market_p_a,
-              segment: b.segment as Segment,
-              title: b.title,
-              outcome: b.outcome,
-              winner: b.winner,
-              method: b.method as Method | null,
-            }),
-          ),
+          bouts: bouts.data.map(toBout),
         };
       },
       async eventLeaderboard(eventId, limit = 50) {
@@ -301,6 +301,23 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
         return id ? scoresOf(id) : [];
       },
       scoresOf,
+      async pickHistory(id) {
+        const { data, error } = await db
+          .from("picks")
+          .select("bout_id, winner, method, bouts!inner(*, events!inner(name, starts_on))")
+          .eq("user_id", id)
+          .not("bouts.outcome", "is", null);
+        if (error) throw friendly(error);
+        return data.map((r) => {
+          const b = r.bouts as unknown as Record<string, unknown> & { events: { name: string; starts_on: string } };
+          return {
+            pick: { boutId: r.bout_id as string, winner: r.winner as string, method: r.method as Method | null },
+            bout: toBout(b),
+            eventName: b.events.name,
+            startsOn: b.events.starts_on,
+          };
+        });
+      },
     },
 
     friends: {

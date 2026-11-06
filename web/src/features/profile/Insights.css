@@ -1,0 +1,103 @@
+/* Points over time: one red line on a quiet baseline, a dot per card. */
+.points-chart {
+  position: relative;
+}
+.points-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.points-axis {
+  stroke: rgba(255, 255, 255, 0.12);
+  stroke-width: 1;
+}
+.points-line {
+  fill: none;
+  stroke: #fa5252;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.points-dot {
+  fill: #fa5252;
+  stroke: #1a1b1e;
+  stroke-width: 2;
+}
+.points-label {
+  fill: var(--mantine-color-dimmed);
+  font-size: 12px;
+}
+/* The card under the pointer (the latest when not hovering), above its dot. */
+.points-tip {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 12px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(20, 21, 25, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 12px;
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.points-tip[data-align="end"] {
+  transform: translate(calc(-100% + 10px), calc(-100% - 12px));
+  align-items: flex-end;
+}
+.points-tip[data-align="start"] {
+  transform: translate(-10px, calc(-100% - 12px));
+  align-items: flex-start;
+}
+/* High dots: the tip goes below, so it never leaves the panel at the top. */
+.points-tip[data-below] {
+  transform: translate(-50%, 12px);
+}
+.points-tip[data-below][data-align="end"] {
+  transform: translate(calc(-100% + 10px), 12px);
+}
+.points-tip[data-below][data-align="start"] {
+  transform: translate(-10px, 12px);
+}
+.points-tip span {
+  color: var(--mantine-color-dimmed);
+}
+
+/* Badges: earned ones in gold, the rest dimmed with their progress. */
+.badge-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  color: var(--mantine-color-gray-6);
+  opacity: 0.7;
+}
+.badge-tile[data-earned] {
+  color: #f4c430;
+  opacity: 1;
+  border-color: rgba(244, 196, 48, 0.45);
+  background: radial-gradient(120% 120% at 50% 0%, rgba(244, 196, 48, 0.12), transparent 70%);
+}
+.badge-tile[data-earned] .mantine-Text-root:first-of-type {
+  color: var(--mantine-color-white);
+}
+
+/* Past cards: a row opens to its picks. */
+.history-row {
+  display: block;
+  width: 100%;
+  padding: 6px 8px;
+  margin-inline: -8px;
+  border-radius: 8px;
+  box-sizing: content-box;
+}
+.history-row:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.05);
+}

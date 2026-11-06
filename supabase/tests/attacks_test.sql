@@ -84,4 +84,21 @@ select pg_temp.expect_count($$select 1 from public.scores where points = 999$$, 
 select pg_temp.expect_count($$select 1 from public.picks where user_id = '00000000-0000-0000-0000-000000000ee2' and winner = 'x'$$, 1, 'Vic''s pick, after all that');
 select pg_temp.expect_count($$select 1 from public.profiles where display_name = 'vic' and avatar is null$$, 1, 'Vic''s profile, after all that');
 
+-- ---- The model's picks: public after the lock, not before; a player's never ----------------------------
+insert into auth.users (id) values ('00000000-0000-0000-0000-000000000ee3');
+insert into public.profiles (id, display_name) values ('00000000-0000-0000-0000-000000000ee3', 'the_model');
+insert into public.picks (user_id, bout_id, winner) values ('00000000-0000-0000-0000-000000000ee3', 'atk:x:y', 'x');
+update public.events set locks_at = now() - interval '1 minute' where id = 'atk';
+insert into public.picks (user_id, bout_id, winner, updated_at) select '00000000-0000-0000-0000-000000000ee3', 'atk-done:x:y', 'y', now();
+set role anon;
+select pg_temp.expect_count($$select 1 from public.picks where user_id = '00000000-0000-0000-0000-000000000ee3'$$, 2, 'a visitor seeing the model''s picks after the lock');
+select pg_temp.expect_count($$select 1 from public.picks where user_id = '00000000-0000-0000-0000-000000000ee2'$$, 0, 'a visitor seeing a player''s picks after the lock');
+reset role;
+update public.events set locks_at = now() + interval '1 day' where id = 'atk';
+set role anon;
+select pg_temp.expect_count($$select 1 from public.picks where user_id = '00000000-0000-0000-0000-000000000ee3'$$, 1, 'a visitor seeing the model''s pick before the lock');
+reset role;
+-- The model leaves no picks behind for the other test files' counts.
+delete from auth.users where id = '00000000-0000-0000-0000-000000000ee3';
+
 \echo 'All attack tests passed.'

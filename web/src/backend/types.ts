@@ -94,6 +94,14 @@ export interface LeaderboardRow {
   events: number;
 }
 
+/** A pick on a fought bout, with the bout and its result: a player's pick history. */
+export interface PastPick {
+  pick: Pick;
+  bout: PickemBout;
+  eventName: string;
+  startsOn: string;
+}
+
 /** How the signed-in user did on one scored event. */
 export interface EventScore {
   eventId: string;
@@ -165,6 +173,9 @@ export interface Backend {
     myScores(): Promise<EventScore[]>;
     /** Any player's scored events, latest first (scores are public, like the leaderboard). */
     scoresOf(userId: string): Promise<EventScore[]>;
+    /** A player's picks on fought bouts, as far as you may see them: your own; friends' and
+     * league-mates'; the model's (public). Empty for anyone else. */
+    pickHistory(userId: string): Promise<PastPick[]>;
   };
   /** Mutual friends: one asks, the other accepts. */
   friends: {
