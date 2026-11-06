@@ -137,23 +137,28 @@ export function demoBackend(): Backend {
       mine: async () => (load().signedIn ? load().profile : null),
       async create(displayName) {
         signedIn();
-        const profile = { id: DEMO_USER.id, displayName: displayName.trim(), avatar: null };
+        const profile = { id: DEMO_USER.id, displayName: displayName.trim(), avatar: null, notifyFriendRequests: true };
         save({ ...load(), profile });
         return profile;
       },
       async byName(displayName) {
         const me = load().profile;
-        if (me?.displayName === displayName) return { ...me, joinedOn: "2026-11-01" };
+        if (me?.displayName === displayName) return { id: me.id, displayName: me.displayName, avatar: me.avatar, joinedOn: "2026-11-01" };
         const i = SAMPLE_NAMES.indexOf(displayName);
         return i < 0 ? null : { id: `sample-${i}`, displayName, avatar: AVATARS[i % AVATARS.length] ?? null, joinedOn: "2026-10-20" };
       },
-      async update({ displayName, avatar }) {
+      async update({ displayName, avatar, notifyFriendRequests }) {
         signedIn();
         const s = load();
         if (!s.profile) throw new BackendError("Pick a display name first.");
         save({
           ...s,
-          profile: { ...s.profile, ...(displayName !== undefined && { displayName: displayName.trim() }), ...(avatar !== undefined && { avatar }) },
+          profile: {
+            ...s.profile,
+            ...(displayName !== undefined && { displayName: displayName.trim() }),
+            ...(avatar !== undefined && { avatar }),
+            ...(notifyFriendRequests !== undefined && { notifyFriendRequests }),
+          },
         });
       },
     },

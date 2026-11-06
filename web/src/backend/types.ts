@@ -18,6 +18,7 @@ export interface Profile {
   id: string;
   displayName: string;
   avatar: string | null; // a fighter's public id: their photo is the profile picture
+  notifyFriendRequests: boolean; // email me when someone sends a friend request
 }
 
 export type Method = "KO/TKO" | "SUB" | "DEC";
@@ -139,7 +140,7 @@ export interface Backend {
   profiles: {
     mine(): Promise<Profile | null>;
     create(displayName: string): Promise<Profile>;
-    update(changes: { displayName?: string; avatar?: string | null }): Promise<void>;
+    update(changes: { displayName?: string; avatar?: string | null; notifyFriendRequests?: boolean }): Promise<void>;
     /** A player's public profile, by display name (null if there's no such player). */
     byName(displayName: string): Promise<PublicProfile | null>;
   };
