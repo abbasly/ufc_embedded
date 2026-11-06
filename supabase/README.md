@@ -63,6 +63,15 @@ SQL editor before using it are marked as applied once with
 `npx supabase migration repair --remote --status applied <version> ...`. (`--remote`: the
 CLI otherwise means a local Supabase in Docker, which this project doesn't use.)
 
+## The model as a player, and the change log
+
+`the_model` is a Pick'em account the sync picks for: the predictor's favourite and its most
+likely method, on every bout it knows both fighters of, updated until the lock. Set it up once
+with `queries/model_player.sql`; delete it the same way to take it off the boards.
+
+Every change to cards (events and bouts added or removed, results, corrections, scoring) and
+every sync run lands in the private `pickem_log` table: `queries/log.sql` shows the latest.
+
 ## Cards and results
 
 ```bash

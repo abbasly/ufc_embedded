@@ -2,7 +2,7 @@
 // league controls (create, join with a code, invite friends, leave). An invite link is
 // /pickem?join=CODE: opening it joins that league (after signing in, if need be).
 
-import { Button, Group, Loader, Modal, Paper, SegmentedControl, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Badge, Button, Group, Loader, Modal, Paper, SegmentedControl, Stack, Text, TextInput, Title } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
@@ -10,10 +10,20 @@ import { useAuth } from "../../auth/AuthProvider";
 import { PlayerAvatar } from "../../auth/PlayerAvatar";
 import type { LeaderboardRow } from "../../backend";
 import { useFriends, useFriendsStandings } from "../friends/useFriends";
+import { MODEL_PLAYER } from "./scoring";
 import { EVERYONE, FRIENDS, useLeaderboard, useLeagueActions, useLeagues, useStandings } from "./usePickem";
 
 const TOP = 10; // rows shown before "Show all"
 const MEDALS = ["#f4c430", "#c0c6cf", "#cd7f32"];
+
+/** Marks the model's account on boards: it's the predictor playing, not a person. */
+export function ModelTag() {
+  return (
+    <Badge size="xs" variant="light" color="grape" ml={6} style={{ verticalAlign: 2 }}>
+      Model
+    </Badge>
+  );
+}
 
 /** A player's page. */
 export const playerPath = (displayName: string) => `/u/${encodeURIComponent(displayName)}`;
@@ -251,6 +261,7 @@ function Standings({ rows, loading, me, inLeague }: { rows?: LeaderboardRow[]; l
             <div style={{ minWidth: 0 }}>
               <Text fw={700} truncate lh={1.25}>
                 {row.displayName}
+                {row.displayName === MODEL_PLAYER && <ModelTag />}
               </Text>
               <Text size="xs" c="dimmed" style={{ fontVariantNumeric: "tabular-nums" }}>
                 {row.correct}/{row.picked} right{row.events > 1 ? ` · ${row.events} cards` : ""}

@@ -30,6 +30,7 @@ from typing import Any, TypedDict
 
 from ufc_embedded.data import PROCESSED_DIR, PROJECT_ROOT, slugify
 from ufc_embedded.fight_cards import CardBout, fetch_fight_card
+from ufc_embedded.pickem_model import MODEL_PLAYER, model_pick
 from ufc_embedded.upcoming import _matcher
 
 PREDICTOR_JSON = PROJECT_ROOT / "web" / "public" / "data" / "predictor.json"
@@ -336,9 +337,42 @@ def _first_listing_sql(card: dict[str, Any], eid: str, bouts: list[Bout]) -> lis
     ]
 
 
-def sync_sql(cards: list[tuple[dict[str, Any], list[Bout], bool]]) -> str:
-    """One transaction that brings every card up to date: (card, bouts, from Wikipedia)."""
+def model_pick_sql(bid: str, winner: str, method: str) -> str:
+    """The model's pick on a bout, made (or updated) only while the bout is open, and only if
+    its account exists (see MODEL_PLAYER)."""
+    return (
+        "insert into public.picks (user_id, bout_id, winner, method)\n"
+        f"  select p.id, {sql_text(bid)}, {sql_text(winner)}, {sql_text(method)}"
+        f" from public.profiles p where p.display_name = {sql_text(MODEL_PLAYER)}"
+        f" and public.bout_is_open({sql_text(bid)})\n"
+        "  on conflict (user_id, bout_id) do update set winner = excluded.winner,"
+        " method = excluded.method where public.bout_is_open(excluded.bout_id);"
+    )
+
+
+def sync_sql(
+    cards: list[tuple[dict[str, Any], list[Bout], bool]], model: dict[str, Any] | None = None
+) -> str:
+    """One transaction that brings every card up to date: (card, bouts, from Wikipedia). With
+    the predictor's ``model`` data, the model's account picks too. Ends with a line in the
+    change log (pickem_log)."""
     body = [s for card, bouts, from_wiki in cards for s in card_sql(card, bouts, from_wiki)]
+    if model:
+        for card, bouts, from_wiki in cards:
+            if not from_wiki:
+                continue
+            for bout in bouts:
+                pick = model_pick(model, bout["a"], bout["b"])
+                if pick and not bout["outcome"]:
+                    body.append(
+                        model_pick_sql(bout_id(event_id(card), bout["a"], bout["b"]), *pick[:2])
+                    )
+    n_bouts = sum(len(bouts) for _, bouts, _ in cards)
+    n_results = sum(1 for _, bouts, _ in cards for b in bouts if b["outcome"])
+    summary = f"{len(cards)} cards, {n_bouts} bouts, {n_results} results"
+    body.append(
+        f"insert into public.pickem_log (kind, detail) values ('sync', {sql_text(summary)});"
+    )
     return "begin;\n" + "\n".join(body) + "\ncommit;\n"
 
 
@@ -395,7 +429,7 @@ def main(
         print(
             f"-- {card.get('name')}: {len(bouts)} bouts ({source}), {done} results", file=sys.stderr
         )
-    sys.stdout.write(sync_sql(out))
+    sys.stdout.write(sync_sql(out, data))
 
     SYNCED_EVENTS.parent.mkdir(parents=True, exist_ok=True)
     SYNCED_EVENTS.write_text(json.dumps([c for c, _, _ in out if not c.get("existing")], indent=1))

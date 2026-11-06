@@ -10,6 +10,7 @@ from ufc_embedded.pickem_sync import (
     events_to_sync,
     fighter_id,
     locks_at,
+    model_pick_sql,
     sql_text,
     sync_sql,
     with_recent,
@@ -191,3 +192,42 @@ def test_events_from_the_database_are_synced_but_their_event_row_is_left_alone()
     sql = "\n".join(card_sql(recent, bouts, from_wikipedia=True))
     assert "on conflict (id) do nothing" in sql  # its lock time stays as it was
     assert "select public.score_event('2026-11-07-ufc-fight-night');" in sql
+
+
+def test_the_model_picks_like_a_player_only_while_bouts_are_open() -> None:
+    model: dict[str, Any] = {"fighters": []}  # nobody known: no picks
+    assert "public.picks" not in sync_sql(
+        [(CARD, card_bouts(CARD, parse_fight_card(BEFORE), KNOWN.get), True)], model
+    )
+    sql = model_pick_sql("e:a:b", "a", "KO/TKO")
+    assert "display_name = 'the_model'" in sql and "public.bout_is_open('e:a:b')" in sql
+    assert "where public.bout_is_open(excluded.bout_id)" in sql  # never changed after the lock
+
+
+def test_every_sync_leaves_a_line_in_the_change_log() -> None:
+    sql = sync_sql([(CARD, card_bouts(CARD, parse_fight_card(AFTER), KNOWN.get), True)])
+    assert "values ('sync', '1 cards, 4 bouts, 4 results');" in sql
+
+
+def test_the_python_model_matches_the_website() -> None:
+    # Same numbers as web/src/features/predictor/model.ts for the same data (checked against
+    # it when this was written): the shipped predictor.json, one of this week's main events.
+    import json
+
+    from ufc_embedded.pickem_model import model_pick, win_prob
+    from ufc_embedded.pickem_sync import PREDICTOR_JSON
+
+    data = json.loads(PREDICTOR_JSON.read_text())
+    fighters = {f["id"]: f for f in data["fighters"]}
+    if "johnny-walker" not in fighters or "waldo-cortes-acosta" not in fighters:
+        return  # a later data export without them
+    p = win_prob(data["win_model"], fighters["johnny-walker"], fighters["waldo-cortes-acosta"])
+    pick = model_pick(data, "johnny-walker", "waldo-cortes-acosta")
+    assert pick is not None and pick[0] == ("johnny-walker" if p >= 0.5 else "waldo-cortes-acosta")
+    assert (
+        abs(
+            win_prob(data["win_model"], fighters["waldo-cortes-acosta"], fighters["johnny-walker"])
+            - (1 - p)
+        )
+        < 1e-12
+    )
