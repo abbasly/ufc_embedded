@@ -133,7 +133,6 @@ export default function PickemPage() {
   const [league, setLeague] = useLeagueChoice();
   const members = useLeagueMembers(league);
   const leagues = useLeagues();
-  const leagueCount = leagues.data?.length ?? 0;
   const leagueName = league === FRIENDS ? "Friends" : (leagues.data?.find((l) => l.id === league)?.name ?? "");
   const inLeague = useMemo(() => new Set(league === EVERYONE ? [] : (members.data ?? [])), [league, members.data]);
   // Phones show the fights or the leaderboard (a tap apart); wider screens show both.
@@ -245,7 +244,7 @@ export default function PickemPage() {
         onChange={(v) => setView(v as "fights" | "board")}
         data={[
           { value: "fights", label: "Fights" },
-          { value: "board", label: leagueCount ? `Leagues & ranks · ${leagueCount}` : "Leagues & ranks" },
+          { value: "board", label: "Leagues" },
         ]}
       />
 
