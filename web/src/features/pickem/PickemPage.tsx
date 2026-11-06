@@ -18,7 +18,7 @@ import { usePredictor } from "../../data/client";
 import type { PredictorData, PredictorFighter } from "../../data/types";
 import { winProb } from "../predictor/model";
 import { Leagues, ModelTag, playerPath } from "./Leagues";
-import { boutPoints, isUnderdog, marketChance, METHOD_LABEL, MODEL_PLAYER, POINTS, scores } from "./scoring";
+import { boutPoints, isUnderdog, marketChance, METHOD_LABEL, MODEL_PLAYER, places, POINTS, scores } from "./scoring";
 import {
   EVERYONE,
   FRIENDS,
@@ -56,8 +56,20 @@ function timeLeft(ms: number): string {
 }
 
 /** The lock countdown, ticking every second (on its own, so the page doesn't re-render). */
-function Countdown({ until }: { until: string }) {
+function Countdown({ until, card }: { until: string; card: string }) {
   const now = useNow(1000);
+  const left = new Date(until).getTime() - now;
+  // In the last hour the browser tab counts down too: a reminder in every other tab.
+  const lastHour = left > 0 && left < 3600e3;
+  const tab = lastHour ? `⏰ ${Math.ceil(left / 60_000)}m left · ${card.split(":")[0]} Pick'em` : null;
+  useEffect(() => {
+    if (!tab) return;
+    const before = document.title;
+    document.title = tab;
+    return () => {
+      document.title = before;
+    };
+  }, [tab]);
   return (
     <Badge size="lg" variant="light" color="red" style={{ fontVariantNumeric: "tabular-nums" }}>
       Picks close in {timeLeft(new Date(until).getTime() - now)}
@@ -68,6 +80,9 @@ function Countdown({ until }: { until: string }) {
 /** "Sat 7 Nov, 17:00" in the visitor's own time zone. */
 const lockLabel = (iso: string) =>
   new Date(iso).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
+/** Whether a card is being fought right now (locked, not scored, still fight day). */
+const isLive = (e: PickemEvent, now: number) => !e.scoredAt && Date.parse(e.locksAt) <= now && now - Date.parse(e.locksAt) < 20 * 3600e3;
 
 /** "UFC 334 · 14 Nov": a short name for the event switcher. */
 const shortName = (e: PickemEvent) =>
@@ -140,6 +155,8 @@ export default function PickemPage() {
   const lockIn = new Date(card.locksAt).getTime() - now;
   const open = lockIn > 0;
   const mine = new Map((picks.data ?? []).map((p) => [p.boutId, p]));
+  // Being fought: locked, not all results in, and still fight day (or the night after).
+  const live = !open && !card.scoredAt && now - new Date(card.locksAt).getTime() < 20 * 3600e3;
   const mainBouts = bouts.filter(scores);
   const prelims = bouts.filter((b) => !scores(b));
   const picked = mainBouts.filter((b) => mine.has(b.id)).length;
@@ -174,6 +191,7 @@ export default function PickemPage() {
         <Group gap={6} wrap="wrap">
           {events.data!.map((e) => (
             <UnstyledButton key={e.id} className="pickem-method" data-chosen={e.id === card.id || undefined} onClick={() => choose(e.id)}>
+              {isLive(e, now) && <span className="pickem-live-dot" aria-label="live" />}
               {shortName(e)}
             </UnstyledButton>
           ))}
@@ -193,10 +211,10 @@ export default function PickemPage() {
         </div>
         <Stack gap={4} align="flex-end">
           {open ? (
-            <Countdown until={card.locksAt} />
+            <Countdown until={card.locksAt} card={card.name} />
           ) : (
-            <Badge size="lg" variant="light" color="gray">
-              {card.scoredAt ? "Results are in" : "Picks are locked"}
+            <Badge size="lg" variant={live ? "filled" : "light"} color={live ? "red" : "gray"} className={live ? "pickem-live" : undefined}>
+              {card.scoredAt ? "Results are in" : live ? "● Live" : "Picks are locked"}
             </Badge>
           )}
           <Text size="xs" c="dimmed">
@@ -217,8 +235,9 @@ export default function PickemPage() {
       {!open && !card.scoredAt && (
         <Paper p="sm" radius="md" className="pickem-board">
           <Text size="sm">
-            Picks are locked: no more changes. Points and the final ranking come in once the results are in, usually the
-            morning after the fights.
+            {live
+              ? "The fights are on: results show up here as each one ends (this page checks every minute). Points and the final ranking come once the whole card is done."
+              : "Picks are locked: no more changes. Points and the final ranking come in once the results are in, usually the morning after the fights."}
           </Text>
         </Paper>
       )}
@@ -301,6 +320,7 @@ export default function PickemPage() {
 function Results({ rows, me }: { rows: LeaderboardRow[]; me?: string }) {
   if (!rows.length) return null;
   const myRank = rows.findIndex((r) => r.displayName === me);
+  const place = places(rows);
   const medals = ["#f4c430", "#c0c6cf", "#cd7f32"];
   return (
     <Paper p="md" radius="md" className="pickem-board pickem-results">
@@ -314,7 +334,7 @@ function Results({ rows, me }: { rows: LeaderboardRow[]; me?: string }) {
             {myRank >= 0 && (
               <>
                 {" "}
-                · you finished <b style={{ color: "var(--mantine-color-white)" }}>#{myRank + 1}</b> with {rows[myRank]?.points} points
+                · you finished <b style={{ color: "var(--mantine-color-white)" }}>#{place[myRank]}</b> with {rows[myRank]?.points} points
               </>
             )}
           </Text>
@@ -323,11 +343,11 @@ function Results({ rows, me }: { rows: LeaderboardRow[]; me?: string }) {
           {rows.slice(0, 3).map((r, i) => (
             <Group key={r.displayName} gap={8} wrap="nowrap" className="pickem-podium" renderRoot={(props) => <Link {...props} to={playerPath(r.displayName)} />}>
               <div style={{ position: "relative" }}>
-                <PlayerAvatar name={r.displayName} avatar={r.avatar} size={i === 0 ? 48 : 40} style={{ border: `2px solid ${medals[i]}` }} />
+                <PlayerAvatar name={r.displayName} avatar={r.avatar} size={i === 0 ? 48 : 40} style={{ border: `2px solid ${medals[place[i]! - 1]}` }} />
               </div>
               <div>
                 <Text size="sm" fw={700} lh={1.2}>
-                  {i + 1}. {r.displayName}
+                  {place[i]}. {r.displayName}
                   {r.displayName === MODEL_PLAYER && <ModelTag />}
                 </Text>
                 <Text size="xs" c="dimmed">

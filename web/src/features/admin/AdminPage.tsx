@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { recentVisits } from "../../app/visits";
+import { NotFoundPage } from "../../pages/NotFoundPage";
 import { useAuth } from "../../auth/AuthProvider";
 import type { AdminUser } from "../../backend";
 import { playerPath } from "../pickem/Leagues";
@@ -41,7 +42,7 @@ export default function AdminPage() {
 
   if (loading || (user && admin.isPending)) return <Center h="60vh"><Loader /></Center>;
   // Not signed in, or not an admin: the same as any page that doesn't exist.
-  if (!yes) return <Text>Page not found.</Text>;
+  if (!yes) return <NotFoundPage />;
 
   return (
     <Stack gap="lg" maw={1100} mx="auto" pt={4}>

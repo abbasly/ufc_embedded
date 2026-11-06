@@ -63,6 +63,13 @@ SQL editor before using it are marked as applied once with
 `npx supabase migration repair --remote --status applied <version> ...`. (`--remote`: the
 CLI otherwise means a local Supabase in Docker, which this project doesn't use.)
 
+## Backups
+
+The free plan keeps none, so `.github/workflows/backup.yml` makes one every Monday: our tables
+and the accounts, encrypted with the `BACKUP_PASSPHRASE` secret (keep it in a password manager:
+without it the backups can't be opened), kept 90 days under the run's Artifacts. How to restore
+is in the workflow's header.
+
 ## Admin panel
 
 `/admin` on the site shows the numbers, every account and the change log, to admins only: the

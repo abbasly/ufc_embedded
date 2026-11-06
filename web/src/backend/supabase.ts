@@ -177,6 +177,33 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
         if (error) throw friendly(error);
         return { id, displayName: displayName.trim(), avatar: null, notifyFriendRequests: true, notifyResults: true };
       },
+      async exportMine() {
+        const { data: auth } = await db.auth.getUser();
+        if (!auth.user) throw new BackendError("Sign in first.");
+        const id = auth.user.id;
+        const [profile, picks, scores, leagues, friends] = await Promise.all([
+          db.from("profiles").select("*").eq("id", id).maybeSingle(),
+          db.from("picks").select("bout_id, winner, method, updated_at, bouts(a_name, b_name, events(name, starts_on))").eq("user_id", id),
+          db.from("scores").select("event_id, points, correct, picked, events(name, starts_on)").eq("user_id", id),
+          db.from("leagues").select("name, invite_code, owner_id, created_at"),
+          db.rpc("my_friends"),
+        ]);
+        return {
+          exported_at: new Date().toISOString(),
+          account: {
+            id,
+            email: auth.user.email,
+            signed_up: auth.user.created_at,
+            last_sign_in: auth.user.last_sign_in_at,
+            sign_in_methods: auth.user.identities?.map((i) => i.provider) ?? [],
+          },
+          profile: profile.data,
+          picks: picks.data ?? [],
+          scores: scores.data ?? [],
+          leagues: (leagues.data ?? []).map((l) => ({ name: l.name, invite_code: l.invite_code, yours: l.owner_id === id, created_at: l.created_at })),
+          friends: friends.data ?? [],
+        };
+      },
       async byName(displayName) {
         const { data, error } = await db.from("profiles").select("id, display_name, avatar, created_at").eq("display_name", displayName).maybeSingle();
         if (error) throw friendly(error);

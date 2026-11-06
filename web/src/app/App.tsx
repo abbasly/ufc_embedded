@@ -1,4 +1,4 @@
-import { Anchor, AppShell, Center, Group, Loader, Text, Title } from "@mantine/core";
+import { Anchor, AppShell, Center, Group, Loader, Title } from "@mantine/core";
 import { Suspense, useEffect, useRef } from "react";
 import { Link, Navigate, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
 
@@ -6,6 +6,7 @@ import { accountsEnabled } from "../backend";
 import { ArenaBackdrop } from "../components/ArenaBackdrop";
 import { AboutPage } from "../pages/AboutPage";
 import { ImpressumPage } from "../pages/ImpressumPage";
+import { NotFoundPage } from "../pages/NotFoundPage";
 import { PrivacyPage } from "../pages/PrivacyPage";
 import { countPage } from "./goatcounter";
 import { lazyPage } from "./lazyPage";
@@ -79,7 +80,8 @@ export function App() {
   // refresh lands on "/predictor/": compare without the trailing slash.
   const pathname = useLocation().pathname.replace(/(.)\/$/, "$1");
   useEffect(() => {
-    document.title = TITLES[pathname] ?? "UFC Embedded";
+    // Pages not listed (player pages, admin, not found) set their own title.
+    if (TITLES[pathname]) document.title = TITLES[pathname];
   }, [pathname]);
   // Count each page moved to within the app; GoatCounter's script counted the first one.
   const firstPage = useRef(true);
@@ -139,7 +141,7 @@ export function App() {
             <Route path="/about" element={HOME === "about" ? <Navigate to="/" replace /> : <AboutPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/impressum" element={<ImpressumPage />} />
-            <Route path="*" element={<Text>Page not found.</Text>} />
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Suspense>
       </AppShell.Main>

@@ -84,7 +84,13 @@ def scheduled_events() -> list[Event]:
             {"action": "parse", "page": "List of UFC events", "prop": "wikitext", "section": index}
         )
         events = parse_scheduled(page["parse"]["wikitext"]["*"])
-        EVENTS_CACHE.write_text(json.dumps(events, indent=1))
+        # The cache is a nice-to-have: failing to write it (no folder, e.g. on CI) mustn't
+        # throw away what was just fetched.
+        try:
+            EVENTS_CACHE.parent.mkdir(parents=True, exist_ok=True)
+            EVENTS_CACHE.write_text(json.dumps(events, indent=1))
+        except OSError:
+            pass
         return events
     except (OSError, KeyError, StopIteration):
         if EVENTS_CACHE.exists():

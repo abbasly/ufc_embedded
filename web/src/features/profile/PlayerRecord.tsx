@@ -5,7 +5,7 @@
 import { Group, Stack } from "@mantine/core";
 
 import { usePredictor } from "../../data/client";
-import { MODEL_PLAYER } from "../pickem/scoring";
+import { MODEL_PLAYER, placeOf } from "../pickem/scoring";
 import { useLeaderboard } from "../pickem/usePickem";
 import { profileImage } from "../share/profileImage";
 import { ShareButton } from "../share/ShareButton";
@@ -43,12 +43,12 @@ export function PlayerRecord({ userId, displayName, avatar, isMe, children, afte
         url={`${window.location.origin}/u/${encodeURIComponent(displayName)}`}
         make={() => {
           const rows = scores.data!;
-          const rank = board.data?.findIndex((r) => r.displayName === displayName) ?? -1;
+          const rank = placeOf(board.data ?? [], displayName);
           const call = bestCall(picks);
           return profileImage({
             name: displayName,
             photo: predictor?.fighters.find((f) => f.id === avatar)?.image?.url,
-            rank: rank >= 0 ? rank + 1 : null,
+            rank,
             points: rows.reduce((n, r) => n + r.points, 0),
             correct: rows.reduce((n, r) => n + r.correct, 0),
             picked: rows.reduce((n, r) => n + r.picked, 0),

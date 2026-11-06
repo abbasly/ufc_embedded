@@ -164,6 +164,8 @@ export interface Backend {
     mine(): Promise<Profile | null>;
     create(displayName: string): Promise<Profile>;
     update(changes: { displayName?: string; avatar?: string | null; notifyFriendRequests?: boolean; notifyResults?: boolean }): Promise<void>;
+    /** Everything stored about the signed-in user, for "Download my data" (GDPR Art. 15/20). */
+    exportMine(): Promise<Record<string, unknown>>;
     /** A player's public profile, by display name (null if there's no such player). */
     byName(displayName: string): Promise<PublicProfile | null>;
   };

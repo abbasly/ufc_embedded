@@ -1,0 +1,55 @@
+name: Database backup
+
+# A weekly copy of the accounts database (the free Supabase plan keeps none): every table of
+# ours, plus the accounts themselves (auth.users). Encrypted with BACKUP_PASSPHRASE before it
+# leaves the runner, because a public repository's workflow files can be downloaded by any
+# GitHub user. Kept 90 days, under the run's "Artifacts".
+#
+# Restore (on your own machine):
+#   gpg --decrypt backup-YYYY-MM-DD.tar.gpg > backup.tar && tar xf backup.tar
+#   pg_restore --no-owner --data-only -d "$SUPABASE_DB_URL" public.dump    # into a fresh project with the migrations applied
+#
+# Needs secrets SUPABASE_DB_URL (Session pooler) and BACKUP_PASSPHRASE (a long one, kept in your
+# password manager: without it the backups can't be opened).
+
+on:
+  schedule:
+    - cron: "30 3 * * 1" # Mondays 03:30 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # pg_dump must be at least the server's version (Supabase runs 15 or 17): 17 dumps both.
+      - name: Install pg_dump 17
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client-17
+      - name: Dump and encrypt
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          test -n "$BACKUP_PASSPHRASE" || { echo "BACKUP_PASSPHRASE is not set"; exit 1; }
+          bin=/usr/lib/postgresql/17/bin
+          day=$(date -u +%F)
+          mkdir backup
+          $bin/pg_dump "$SUPABASE_DB_URL" --schema=public --no-owner --no-privileges -Fc -f backup/public.dump
+          $bin/pg_dump "$SUPABASE_DB_URL" --table=auth.users --data-only --no-owner --no-privileges -Fc -f backup/auth_users.dump
+          tar cf - -C backup . | gpg --batch --yes --symmetric --cipher-algo AES256 --passphrase "$BACKUP_PASSPHRASE" -o "backup-$day.tar.gpg"
+          ls -la "backup-$day.tar.gpg"
+          echo "DAY=$day" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backup-${{ env.DAY }}
+          path: backup-${{ env.DAY }}.tar.gpg
+          retention-days: 90
+          if-no-files-found: error

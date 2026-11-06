@@ -46,13 +46,16 @@ const RESULTS: Record<number, [string, Method]> = {
 };
 
 /** A sample card a week out, so the Pick'em screens have something to show. In the address,
- * ?locked shows it locked (the after-lock views) and ?results fought and scored. */
+ * ?locked shows it locked (the after-lock views), ?results fought and scored, ?soon locking in 30
+ * minutes. */
 function sampleCard(): { event: PickemEvent; bouts: PickemBout[] } {
   const day = new Date(Date.now() + 7 * 86400e3).toISOString().slice(0, 10);
   const params = new URLSearchParams(window.location.search);
   const results = params.has("results");
   const locked = results || params.has("locked");
-  const locksAt = locked ? new Date(Date.now() - 3600e3).toISOString() : `${day}T22:00:00Z`;
+  // ?soon: locks in 30 minutes (the last-hour countdown in the tab).
+  const soon = params.has("soon");
+  const locksAt = locked ? new Date(Date.now() - 3600e3).toISOString() : soon ? new Date(Date.now() + 30 * 60e3).toISOString() : `${day}T22:00:00Z`;
   const event: PickemEvent = { id: `${day}-demo`, name: "UFC Demo Night", startsOn: day, locksAt, scoredAt: results ? new Date().toISOString() : null };
   const bout = (position: number, a: string, b: string, aName: string, bName: string, p: number, market: number): PickemBout => ({
     id: `${event.id}:${a}:${b}`,
@@ -141,6 +144,10 @@ export function demoBackend(): Backend {
         const profile = { id: DEMO_USER.id, displayName: displayName.trim(), avatar: null, notifyFriendRequests: true, notifyResults: true };
         save({ ...load(), profile });
         return profile;
+      },
+      async exportMine() {
+        const s = load();
+        return { exported_at: new Date().toISOString(), account: DEMO_USER, profile: s.profile, picks: s.picks, leagues: s.leagues, friends: s.friends ?? [] };
       },
       async byName(displayName) {
         const me = load().profile;
