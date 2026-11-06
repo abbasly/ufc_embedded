@@ -96,5 +96,12 @@ The demo backend keeps everything in the browser: "signing in" makes you a demo 
 5. **GitHub.** Repository variables `SUPABASE_URL` and `SUPABASE_ANON_KEY` with the
    *production* project's values (development keeps using `web/.env.local`). The next deploy
    from `master` switches accounts on.
-6. **Legal.** Fill in `web/src/pages/legal.ts` (Impressum); the privacy policy already covers
+6. **Friend-request emails.** The `friend-request-email` Edge Function (`functions/`) emails
+   players when someone asks them to be friends. Deploy it (Edge Functions → Deploy a new
+   function → Via editor, name `friend-request-email`, paste `index.ts` and `email.ts`, and
+   turn off "Verify JWT": the function checks its own secret), add its secrets
+   (`RESEND_API_KEY`, and `WEBHOOK_SECRET`: any long random string), then Database → Webhooks →
+   Create: table `friendships`, event Insert, type Supabase Edge Functions,
+   `friend-request-email`, POST, with an HTTP header `x-webhook-secret` set to the same string.
+7. **Legal.** Fill in `web/src/pages/legal.ts` (Impressum); the privacy policy already covers
    accounts, Supabase, Resend and Google.

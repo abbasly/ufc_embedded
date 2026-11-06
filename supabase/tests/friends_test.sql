@@ -77,4 +77,19 @@ select public.friend_request('00000000-0000-0000-0000-0000000000c3');
 select pg_temp.expect_count($$select 1 from public.friendships where status = 'accepted'$$, 1, 'a request back accepting the first');
 reset role;
 
+-- ---- Friend-request emails: your own switch, and the notices only the server sees -----------------
+set role authenticated;
+set request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000a1';
+update public.profiles set notify_friend_requests = false where id = '00000000-0000-0000-0000-0000000000a1';
+update public.profiles set notify_friend_requests = false where id = '00000000-0000-0000-0000-0000000000b2';
+reset role;
+select pg_temp.expect_count($$select 1 from public.profiles where notify_friend_requests = false$$, 1, 'turning off only your own emails');
+insert into public.friend_request_notices (requester, addressee) values
+  ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b2');
+set role authenticated;
+select pg_temp.refused($$select 1 from public.friend_request_notices$$, 'a player reading who was emailed');
+select pg_temp.refused($$insert into public.friend_request_notices (requester, addressee) values ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000c3')$$,
+  'a player writing email notices');
+reset role;
+
 \echo 'All friends tests passed.'
