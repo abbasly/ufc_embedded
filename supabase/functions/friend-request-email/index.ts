@@ -15,7 +15,7 @@ const DAILY_LIMIT = 20; // friend-request emails one player can trigger a day (s
 // Each outcome is also logged, so the function's logs say what happened to every request.
 const reply = (status: number, body: string) => {
   console.log(`friend-request-email: ${body}`);
-  return new Response(body, { status });
+  return new Response(`friend-request-email: ${body}`, { status });
 };
 
 Deno.serve(async (req) => {

@@ -322,6 +322,46 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
       },
     },
 
+    admin: {
+      async isAdmin() {
+        const id = await userId().catch(() => null);
+        if (!id) return false;
+        const { data, error } = await db.rpc("is_admin");
+        return !error && data === true;
+      },
+      async overview() {
+        const { data, error } = await db.rpc("admin_overview");
+        if (error) throw friendly(error);
+        return (data as { metric: string; value: number }[]).map((r) => ({ metric: r.metric, value: Number(r.value) }));
+      },
+      async users() {
+        const { data, error } = await db.rpc("admin_users");
+        if (error) throw friendly(error);
+        return (data as Record<string, unknown>[]).map((u) => ({
+          userId: u.user_id as string,
+          displayName: (u.display_name as string | null) ?? null,
+          email: (u.email as string | null) ?? null,
+          provider: u.provider as string,
+          createdAt: u.created_at as string,
+          lastSignInAt: (u.last_sign_in_at as string | null) ?? null,
+          picks: Number(u.picks),
+          points: Number(u.points),
+          leagues: Number(u.leagues),
+          friends: Number(u.friends),
+        }));
+      },
+      async log(rows = 100) {
+        const { data, error } = await db.rpc("admin_log", { max_rows: rows });
+        if (error) throw friendly(error);
+        return (data as { at: string; kind: string; event_id: string | null; detail: string | null }[]).map((r) => ({
+          at: r.at,
+          kind: r.kind,
+          eventId: r.event_id,
+          detail: r.detail,
+        }));
+      },
+    },
+
     friends: {
       async list() {
         const id = await userId().catch(() => null);

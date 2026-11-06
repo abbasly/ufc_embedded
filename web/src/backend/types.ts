@@ -121,6 +121,20 @@ export interface Friend {
   status: "friends" | "incoming" | "outgoing";
 }
 
+/** One account, as the admin panel lists it. */
+export interface AdminUser {
+  userId: string;
+  displayName: string | null; // null: signed up, no display name yet
+  email: string | null;
+  provider: string; // "google" or "email"
+  createdAt: string;
+  lastSignInAt: string | null;
+  picks: number;
+  points: number;
+  leagues: number;
+  friends: number;
+}
+
 /** Everything the app asks of a backend. One implementation today (Supabase, supabase.ts). */
 export interface Backend {
   auth: {
@@ -177,6 +191,13 @@ export interface Backend {
     /** A player's picks on fought bouts, as far as you may see them: your own; friends' and
      * league-mates'; the model's (public). Empty for anyone else. */
     pickHistory(userId: string): Promise<PastPick[]>;
+  };
+  /** The owner's panel. Everything but ``isAdmin`` is refused unless you're an admin. */
+  admin: {
+    isAdmin(): Promise<boolean>;
+    overview(): Promise<{ metric: string; value: number }[]>;
+    users(): Promise<AdminUser[]>;
+    log(rows?: number): Promise<{ at: string; kind: string; eventId: string | null; detail: string | null }[]>;
   };
   /** Mutual friends: one asks, the other accepts. */
   friends: {

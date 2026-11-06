@@ -63,6 +63,16 @@ SQL editor before using it are marked as applied once with
 `npx supabase migration repair --remote --status applied <version> ...`. (`--remote`: the
 CLI otherwise means a local Supabase in Docker, which this project doesn't use.)
 
+## Admin panel
+
+`/admin` on the site shows the numbers, every account and the change log, to admins only: the
+`admin_*` functions refuse anyone not in `public.admins` (tested in `tests/admin_test.sql`).
+Add yourself once, in the SQL editor:
+
+```sql
+insert into public.admins (user_id) select id from auth.users where email = 'you@example.com';
+```
+
 ## The model as a player, and the change log
 
 `the_model` is a Pick'em account the sync picks for: the predictor's favourite and its most
