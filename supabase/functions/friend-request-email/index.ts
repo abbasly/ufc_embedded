@@ -10,6 +10,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { friendRequestEmail } from "./email.ts";
 
 const WEEK_MS = 7 * 86400e3;
+const DAILY_LIMIT = 20; // friend-request emails one player can trigger a day (spam guard)
 
 // Each outcome is also logged, so the function's logs say what happened to every request.
 const reply = (status: number, body: string) => {
@@ -26,15 +27,19 @@ Deno.serve(async (req) => {
   if (type !== "INSERT" || table !== "friendships" || record?.status !== "pending") return reply(200, "ignored");
 
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-  const [from, to, notice] = await Promise.all([
+  const since = new Date(Date.now() - 86400e3).toISOString();
+  const [from, to, notice, today] = await Promise.all([
     db.from("profiles").select("display_name").eq("id", record.requester).single(),
     db.from("profiles").select("notify_friend_requests").eq("id", record.addressee).single(),
     db.from("friend_request_notices").select("sent_at").eq("requester", record.requester).eq("addressee", record.addressee).maybeSingle(),
+    db.from("friend_request_notices").select("*", { count: "exact", head: true }).eq("requester", record.requester).gte("sent_at", since),
   ]);
   if (!from.data || !to.data) return reply(200, "no such player");
   if (!to.data.notify_friend_requests) return reply(200, "emails off");
   // At most one email a week per pair, however often someone asks, undoes and asks again.
   if (notice.data && Date.now() - new Date(notice.data.sent_at).getTime() < WEEK_MS) return reply(200, "emailed recently");
+  // Someone sending requests to everyone (and taking them back) doesn't get to email everyone.
+  if ((today.count ?? 0) >= DAILY_LIMIT) return reply(200, "daily limit for this sender");
 
   const { data: user } = await db.auth.admin.getUserById(record.addressee);
   const email = user?.user?.email;

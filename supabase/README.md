@@ -36,6 +36,33 @@ backend in the same folder stands in for it during development) and `web/src/aut
 event from its results (10 for the right winner, +5 for the method, +5 for an underdog); only
 the pipeline (service role, or the SQL editor) may run it.
 
+## From the command line
+
+One-time setup, from the project root (the database password is in Supabase → Project
+Settings → Database; the connection string under Connect → Session pooler):
+
+```bash
+npx supabase login                                   # opens the browser once
+npx supabase init                                    # writes supabase/config.toml (answer N to the questions)
+npx supabase link --project-ref bydkxilpsbfpfbbdkhds  # asks for the database password
+echo 'SUPABASE_DB_URL="postgresql://postgres.bydkxilpsbfpfbbdkhds:<password>@aws-0-eu-central-1.pooler.supabase.com:5432/postgres"' >> .env
+```
+
+Then:
+
+```bash
+npx supabase db push --remote                        # apply new migrations (and only those)
+npx supabase migration list --remote                 # which are applied
+npx supabase functions deploy friend-request-email --no-verify-jwt
+source .env && uv run python -m ufc_embedded.pickem_sync | psql "$SUPABASE_DB_URL"   # cards + results
+source .env && psql "$SUPABASE_DB_URL" -f supabase/queries/stats.sql                 # Pick'em stats
+```
+
+`db push` remembers what it applied in the database itself. Migrations applied by hand in the
+SQL editor before using it are marked as applied once with
+`npx supabase migration repair --remote --status applied <version> ...`. (`--remote`: the
+CLI otherwise means a local Supabase in Docker, which this project doesn't use.)
+
 ## Cards and results
 
 ```bash
