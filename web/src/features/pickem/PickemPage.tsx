@@ -133,10 +133,12 @@ export default function PickemPage() {
   const [league, setLeague] = useLeagueChoice();
   const members = useLeagueMembers(league);
   const leagues = useLeagues();
+  const leagueCount = leagues.data?.length ?? 0;
   const leagueName = league === FRIENDS ? "Friends" : (leagues.data?.find((l) => l.id === league)?.name ?? "");
   const inLeague = useMemo(() => new Set(league === EVERYONE ? [] : (members.data ?? [])), [league, members.data]);
   // Phones show the fights or the leaderboard (a tap apart); wider screens show both.
-  const [view, setView] = useState<"fights" | "board">("fights");
+  // Coming from an invite or a "my leagues" link, the leagues are what you came for.
+  const [view, setView] = useState<"fights" | "board">(() => (params.has("join") || params.has("league") ? "board" : "fights"));
   const [prelimsOpen, setPrelimsOpen] = useState(false);
   const results = useEventLeaderboard(eventId, !!event.data?.event.scoredAt);
   const [signingIn, setSigningIn] = useState(false);
@@ -232,6 +234,21 @@ export default function PickemPage() {
         </Stack>
       </Group>
 
+      {/* Phones: the fights or the leagues, a tap apart, right under the title and kept in reach
+          while scrolling. */}
+      <SegmentedControl
+        hiddenFrom="md"
+        fullWidth
+        size="md"
+        className="pickem-view-switch"
+        value={view}
+        onChange={(v) => setView(v as "fights" | "board")}
+        data={[
+          { value: "fights", label: "Fights" },
+          { value: "board", label: leagueCount ? `Leagues & ranks · ${leagueCount}` : "Leagues & ranks" },
+        ]}
+      />
+
       {card.scoredAt && results.data && <Results rows={results.data} me={profile?.displayName} />}
       {!open && !card.scoredAt && (
         <Paper p="sm" radius="md" className="pickem-board">
@@ -252,16 +269,6 @@ export default function PickemPage() {
         </Alert>
       )}
 
-      <SegmentedControl
-        hiddenFrom="md"
-        fullWidth
-        value={view}
-        onChange={(v) => setView(v as "fights" | "board")}
-        data={[
-          { value: "fights", label: "Fights" },
-          { value: "board", label: "Leaderboard" },
-        ]}
-      />
       <Grid gap="xl" className="pickem-columns" data-view={view}>
         <Grid.Col span={{ base: 12, md: 7 }} className="pickem-col-fights">
           <Stack gap="lg">

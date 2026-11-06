@@ -54,7 +54,16 @@
   transform: rotate(180deg);
 }
 
-/* Phones: one column at a time, picked with the Fights / Leaderboard switch. */
+/* Phones: the Fights / Leagues switch stays under the header while you scroll. */
+.pickem-view-switch {
+  position: sticky;
+  top: calc(var(--app-shell-header-offset, 56px) + 6px);
+  z-index: 5;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+/* Phones: one column at a time, picked with the Fights / Leagues switch. */
 @media (max-width: 61.99em) {
   .pickem-columns[data-view="fights"] .pickem-col-board,
   .pickem-columns[data-view="board"] .pickem-col-fights {
