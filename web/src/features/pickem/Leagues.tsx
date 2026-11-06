@@ -2,8 +2,8 @@
 // league controls (create, join with a code, invite friends, leave). An invite link is
 // /pickem?join=CODE: opening it joins that league (after signing in, if need be).
 
-import { Badge, Button, Group, Loader, Modal, Paper, SegmentedControl, Stack, Text, TextInput, Title } from "@mantine/core";
-import { useEffect, useState } from "react";
+import { Badge, Button, Group, Loader, Modal, Paper, Stack, Text, TextInput, Title, UnstyledButton } from "@mantine/core";
+import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { useAuth } from "../../auth/AuthProvider";
@@ -95,13 +95,7 @@ export function Leagues({ selected, setSelected }: Props) {
       <Stack gap="md">
         <Title order={3}>Leaderboard</Title>
         {user && boards.length > 1 && (
-          <SegmentedControl
-            size="xs"
-            fullWidth
-            value={league ? league.id : showFriends ? FRIENDS : EVERYONE}
-            onChange={setSelected}
-            data={boards}
-          />
+          <BoardTabs boards={boards} value={league ? league.id : showFriends ? FRIENDS : EVERYONE} onChange={setSelected} />
         )}
         {invite && !user && (
           <Text size="sm" c="red.3">
@@ -221,6 +215,43 @@ export function Leagues({ selected, setSelected }: Props) {
         }
       />
     </Paper>
+  );
+}
+
+/** Everyone, Friends and each league as pills in one row that scrolls sideways when there are
+ * many; the selected one scrolls into view. */
+function BoardTabs({ boards, value, onChange }: { boards: { value: string; label: string }[]; value: string; onChange: (v: string) => void }) {
+  const row = useRef<HTMLDivElement>(null);
+  // Whether there's more to swipe to on the right (then the edge fades out).
+  const [more, setMore] = useState(false);
+  const check = () => {
+    const r = row.current;
+    if (r) setMore(r.scrollLeft + r.clientWidth < r.scrollWidth - 2);
+  };
+  useEffect(() => {
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, [boards.length]);
+  useEffect(() => {
+    // "nearest": the row scrolls just enough to show the pill, and the page doesn't move.
+    row.current?.querySelector<HTMLElement>("[data-chosen]")?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [value]);
+  return (
+    <div className="board-tabs" ref={row} role="tablist" aria-label="Leaderboards" data-more={more || undefined} onScroll={check}>
+      {boards.map((b) => (
+        <UnstyledButton
+          key={b.value}
+          role="tab"
+          aria-selected={b.value === value}
+          className="pickem-method"
+          data-chosen={b.value === value || undefined}
+          onClick={() => onChange(b.value)}
+        >
+          {b.label}
+        </UnstyledButton>
+      ))}
+    </div>
   );
 }
 

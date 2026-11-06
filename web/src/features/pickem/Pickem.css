@@ -62,6 +62,27 @@
   }
 }
 
+/* The leaderboard's boards (Everyone, Friends, leagues): one row of pills, scrolling sideways
+   with a fade at the edge when there are more than fit. */
+.board-tabs {
+  position: relative; /* the pills' offsets are measured from the row */
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.board-tabs[data-more] {
+  mask-image: linear-gradient(90deg, #000 85%, transparent);
+}
+.board-tabs::-webkit-scrollbar {
+  display: none;
+}
+.board-tabs > * {
+  flex: none;
+  white-space: nowrap;
+}
+
 /* Bonus hints and the method buttons. */
 .pickem-bonus {
   color: var(--mantine-color-yellow-5);
