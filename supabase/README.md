@@ -144,5 +144,11 @@ The demo backend keeps everything in the browser: "signing in" makes you a demo 
    (`RESEND_API_KEY`, and `WEBHOOK_SECRET`: any long random string), then Database → Webhooks →
    Create: table `friendships`, event Insert, type Supabase Edge Functions,
    `friend-request-email`, POST, with an HTTP header `x-webhook-secret` set to the same string.
-7. **Legal.** Fill in `web/src/pages/legal.ts` (Impressum); the privacy policy already covers
+7. **Results emails.** The `results-email` Edge Function emails everyone who picked on a card
+   how they did, once it's scored. Deploy it with
+   `npx supabase functions deploy results-email --no-verify-jwt` (it uses the same two secrets),
+   then a second webhook: table `events`, event **Update**, type Supabase Edge Functions,
+   `results-email`, POST, with the same `x-webhook-secret` header. Each player gets a card once
+   (`results_email_notices`); Resend's free plan sends 100 emails a day.
+8. **Legal.** Fill in `web/src/pages/legal.ts` (Impressum); the privacy policy already covers
    accounts, Supabase, Resend and Google.

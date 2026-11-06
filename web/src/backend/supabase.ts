@@ -159,7 +159,7 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
       async mine() {
         const id = await userId().catch(() => null);
         if (!id) return null;
-        const { data, error } = await db.from("profiles").select("id, display_name, avatar, notify_friend_requests").eq("id", id).maybeSingle();
+        const { data, error } = await db.from("profiles").select("id, display_name, avatar, notify_friend_requests, notify_results").eq("id", id).maybeSingle();
         if (error) throw friendly(error);
         return (
           data && {
@@ -167,6 +167,7 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
             displayName: data.display_name as string,
             avatar: data.avatar as string | null,
             notifyFriendRequests: data.notify_friend_requests !== false,
+            notifyResults: data.notify_results !== false,
           }
         );
       },
@@ -174,19 +175,20 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
         const id = await userId();
         const { error } = await db.from("profiles").insert({ id, display_name: displayName.trim() });
         if (error) throw friendly(error);
-        return { id, displayName: displayName.trim(), avatar: null, notifyFriendRequests: true };
+        return { id, displayName: displayName.trim(), avatar: null, notifyFriendRequests: true, notifyResults: true };
       },
       async byName(displayName) {
         const { data, error } = await db.from("profiles").select("id, display_name, avatar, created_at").eq("display_name", displayName).maybeSingle();
         if (error) throw friendly(error);
         return data && { id: data.id, displayName: data.display_name, avatar: data.avatar, joinedOn: String(data.created_at).slice(0, 10) };
       },
-      async update({ displayName, avatar, notifyFriendRequests }) {
+      async update({ displayName, avatar, notifyFriendRequests, notifyResults }) {
         const id = await userId();
         const changes: Record<string, unknown> = {};
         if (displayName !== undefined) changes.display_name = displayName.trim();
         if (avatar !== undefined) changes.avatar = avatar;
         if (notifyFriendRequests !== undefined) changes.notify_friend_requests = notifyFriendRequests;
+        if (notifyResults !== undefined) changes.notify_results = notifyResults;
         const { error } = await db.from("profiles").update(changes).eq("id", id);
         if (error) throw friendly(error);
       },

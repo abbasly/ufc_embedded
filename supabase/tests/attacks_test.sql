@@ -74,7 +74,11 @@ select pg_temp.refused($$insert into public.leagues (name, owner_id) values ('Fa
 select pg_temp.refused($$insert into public.friendships (requester, addressee, status) values ('00000000-0000-0000-0000-000000000ee2', '00000000-0000-0000-0000-000000000ee1', 'accepted')$$, 'faking a friendship');
 select pg_temp.refused($$insert into public.friend_request_notices (requester, addressee) values ('00000000-0000-0000-0000-000000000ee1', '00000000-0000-0000-0000-000000000ee2')$$, 'writing email notices');
 select pg_temp.refused($$select 1 from auth.users$$, 'a player reading accounts and emails');
+select pg_temp.refused($$select 1 from public.results_email_notices$$, 'a player reading who got results emails');
+select pg_temp.refused($$insert into public.results_email_notices (event_id, user_id) values ('atk', '00000000-0000-0000-0000-000000000ee2')$$, 'a player marking results emails as sent');
+update public.profiles set notify_results = false where id = '00000000-0000-0000-0000-000000000ee2';
 reset role;
+select pg_temp.expect_count($$select 1 from public.profiles where id = '00000000-0000-0000-0000-000000000ee2' and notify_results$$, 1, 'turning off someone else''s results emails');
 
 -- ---- Nothing above changed anything that matters ---------------------------------------------------
 select pg_temp.expect_count($$select 1 from public.events where id like 'atk%'$$, 2, 'the events, after all that');

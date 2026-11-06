@@ -138,7 +138,7 @@ export function demoBackend(): Backend {
       mine: async () => (load().signedIn ? load().profile : null),
       async create(displayName) {
         signedIn();
-        const profile = { id: DEMO_USER.id, displayName: displayName.trim(), avatar: null, notifyFriendRequests: true };
+        const profile = { id: DEMO_USER.id, displayName: displayName.trim(), avatar: null, notifyFriendRequests: true, notifyResults: true };
         save({ ...load(), profile });
         return profile;
       },
@@ -148,7 +148,7 @@ export function demoBackend(): Backend {
         const i = SAMPLE_NAMES.indexOf(displayName);
         return i < 0 ? null : { id: `sample-${i}`, displayName, avatar: AVATARS[i % AVATARS.length] ?? null, joinedOn: "2026-10-20" };
       },
-      async update({ displayName, avatar, notifyFriendRequests }) {
+      async update({ displayName, avatar, notifyFriendRequests, notifyResults }) {
         signedIn();
         const s = load();
         if (!s.profile) throw new BackendError("Pick a display name first.");
@@ -159,6 +159,7 @@ export function demoBackend(): Backend {
             ...(displayName !== undefined && { displayName: displayName.trim() }),
             ...(avatar !== undefined && { avatar }),
             ...(notifyFriendRequests !== undefined && { notifyFriendRequests }),
+            ...(notifyResults !== undefined && { notifyResults }),
           },
         });
       },
