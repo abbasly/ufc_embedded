@@ -36,5 +36,5 @@ jobs:
           export PATH="$(ls -d /usr/lib/postgresql/*/bin | sort -V | tail -1):$PATH"
           # Fought but not yet scored: kept in sync even once they've left the upcoming list.
           psql "$SUPABASE_DB_URL" -At -v ON_ERROR_STOP=1 -c "select coalesce(json_agg(json_build_object('date', starts_on, 'name', name)), '[]') from public.events where scored_at is null and starts_on between current_date - 14 and current_date" > recent.json
-          uv run python -m ufc_embedded.pickem_sync --recent recent.json > sync.sql
+          uv run --no-dev python -m ufc_embedded.pickem_sync --recent recent.json > sync.sql
           psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -q -f sync.sql
