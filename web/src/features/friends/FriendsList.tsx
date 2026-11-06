@@ -1,11 +1,9 @@
 // Your friends on your profile: requests waiting for you first, then your friends, then the
 // requests you've sent. Names open player pages.
 
-import { Anchor, Button, Group, Loader, Paper, Stack, Switch, Text, Title } from "@mantine/core";
-import { useState } from "react";
+import { Anchor, Button, Group, Loader, Paper, Stack, Text, Title } from "@mantine/core";
 import { Link } from "react-router-dom";
 
-import { useAuth } from "../../auth/AuthProvider";
 import { PlayerAvatar } from "../../auth/PlayerAvatar";
 import type { Friend } from "../../backend";
 import { playerPath } from "../pickem/Leagues";
@@ -71,32 +69,6 @@ export function FriendsList() {
           )}
         </Stack>
       )}
-      <EmailSwitch />
     </Paper>
-  );
-}
-
-/** Whether to get an email when someone sends you a friend request. */
-function EmailSwitch() {
-  const { profile, backend, refreshProfile } = useAuth();
-  const [busy, setBusy] = useState(false);
-  if (!profile || !backend) return null;
-  return (
-    <Switch
-      mt="md"
-      size="sm"
-      label="Email me when someone sends a friend request"
-      checked={profile.notifyFriendRequests !== false}
-      disabled={busy}
-      onChange={async (e) => {
-        setBusy(true);
-        try {
-          await backend.profiles.update({ notifyFriendRequests: e.currentTarget.checked });
-          await refreshProfile();
-        } finally {
-          setBusy(false);
-        }
-      }}
-    />
   );
 }

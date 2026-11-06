@@ -38,8 +38,9 @@ export function PrivacyPage() {
               <List.Item>
                 <b>Your email address</b>, to sign you in and to send account emails (confirming your address,
                 resetting your password), or, if you sign in with Google, the email address Google shares. It isn't
-                shown to anyone and isn't used for anything else: no newsletters, no marketing. The one other email is a
-                note when someone sends you a friend request, which you can turn off on your profile. If you use a password,
+                shown to anyone and isn't used for anything else: no newsletters, no marketing. The only other emails
+                are your results after each card you played and a note when someone sends you a friend request; you can
+                turn either off on your profile. If you use a password,
                 only a secure hash of it is stored (by Supabase), never the password itself.
               </List.Item>
               <List.Item>

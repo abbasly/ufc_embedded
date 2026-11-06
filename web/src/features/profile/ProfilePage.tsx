@@ -17,6 +17,7 @@ import type { League } from "../../backend";
 import { copyInviteLink } from "../pickem/Leagues";
 import { useLeagues, useStandings } from "../pickem/usePickem";
 import { FriendsList } from "../friends/FriendsList";
+import { EmailSettings } from "./EmailSettings";
 import { PlayerRecord } from "./PlayerRecord";
 
 const VALID_NAME = /^[A-Za-z0-9_.-]{3,24}$/;
@@ -48,7 +49,12 @@ function Own({ displayName }: { displayName: string }) {
   return (
     <Stack gap="lg" maw={720} mx="auto" pt={4}>
       <Identity />
-      <PlayerRecord userId={profile!.id} displayName={displayName} avatar={profile!.avatar} isMe after={<Account />}>
+      <PlayerRecord userId={profile!.id} displayName={displayName} avatar={profile!.avatar} isMe after={
+          <>
+            <EmailSettings />
+            <Account />
+          </>
+        }>
         <MyLeagues />
         <FriendsList />
       </PlayerRecord>
