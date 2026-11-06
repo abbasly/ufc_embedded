@@ -24,6 +24,7 @@ const LadderPage = lazyPage(() => import("../features/ladder/LadderPage"));
 const PickemPage = lazyPage(() => import("../features/pickem/PickemPage"));
 const ProfilePage = lazyPage(() => import("../features/profile/ProfilePage"));
 const PlayerPage = lazyPage(() => import("../features/profile/PlayerPage"));
+const AdminPage = lazyPage(() => import("../features/admin/AdminPage"));
 
 // The landing page: Pick'em where accounts are on, else About (also at /about either way).
 const HOME = accountsEnabled ? "pickem" : "about";
@@ -134,6 +135,7 @@ export function App() {
             {accountsEnabled && <Route path="/pickem" element={<ToHome />} />}
             {accountsEnabled && <Route path="/me" element={<ProfilePage />} />}
             {accountsEnabled && <Route path="/u/:name" element={<PlayerPage />} />}
+            {accountsEnabled && <Route path="/admin" element={<AdminPage />} />}
             <Route path="/about" element={HOME === "about" ? <Navigate to="/" replace /> : <AboutPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/impressum" element={<ImpressumPage />} />

@@ -5,6 +5,8 @@ import { Button, Indicator, Menu, Modal, Stack, Text, UnstyledButton } from "@ma
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
+import { useQuery } from "@tanstack/react-query";
+
 import { useFriends } from "../features/friends/useFriends";
 import { useAuth } from "./AuthProvider";
 import { PasswordModal } from "./PasswordModal";
@@ -17,6 +19,8 @@ export function UserMenu() {
   const [signingIn, setSigningIn] = useState(false);
   const friends = useFriends();
   const requests = (friends.data ?? []).filter((f) => f.status === "incoming").length;
+  // The admin link only for admins (the panel's data is refused to anyone else anyway).
+  const admin = useQuery({ queryKey: ["admin", "is", user?.id], queryFn: () => backend!.admin.isAdmin(), enabled: !!backend && !!user, staleTime: Infinity });
 
   if (!enabled || loading) return null;
 
@@ -72,6 +76,11 @@ export function UserMenu() {
           <Menu.Item component={Link} to="/">
             Pick'em
           </Menu.Item>
+          {admin.data && (
+            <Menu.Item component={Link} to="/admin">
+              Admin
+            </Menu.Item>
+          )}
           <Menu.Divider />
           <Menu.Item onClick={() => backend?.auth.signOut()}>Sign out</Menu.Item>
         </Menu.Dropdown>

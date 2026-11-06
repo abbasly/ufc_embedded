@@ -230,6 +230,42 @@ export function demoBackend(): Backend {
       scoresOf: async (id) => demoPastScores(id),
       pickHistory: async (id) => demoPastPicks(id),
     },
+    // In the demo you're the admin, with made-up accounts.
+    admin: {
+      isAdmin: async () => load().signedIn,
+      overview: async () => [
+        { metric: "accounts", value: 42 },
+        { metric: "with a display name", value: 38 },
+        { metric: "new today", value: 5 },
+        { metric: "new this week", value: 31 },
+        { metric: "signed in this week", value: 27 },
+        { metric: "players with a pick", value: 29 },
+        { metric: "picks", value: 311 },
+        { metric: "leagues", value: 6 },
+        { metric: "friendships", value: 14 },
+        { metric: "cards scored", value: 4 },
+        { metric: "results emails sent", value: 88 },
+        { metric: "friend-request emails sent", value: 17 },
+      ],
+      users: async () =>
+        SAMPLE_NAMES.slice(0, 18).map((name, i) => ({
+          userId: `sample-${i}`,
+          displayName: i === 17 ? null : name,
+          email: `${name.replace(/_/g, ".")}@example.com`,
+          provider: i % 3 ? "google" : "email",
+          createdAt: new Date(Date.now() - i * 9 * 3600e3).toISOString(),
+          lastSignInAt: new Date(Date.now() - i * 2 * 3600e3).toISOString(),
+          picks: Math.max(0, 22 - i),
+          points: Math.max(0, 265 - i * 12),
+          leagues: i % 4,
+          friends: i % 5,
+        })),
+      log: async () => [
+        { at: new Date().toISOString(), kind: "sync", eventId: null, detail: "3 cards, 28 bouts, 0 results" },
+        { at: new Date(Date.now() - 3600e3).toISOString(), kind: "result", eventId: "demo-e4", detail: "Ilia Topuria vs Islam Makhachev: Ilia Topuria by KO/TKO" },
+        { at: new Date(Date.now() - 2 * 3600e3).toISOString(), kind: "scored", eventId: "demo-e4", detail: "31 players scored" },
+      ],
+    },
     friends: {
       list: async () => (load().signedIn ? (load().friends ?? DEMO_FRIENDS) : []),
       async request(userId) {
