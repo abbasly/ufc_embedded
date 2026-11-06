@@ -12,6 +12,19 @@ export const MODEL_PLAYER = "the_model";
 
 export const METHOD_LABEL: Record<Method, string> = { "KO/TKO": "KO/TKO", SUB: "Submission", DEC: "Decision" };
 
+/** Places on a board sorted best first: equal points share a place (120, 120, 95 -> 1, 1, 3). */
+export function places(rows: { points: number }[]): number[] {
+  const out: number[] = [];
+  rows.forEach((r, i) => out.push(i > 0 && r.points === rows[i - 1]!.points ? out[i - 1]! : i + 1));
+  return out;
+}
+
+/** A player's place on a board sorted best first, or null if they're not on it. */
+export function placeOf(rows: { displayName: string; points: number }[], name: string | undefined): number | null {
+  const i = rows.findIndex((r) => r.displayName === name);
+  return i < 0 ? null : places(rows)[i]!;
+}
+
 /** The bookmakers' chance for ``fighter`` in the bout, if they priced it. */
 export function marketChance(bout: PickemBout, fighter: string): number | null {
   if (bout.marketPA === null) return null;

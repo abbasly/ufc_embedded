@@ -248,10 +248,30 @@ function Account() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  /** Everything we store about you, as a JSON file. */
+  const downloadData = async () => {
+    if (!backend) return;
+    setExporting(true);
+    try {
+      const data = await backend.profiles.exportMine();
+      const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ufc-embedded-my-data-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } finally {
+      setExporting(false);
+    }
+  };
   return (
     <Group gap="sm">
       <Button variant="default" onClick={() => backend?.auth.signOut()}>
         Sign out
+      </Button>
+      <Button variant="subtle" color="gray" loading={exporting} onClick={downloadData}>
+        Download my data
       </Button>
       {/* Also how Google users (or early email-link users) add a password. */}
       <Button variant="subtle" color="gray" onClick={() => setChangingPassword(true)}>

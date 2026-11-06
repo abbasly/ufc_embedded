@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import type { EventScore, PastPick } from "../../backend";
-import { boutPoints, METHOD_LABEL } from "../pickem/scoring";
+import { boutPoints, METHOD_LABEL, placeOf } from "../pickem/scoring";
 import { useLeaderboard } from "../pickem/usePickem";
 
 const day = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
@@ -19,13 +19,13 @@ export function Stats({ scores, displayName }: { scores: EventScore[] | undefine
   const points = rows.reduce((n, r) => n + r.points, 0);
   const correct = rows.reduce((n, r) => n + r.correct, 0);
   const picked = rows.reduce((n, r) => n + r.picked, 0);
-  const rank = board.data?.findIndex((r) => r.displayName === displayName) ?? -1;
+  const rank = placeOf(board.data ?? [], displayName);
 
   const tiles = [
     { label: "Points", value: String(points) },
     { label: "Right picks", value: picked ? `${correct}/${picked}` : "–", note: picked ? `${Math.round((100 * correct) / picked)}%` : undefined },
     { label: "Cards played", value: String(rows.length) },
-    { label: "Rank", value: rank >= 0 ? `#${rank + 1}` : "–", note: rank >= 0 ? "overall" : undefined },
+    { label: "Rank", value: rank ? `#${rank}` : "–", note: rank ? "overall" : undefined },
   ];
   return (
     <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm">

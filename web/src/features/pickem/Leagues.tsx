@@ -10,7 +10,7 @@ import { useAuth } from "../../auth/AuthProvider";
 import { PlayerAvatar } from "../../auth/PlayerAvatar";
 import type { LeaderboardRow } from "../../backend";
 import { useFriends, useFriendsStandings } from "../friends/useFriends";
-import { MODEL_PLAYER } from "./scoring";
+import { MODEL_PLAYER, places } from "./scoring";
 import { EVERYONE, FRIENDS, useLeaderboard, useLeagueActions, useLeagues, useStandings } from "./usePickem";
 
 const TOP = 10; // rows shown before "Show all"
@@ -277,6 +277,7 @@ function Standings({ rows, loading, me, inLeague }: { rows?: LeaderboardRow[]; l
     );
   // Big boards: the top 10, plus your own row if you're further down, until "Show all".
   const mine = rows.findIndex((r) => r.displayName === me);
+  const place = places(rows);
   const shown = rows.map((row, i) => ({ row, i })).filter(({ i }) => all || i < TOP || i === mine);
   return (
     <Stack gap={8}>
@@ -296,10 +297,10 @@ function Standings({ rows, loading, me, inLeague }: { rows?: LeaderboardRow[]; l
           renderRoot={(props) => <Link {...props} to={playerPath(row.displayName)} />}
         >
           <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
-            <Text fw={800} w={22} ta="right" c={i < 3 && row.points > 0 ? undefined : "dimmed"} style={i < 3 && row.points > 0 ? { color: MEDALS[i] } : undefined}>
-              {i + 1}
+            <Text fw={800} w={22} ta="right" c={place[i]! <= 3 && row.points > 0 ? undefined : "dimmed"} style={place[i]! <= 3 && row.points > 0 ? { color: MEDALS[place[i]! - 1] } : undefined}>
+              {place[i]}
             </Text>
-            <PlayerAvatar name={row.displayName} avatar={row.avatar} size={34} style={i < 3 && row.points > 0 ? { boxShadow: `0 0 0 2px ${MEDALS[i]}` } : undefined} />
+            <PlayerAvatar name={row.displayName} avatar={row.avatar} size={34} style={place[i]! <= 3 && row.points > 0 ? { boxShadow: `0 0 0 2px ${MEDALS[place[i]! - 1]}` } : undefined} />
             <div style={{ minWidth: 0 }}>
               <Text fw={700} truncate lh={1.25}>
                 {row.displayName}

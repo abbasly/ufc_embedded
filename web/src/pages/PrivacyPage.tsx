@@ -123,7 +123,8 @@ export function PrivacyPage() {
 
         <Title order={3}>Your rights</Title>
         <Text>
-          You can ask what data we hold about you and get a copy of it, have it corrected or deleted, restrict or object
+          You can download everything we store about you yourself, from your profile ("Download my data"), or ask
+          what data we hold about you and get a copy of it, have it corrected or deleted, restrict or object
           to its processing, and withdraw any consent you've given. Write to the contact in the{" "}
           <Anchor component={Link} to="/impressum">Impressum</Anchor>. You can also complain to a data protection
           authority, for example the Bavarian one (Bayerisches Landesamt für Datenschutzaufsicht).

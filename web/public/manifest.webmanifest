@@ -1,0 +1,15 @@
+{
+  "name": "UFC Embedded",
+  "short_name": "UFC Embedded",
+  "description": "UFC Pick'em with your friends, a fight predictor, a style map and MMA math.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#17181b",
+  "theme_color": "#17181b",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
