@@ -73,10 +73,14 @@ const lockLabel = (iso: string) =>
 const shortName = (e: PickemEvent) =>
   `${e.name.split(":")[0]} · ${new Date(`${e.startsOn}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
 
-/** The card to show first: the earliest one not scored yet (the one being fought, or the next
- * one), else the most recent. */
+/** How long a just-scored card stays the one shown first, so everyone sees how they did. */
+const RESULTS_SHOWN_MS = 36 * 3600e3;
+
+/** The card to show first: one scored in the last day and a half (the results), else the
+ * earliest one not scored yet (the one being fought, or the next one), else the most recent. */
 function defaultEvent(events: PickemEvent[]): PickemEvent | undefined {
-  return events.find((e) => !e.scoredAt) ?? events.at(-1);
+  const fresh = events.filter((e) => e.scoredAt && Date.now() - Date.parse(e.scoredAt) < RESULTS_SHOWN_MS).at(-1);
+  return fresh ?? events.find((e) => !e.scoredAt) ?? events.at(-1);
 }
 
 const dateLabel = (day: string) =>

@@ -69,6 +69,11 @@ CLI otherwise means a local Supabase in Docker, which this project doesn't use.)
 uv run python -m ufc_embedded.pickem_sync | pbcopy   # from the project root; paste in the SQL editor
 ```
 
+A GitHub Action (`.github/workflows/pickem-sync.yml`) runs this automatically: every 15
+minutes on Saturdays and Sundays (UTC), hourly otherwise, with the database's Session pooler
+connection string as the `SUPABASE_DB_URL` repository secret. Results land as Wikipedia gets
+them, and the Pick'em page checks back every minute while a card is being fought.
+
 Cards come from each event's Wikipedia page (running order, main card / prelims / early
 prelims, title fights), odds from the bookmakers. Run it again after an event: once every bout
 on the page has a result, the same SQL writes the results and scores the event.

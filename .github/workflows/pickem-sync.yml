@@ -1,0 +1,40 @@
+name: Pick'em sync
+
+# Keeps Pick'em up to date without anyone running anything: new cards and changes from the
+# site's upcoming list and Wikipedia, and results as Wikipedia's editors add them during the
+# fights (usually minutes after each one). An event is scored once every bout has a result.
+#
+# Every 15 minutes on fight weekends (Saturday and Sunday, UTC), hourly otherwise. Needs the
+# SUPABASE_DB_URL secret: the database's Session pooler connection string (GitHub's runners
+# have no IPv6, so not the direct one). Scheduled runs only happen on the default branch.
+
+on:
+  schedule:
+    - cron: "*/15 * * * 0,6"
+    - cron: "17 * * * 1-5"
+  workflow_dispatch: # "Run workflow" button, e.g. right after a fight
+
+concurrency:
+  group: pickem-sync
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked --no-dev
+      - name: Sync cards and results
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          export PATH="$(ls -d /usr/lib/postgresql/*/bin | sort -V | tail -1):$PATH"
+          # Fought but not yet scored: kept in sync even once they've left the upcoming list.
+          psql "$SUPABASE_DB_URL" -At -v ON_ERROR_STOP=1 -c "select coalesce(json_agg(json_build_object('date', starts_on, 'name', name)), '[]') from public.events where scored_at is null and starts_on between current_date - 14 and current_date" > recent.json
+          uv run python -m ufc_embedded.pickem_sync --recent recent.json > sync.sql
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -q -f sync.sql
