@@ -50,8 +50,8 @@ function Own({ displayName }: { displayName: string }) {
     <Stack gap="lg" maw={720} mx="auto" pt={4}>
       <Identity />
       <Stats scores={scores.data} displayName={displayName} />
-      <FriendsList />
       <MyLeagues />
+      <FriendsList />
       <History scores={scores.data} loading={scores.isPending} own />
       <Account />
     </Stack>
