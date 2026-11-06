@@ -20,6 +20,12 @@ export function useEvents() {
   });
 }
 
+/** Whether a card is being fought: locked, results not all in yet. */
+const isLive = (card: { event: { locksAt: string; scoredAt: string | null } } | null | undefined) =>
+  !!card && Date.parse(card.event.locksAt) <= Date.now() && !card.event.scoredAt;
+
+/** One card. While it's being fought it checks back every minute, so results (synced from
+ * Wikipedia as they come in) show up without a reload. */
 export function useCard(eventId: string | undefined) {
   const { backend } = useAuth();
   return useQuery({
@@ -27,6 +33,7 @@ export function useCard(eventId: string | undefined) {
     queryFn: () => backend!.pickem.card(eventId!),
     enabled: !!backend && !!eventId,
     staleTime: 60_000,
+    refetchInterval: (query) => (isLive(query.state.data) ? 60_000 : false),
   });
 }
 

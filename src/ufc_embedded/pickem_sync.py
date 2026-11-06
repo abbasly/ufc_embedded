@@ -193,7 +193,7 @@ def card_bouts(
     """A card's bouts in running order: Wikipedia's card where there is one, else the
     bookmakers' list; with the bookmakers' odds wherever they have the bout."""
     market: dict[frozenset[str], tuple[str, float | None]] = {}
-    for fight in card["fights"]:
+    for fight in card.get("fights", []):
         a, b = fighter_id(fight, "a"), fighter_id(fight, "b")
         market[frozenset((a, b))] = (a, fight.get("p_market"))
 
@@ -211,7 +211,7 @@ def card_bouts(
                 "winner": None,
                 "method": None,
             }
-            for f in card["fights"]
+            for f in card.get("fights", [])
         ]
 
     bouts: list[Bout] = []
@@ -238,16 +238,34 @@ def card_bouts(
     return bouts
 
 
-def card_sql(card: dict[str, Any], bouts: list[Bout]) -> list[str]:
-    """Statements that bring one card's event, bouts and results up to date."""
+def card_sql(card: dict[str, Any], bouts: list[Bout], from_wikipedia: bool = True) -> list[str]:
+    """Statements that bring one card's event, bouts and results up to date.
+
+    Only Wikipedia's card is trusted to rewrite a card (order, segments, results, cancelled
+    bouts). The bookmakers' list (``from_wikipedia=False``: no page yet, or Wikipedia couldn't be
+    reached) only fills in a card that has no bouts yet, so a failed fetch never touches one.
+    """
     eid = event_id(card)
+    if not bouts:
+        return []
+    if not from_wikipedia:
+        return _first_listing_sql(card, eid, bouts)
     name = card.get("name") or f"UFC card, {card['date']}"
-    lock = locks_at(card)
-    statements = [
+    # Cards known only from the database (``existing``) keep their event row as it is: there's no
+    # city to work the lock time out from.
+    event_sql = (
         "insert into public.events (id, name, starts_on, locks_at) values "
-        f"({sql_text(eid)}, {sql_text(name)}, {sql_text(card['date'])}, {sql_text(lock)})\n"
-        "  on conflict (id) do update set name = excluded.name, starts_on = excluded.starts_on,"
-        " locks_at = excluded.locks_at;",
+        f"({sql_text(eid)}, {sql_text(name)}, {sql_text(card['date'])}, "
+        f"{sql_text(locks_at(card))})\n"
+        + (
+            "  on conflict (id) do nothing;"
+            if card.get("existing")
+            else "  on conflict (id) do update set name = excluded.name,"
+            " starts_on = excluded.starts_on, locks_at = excluded.locks_at;"
+        )
+    )
+    statements = [
+        event_sql,
         # Move existing bouts out of the way, so the running order can be rewritten freely.
         f"update public.bouts set position = position + 1000 where event_id = {sql_text(eid)};",
     ]
@@ -273,8 +291,10 @@ def card_sql(card: dict[str, Any], bouts: list[Bout]) -> list[str]:
             " then excluded.a_name else excluded.b_name end,"
             " b_name = case when bouts.fighter_a = excluded.fighter_a"
             " then excluded.b_name else excluded.a_name end,"
-            " market_p_a = case when bouts.fighter_a = excluded.fighter_a"
-            " then excluded.market_p_a else 1 - excluded.market_p_a end,"
+            # Keep the odds we have when this sync has none (e.g. the card left the bookmakers'
+            # listings after the fight): the underdog bonus depends on them.
+            " market_p_a = coalesce(case when bouts.fighter_a = excluded.fighter_a"
+            " then excluded.market_p_a else 1 - excluded.market_p_a end, bouts.market_p_a),"
             " outcome = excluded.outcome, winner = excluded.winner, method = excluded.method;"
         )
     # Bouts no longer on the card (cancelled), unless the event has already been scored.
@@ -289,9 +309,36 @@ def card_sql(card: dict[str, Any], bouts: list[Bout]) -> list[str]:
     return statements
 
 
-def sync_sql(cards: list[tuple[dict[str, Any], list[Bout]]]) -> str:
-    """One transaction that brings every card up to date."""
-    body = [s for card, bouts in cards for s in card_sql(card, bouts)]
+def _first_listing_sql(card: dict[str, Any], eid: str, bouts: list[Bout]) -> list[str]:
+    """A card from the bookmakers' list: the event and its bouts, only if it has none yet."""
+    name = card.get("name") or f"UFC card, {card['date']}"
+    rows = []
+    ids: list[str] = []
+    for bout in bouts:
+        bid = bout_id(eid, bout["a"], bout["b"])
+        if bid in ids:
+            continue
+        ids.append(bid)
+        rows.append(
+            f"({sql_text(bid)}, {sql_text(eid)}, {len(ids)}, {sql_text(bout['a'])}, "
+            f"{sql_text(bout['b'])}, {sql_text(bout['a_name'])}, {sql_text(bout['b_name'])}, "
+            f"{sql_number(bout['p_market'])}::real)"
+        )
+    return [
+        "insert into public.events (id, name, starts_on, locks_at) values "
+        f"({sql_text(eid)}, {sql_text(name)}, {sql_text(card['date'])}, "
+        f"{sql_text(locks_at(card))})\n"
+        "  on conflict (id) do update set name = excluded.name, starts_on = excluded.starts_on,"
+        " locks_at = excluded.locks_at;",
+        "insert into public.bouts (id, event_id, position, fighter_a, fighter_b, a_name, b_name,"
+        " market_p_a)\n  select * from (values " + ", ".join(rows) + ") as v\n"
+        f"  where not exists (select 1 from public.bouts where event_id = {sql_text(eid)});",
+    ]
+
+
+def sync_sql(cards: list[tuple[dict[str, Any], list[Bout], bool]]) -> str:
+    """One transaction that brings every card up to date: (card, bouts, from Wikipedia)."""
+    body = [s for card, bouts, from_wiki in cards for s in card_sql(card, bouts, from_wiki)]
     return "begin;\n" + "\n".join(body) + "\ncommit;\n"
 
 
@@ -309,12 +356,28 @@ def events_to_sync(
     return recent + upcoming
 
 
+def with_recent(cards: list[dict[str, Any]], recent: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Add events the database knows but the upcoming list doesn't (fought, not scored yet):
+    ``recent`` is ``[{"date", "name"}]``, e.g. straight from the events table."""
+    have = {event_id(c) for c in cards}
+    extra = [
+        {"date": r["date"], "name": r["name"], "fights": [], "existing": True}
+        for r in recent
+        if event_id(r) not in have
+    ]
+    return extra + cards
+
+
 def main(
-    path: Path = PREDICTOR_JSON, fetch: Callable[[str], list[CardBout]] = fetch_fight_card
+    path: Path = PREDICTOR_JSON,
+    fetch: Callable[[str], list[CardBout]] = fetch_fight_card,
+    recent: Path | None = None,
 ) -> None:
     data = json.loads(path.read_text())
     synced = json.loads(SYNCED_EVENTS.read_text()) if SYNCED_EVENTS.exists() else []
     cards = events_to_sync(data["upcoming"], synced, date.today())
+    if recent:
+        cards = with_recent(cards, json.loads(recent.read_text()) or [])
 
     names = [slugify(f["name"]) for f in data["fighters"]]
     known = {
@@ -326,7 +389,7 @@ def main(
     for card in cards:
         wiki = fetch(card["name"]) if card.get("name") else []
         bouts = card_bouts(card, wiki, lookup)
-        out.append((card, bouts))
+        out.append((card, bouts, bool(wiki)))
         done = sum(1 for b in bouts if b["outcome"])
         source = "Wikipedia" if wiki else "bookmakers"
         print(
@@ -335,8 +398,16 @@ def main(
     sys.stdout.write(sync_sql(out))
 
     SYNCED_EVENTS.parent.mkdir(parents=True, exist_ok=True)
-    SYNCED_EVENTS.write_text(json.dumps([c for c, _ in out], indent=1))
+    SYNCED_EVENTS.write_text(json.dumps([c for c, _, _ in out if not c.get("existing")], indent=1))
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Pick'em cards and results as SQL.")
+    parser.add_argument(
+        "--recent",
+        type=Path,
+        help='JSON list of {"date", "name"}: unscored events from the database, kept in sync too',
+    )
+    main(recent=parser.parse_args().recent)

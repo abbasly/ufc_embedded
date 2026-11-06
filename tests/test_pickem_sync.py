@@ -5,12 +5,14 @@ from ufc_embedded.fight_cards import parse_fight_card, result
 from ufc_embedded.pickem_sync import (
     bout_id,
     card_bouts,
+    card_sql,
     event_id,
     events_to_sync,
     fighter_id,
     locks_at,
     sql_text,
     sync_sql,
+    with_recent,
 )
 
 CARD: dict[str, Any] = {
@@ -135,12 +137,12 @@ def test_ids_and_quoting() -> None:
 
 
 def test_one_transaction_scored_only_once_every_result_is_in() -> None:
-    before = sync_sql([(CARD, card_bouts(CARD, parse_fight_card(BEFORE), KNOWN.get))])
+    before = sync_sql([(CARD, card_bouts(CARD, parse_fight_card(BEFORE), KNOWN.get), True)])
     assert before.startswith("begin;") and before.endswith("commit;\n")
     assert "'2026-11-14T13:00:00Z'" in before  # 8 am in New York: before any start
     assert "e.scored_at is not null" in before  # cancelled bouts are removed only before scoring
     assert "score_event" not in before
-    after = sync_sql([(CARD, card_bouts(CARD, parse_fight_card(AFTER), KNOWN.get))])
+    after = sync_sql([(CARD, card_bouts(CARD, parse_fight_card(AFTER), KNOWN.get), True)])
     assert "'win', 'josh-hokit', 'KO/TKO'" in after
     assert "select public.score_event('2026-11-14-ufc-334');" in after
 
@@ -158,3 +160,34 @@ def test_picks_lock_on_the_morning_of_fight_day_wherever_it_is() -> None:
     assert locks_at({**day, "city": "Abu Dhabi"}) == "2026-11-07T04:00:00Z"
     assert locks_at({**day, "city": "Sydney"}) == "2026-11-06T22:00:00Z"  # the day before in UTC
     assert locks_at({**day, "city": None}) == "2026-11-07T04:00:00Z"  # unknown: early to be safe
+
+
+def test_odds_already_in_the_database_are_kept_when_a_sync_has_none() -> None:
+    sql = sync_sql([(CARD, card_bouts(CARD, parse_fight_card(AFTER), KNOWN.get), True)])
+    assert "market_p_a = coalesce(" in sql and "bouts.market_p_a)" in sql
+
+
+def test_a_bookmakers_list_never_rewrites_an_existing_card() -> None:
+    # Wikipedia unreachable: the fallback may only fill in a card that has no bouts yet.
+    sql = "\n".join(card_sql(CARD, card_bouts(CARD, [], KNOWN.get), from_wikipedia=False))
+    assert (
+        "where not exists (select 1 from public.bouts where event_id = '2026-11-14-ufc-334')" in sql
+    )
+    assert "delete from" not in sql and "position + 1000" not in sql and "score_event" not in sql
+
+
+def test_events_from_the_database_are_synced_but_their_event_row_is_left_alone() -> None:
+    cards = with_recent(
+        [CARD],
+        [
+            {"date": "2026-11-07", "name": "UFC Fight Night: X vs. Y"},
+            {"date": CARD["date"], "name": CARD["name"]},
+        ],
+    )
+    assert [c["name"] for c in cards] == ["UFC Fight Night: X vs. Y", CARD["name"]]  # no duplicate
+    recent = cards[0]
+    assert card_sql(recent, [], from_wikipedia=True) == []  # nothing on Wikipedia: no change
+    bouts = card_bouts(recent, parse_fight_card(AFTER), KNOWN.get)
+    sql = "\n".join(card_sql(recent, bouts, from_wikipedia=True))
+    assert "on conflict (id) do nothing" in sql  # its lock time stays as it was
+    assert "select public.score_event('2026-11-07-ufc-fight-night');" in sql
