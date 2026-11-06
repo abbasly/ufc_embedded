@@ -28,6 +28,12 @@ select public.create_league('Gym boys');
 select pg_temp.expect_count($$select 1 from public.leagues where name = 'Gym boys'$$, 1, 'Olga seeing her league');
 select pg_temp.expect_count($$select 1 from public.league_members$$, 1, 'Olga as her league''s first member');
 select pg_temp.refused($$select public.create_league('ab')$$, 'a league name under 3 characters');
+-- Up to 5 leagues of her own: four more is fine, the sixth is refused.
+select public.create_league('Spare ' || n) from generate_series(1, 4) n;
+select pg_temp.refused($$select public.create_league('One too many')$$, 'a 6th league of her own');
+reset role;
+delete from public.leagues where name like 'Spare %';
+set role authenticated;
 insert into public.picks (user_id, bout_id, winner) values ('00000000-0000-0000-0000-00000000000a', 'lg-open:x:y', 'x');
 
 -- The invite code, read as the owner (who is a member), for Fred to use.

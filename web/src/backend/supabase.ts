@@ -54,10 +54,12 @@ function friendly(error: { code?: string; message: string }): Error {
   if (error.code === "email_address_invalid") return new BackendError("That email address doesn't look right.");
   if (error.code === "23505") return new BackendError("That name is taken.");
   if (error.code === "23514" && error.message.includes("not_reserved")) return new BackendError("That name is reserved: pick another.");
+  // League errors first: they share the check-violation code with display names.
+  if (error.code === "23514" && error.message.includes("leagues_name_check")) return new BackendError("League names are 3-40 characters.");
+  if (error.code === "23514" && /league/.test(error.message)) return new BackendError(error.message.replace(/^./, (c) => c.toUpperCase()) + ".");
   if (error.code === "23514") return new BackendError("Names are 3-24 letters, digits, dots, dashes or underscores.");
   if (error.code === "42501") return new BackendError("Picks for this card are closed.");
   if (error.code === "P0002") return new BackendError("No league with that invite code.");
-  if (error.code === "23514" && /league/.test(error.message)) return new BackendError(error.message.replace(/^./, (c) => c.toUpperCase()) + ".");
   return new Error(error.message);
 }
 
