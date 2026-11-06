@@ -32,7 +32,7 @@ from typing import Any, TypedDict
 from ufc_embedded.data import PROCESSED_DIR, PROJECT_ROOT, slugify
 from ufc_embedded.fight_cards import CardBout, fetch_fight_card
 from ufc_embedded.pickem_model import MODEL_PLAYER, model_pick
-from ufc_embedded.upcoming import _matcher
+from ufc_embedded.upcoming import _matcher, scheduled_events
 
 PREDICTOR_JSON = PROJECT_ROOT / "web" / "public" / "data" / "predictor.json"
 SYNCED_EVENTS = PROCESSED_DIR / "pickem_events.json"
@@ -140,6 +140,7 @@ CITY_UTC_OFFSET = {
 }
 DEFAULT_UTC_OFFSET = 4
 KEEP_DAYS = 14  # keep syncing an event this long after it, for its results
+SCHEDULED_DAYS = 35  # events Wikipedia lists as scheduled this far ahead join Pick'em
 
 
 class Bout(TypedDict):
@@ -393,6 +394,25 @@ def events_to_sync(
     return recent + upcoming
 
 
+def with_scheduled(
+    cards: list[dict[str, Any]],
+    scheduled: list[dict[str, Any]],
+    today: date,
+    horizon_days: int = SCHEDULED_DAYS,
+) -> list[dict[str, Any]]:
+    """Add UFC events Wikipedia lists as scheduled within ``horizon_days`` that the upcoming
+    list doesn't have yet (no bookmakers' listing, or the site's data not refreshed since):
+    their cards come from their Wikipedia pages; the odds follow once predictor.json has them."""
+    have = {event_id(c) for c in cards}
+    extra = [
+        {"date": e["date"], "name": e["name"], "city": e.get("city"), "fights": []}
+        for e in scheduled
+        if today <= date.fromisoformat(e["date"]) <= today + timedelta(days=horizon_days)
+        and event_id(e) not in have
+    ]
+    return cards + extra
+
+
 def with_recent(cards: list[dict[str, Any]], recent: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Add events the database knows but the upcoming list doesn't (fought, not scored yet):
     ``recent`` is ``[{"date", "name"}]``, e.g. straight from the events table."""
@@ -409,10 +429,13 @@ def main(
     path: Path = PREDICTOR_JSON,
     fetch: Callable[[str], list[CardBout]] = fetch_fight_card,
     recent: Path | None = None,
+    scheduled: bool = True,
 ) -> None:
     data = json.loads(path.read_text())
     synced = json.loads(SYNCED_EVENTS.read_text()) if SYNCED_EVENTS.exists() else []
     cards = events_to_sync(data["upcoming"], synced, date.today())
+    if scheduled:
+        cards = with_scheduled(cards, [dict(e) for e in scheduled_events()], date.today())
     if recent:
         cards = with_recent(cards, json.loads(recent.read_text()) or [])
 

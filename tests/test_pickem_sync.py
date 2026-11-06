@@ -14,6 +14,7 @@ from ufc_embedded.pickem_sync import (
     sql_text,
     sync_sql,
     with_recent,
+    with_scheduled,
 )
 
 CARD: dict[str, Any] = {
@@ -234,3 +235,19 @@ def test_the_python_model_matches_the_website() -> None:
         )
         < 1e-12
     )
+
+
+def test_scheduled_events_join_pickem_before_the_bookmakers_list_them() -> None:
+    scheduled = [
+        {
+            "date": "2026-11-14",
+            "name": "UFC 334: Gane vs. Hokit",
+            "city": "New York City",
+        },  # have it
+        {"date": "2026-12-12", "name": "UFC 335: Oliveira vs. Lopes", "city": "Las Vegas"},
+        {"date": "2027-03-01", "name": "UFC 340: Far vs. Away", "city": "Las Vegas"},  # too far
+        {"date": "2026-11-01", "name": "UFC 333: Gone vs. Past", "city": "Las Vegas"},  # past
+    ]
+    cards = with_scheduled([CARD], scheduled, date(2026, 11, 10))
+    assert [c["name"] for c in cards] == [CARD["name"], "UFC 335: Oliveira vs. Lopes"]
+    assert cards[1]["fights"] == [] and cards[1]["city"] == "Las Vegas"
