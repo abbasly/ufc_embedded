@@ -14,8 +14,9 @@ updated, cancelled ones deleted (only before the event is scored), results writt
 come in, and an event whose every bout has a result is scored (``score_event``).
 
 The data has each card's date and city but not its start time, so picks lock at
-``LOCK_LOCAL_HOUR`` local time on fight day (from the city's rough UTC offset): hours before
-the earliest prelims anywhere, so no one picks a fight that has begun.
+noon local time on fight day (from the city's rough UTC offset), before the earliest prelims
+at American and European events (Las Vegas: 21:00 in Berlin, prelims from 23:00). Cards in East
+Asia and Oceania start in the local morning, so they lock at ``EARLY_LOCK_HOUR`` instead.
 
 Run from the project root: ``uv run python -m ufc_embedded.pickem_sync | pbcopy``, then paste
 into the Supabase SQL editor and run it.
@@ -35,7 +36,8 @@ from ufc_embedded.upcoming import _matcher
 
 PREDICTOR_JSON = PROJECT_ROOT / "web" / "public" / "data" / "predictor.json"
 SYNCED_EVENTS = PROCESSED_DIR / "pickem_events.json"
-LOCK_LOCAL_HOUR = 8
+LOCK_LOCAL_HOUR = 12
+EARLY_LOCK_HOUR = 7  # East Asia and Oceania (UTC+8 and later): those cards start in the morning
 # Rough UTC offsets of UFC host cities (daylight saving ignored: the lock has hours to spare).
 # A city not listed locks as if it were UTC+4, which is early enough for anywhere but Oceania
 # and East Asia (listed): for an unlisted US city that's Friday evening, early but safe.
@@ -176,9 +178,10 @@ def fighter_id(fight: dict[str, Any], side: str) -> str:
 
 
 def locks_at(card: dict[str, Any]) -> str:
-    """When picks close: ``LOCK_LOCAL_HOUR`` local time on fight day, in UTC."""
+    """When picks close, in UTC: noon local time on fight day (7 am in East Asia and Oceania)."""
     offset = CITY_UTC_OFFSET.get(card.get("city") or "", DEFAULT_UTC_OFFSET)
-    local = datetime.fromisoformat(f"{card['date']}T{LOCK_LOCAL_HOUR:02d}:00:00")
+    hour = EARLY_LOCK_HOUR if offset >= 8 else LOCK_LOCAL_HOUR
+    local = datetime.fromisoformat(f"{card['date']}T{hour:02d}:00:00")
     return (local - timedelta(hours=offset)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
