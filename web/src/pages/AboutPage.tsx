@@ -2,10 +2,9 @@ import "./About.css";
 
 import { Anchor, Container, Text } from "@mantine/core";
 import { useReducedMotion } from "@mantine/hooks";
-import { type CSSProperties, Fragment, useEffect, useRef, useState } from "react";
+import { type CSSProperties, Fragment, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { type RecentVisits, recentVisits } from "../app/visits";
 import { accountsEnabled } from "../backend";
 
 const REPO = "https://github.com/abbasly/ufc_embedded";
@@ -88,33 +87,6 @@ function CountUp({ to, start, year }: { to: number; start: number; year?: boolea
     return () => cancelAnimationFrame(frame);
   }, [to, from, start, reduceMotion]);
   return <>{year ? n : n.toLocaleString("en-US")}</>;
-}
-
-/** "1,234 visits in the last 7 days" (Cloudflare Web Analytics); nothing while loading or
- * when the count is off. */
-function Visits({ i }: { i: number }) {
-  const [visits, setVisits] = useState<RecentVisits | null>(null);
-  const pageShown = useRef(performance.now()); // when the About page itself appeared
-  useEffect(() => {
-    let live = true;
-    recentVisits().then((v) => live && setVisits(v));
-    return () => {
-      live = false;
-    };
-  }, []);
-  if (visits === null) return null;
-  // Come in at this line's turn in the page's entrance, or right away if the count arrived
-  // after that; start counting as it fades in, so the count-up is actually seen.
-  const wait = Math.max(0, i * 55 - (performance.now() - pageShown.current));
-  return (
-    <div className="visits reveal" style={{ animationDelay: `${wait}ms` }}>
-      <span className="visits-dot" aria-hidden />
-      <b>
-        <CountUp to={visits.visits} start={wait + 250} />
-      </b>{" "}
-      visits in the last {visits.days} days
-    </div>
-  );
 }
 
 /** Data -> pipeline -> pages, in three columns joined by rails (stacked on phones). */
@@ -220,8 +192,6 @@ export function AboutPage() {
           </span>
         </a>
       </div>
-
-      <Visits i={statsStart + 5} />
 
       <div className="disclaimer reveal" style={step(statsStart + 5)}>
         <Text size="sm" fw={600}>
