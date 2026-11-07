@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import { accountsEnabled } from "../backend";
 
 const REPO = "https://github.com/abbasly/ufc_embedded";
+const HOME = "https://anarli.com"; // my personal site
 
 interface FlowItem {
   title: string;
@@ -179,7 +180,10 @@ export function AboutPage() {
         />
         <div className="credit-text">
           <Text fw={700}>
-            Made by Anar Abbasli
+            Made by{" "}
+            <Anchor href={HOME} target="_blank" rel="noreferrer" c="inherit" underline="always">
+              Anar Abbasli
+            </Anchor>
           </Text>
           <Text size="sm" c="dimmed">
             Full-time student, part-time fight fan.
