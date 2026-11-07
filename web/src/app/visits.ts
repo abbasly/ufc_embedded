@@ -1,4 +1,4 @@
-// The site's recent visits (the Worker sets how many days), for the About page. Counted by
+// The site's recent visits (the Worker sets how many days), for the admin panel. Counted by
 // Cloudflare Web Analytics; read through our own small Worker (worker/visits.js), which holds the
 // API token so it never reaches the browser. Off unless the site is built with VITE_VISITS_URL set.
 

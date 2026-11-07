@@ -16,41 +16,6 @@
   }
 }
 
-/* Visit count under the credit (Cloudflare Web Analytics, via worker/visits.js). */
-.visits {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 14px;
-  color: var(--mantine-color-dimmed);
-  font-size: 13px;
-}
-.visits b {
-  color: var(--mantine-color-gray-3);
-  font-variant-numeric: tabular-nums;
-}
-.visits-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #40c057;
-  box-shadow: 0 0 0 0 rgba(64, 192, 87, 0.6);
-  animation: visits-live 2s ease-out infinite;
-}
-@keyframes visits-live {
-  70% {
-    box-shadow: 0 0 0 7px rgba(64, 192, 87, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(64, 192, 87, 0);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .visits-dot {
-    animation: none;
-  }
-}
-
 /* The one-line intro: bright, with the key phrase in the site's red. */
 .about-lead {
   color: var(--mantine-color-gray-3);
