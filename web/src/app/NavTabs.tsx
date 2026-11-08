@@ -14,6 +14,7 @@ export interface NavItem {
   icon: ReactNode;
   fresh?: boolean; // gets a tag ("NEW", or `tag`)
   tag?: string;
+  topOnly?: boolean; // not in the phones' bottom bar, which has no room left
 }
 
 interface Props {
@@ -55,12 +56,13 @@ export function NavTabs({ items, active, placement }: Props) {
         aria-hidden
         style={pill ? { transform: `translate(${pill.x}px, ${pill.y}px)`, width: pill.w, height: pill.h, opacity: 1 } : { opacity: 0 }}
       />
-      {items.map((item) => (
+      {items.filter((item) => placement === "top" || !item.topOnly).map((item) => (
         <UnstyledButton
           key={item.to}
           component={Link}
           to={item.to}
           className="nav-tab"
+          data-top-only={item.topOnly || undefined}
           data-active={item.to === active || undefined}
           aria-current={item.to === active ? "page" : undefined}
           ref={(el: HTMLElement | null) => {

@@ -17,6 +17,7 @@ import { type LeaderboardRow, type MatePick, type MateWhoPicked, METHODS, type M
 import { usePredictor } from "../../data/client";
 import type { PredictorData, PredictorFighter } from "../../data/types";
 import { winProb } from "../predictor/model";
+import { cardPath } from "../seo/content";
 import { InstallBar } from "../../app/install";
 import { Leagues, ModelTag, playerPath } from "./Leagues";
 import { boutPoints, isUnderdog, marketChance, METHOD_LABEL, MODEL_PLAYER, places, POINTS, scores } from "./scoring";
@@ -163,6 +164,9 @@ export default function PickemPage() {
   const prelims = bouts.filter((b) => !scores(b));
   const picked = mainBouts.filter((b) => mine.has(b.id)).length;
   const earned = mainBouts.reduce((n, b) => n + (boutPoints(b, mine.get(b.id)) ?? 0), 0);
+  // This card's page of predictions, when it's one of the upcoming cards that have one.
+  const upcomingCard = predictor?.upcoming?.find((c) => c.name === card.name);
+  const cardPage = upcomingCard ? cardPath(upcomingCard) : null;
   const choose = (id: string) => setParams((p) => (p.set("event", id), p), { replace: true });
 
   const renderBout = (bout: PickemBout) => {
@@ -210,6 +214,14 @@ export default function PickemPage() {
           <Text c="dimmed" size="sm">
             {dateLabel(card.startsOn)} · {bouts.length} fights
           </Text>
+          <Group gap="md" mt={4}>
+            <Anchor component={Link} to={cardPage ? `/${cardPage}/` : "/cards/"} size="sm">
+              {cardPage ? "Full card predictions" : "Upcoming card predictions"} →
+            </Anchor>
+            <Anchor component={Link} to="/fighters/" size="sm">
+              All fighters →
+            </Anchor>
+          </Group>
         </div>
         <Stack gap={4} align="flex-end">
           {open ? (
@@ -320,12 +332,6 @@ export default function PickemPage() {
           </Stack>
         </Grid.Col>
       </Grid>
-      {/* Ordinary links on purpose: these pages exist as their own files, for search engines. */}
-      <Text size="xs" c="dimmed" ta="center">
-        <a href={`${import.meta.env.BASE_URL}cards/`} style={{ color: "inherit" }}>Upcoming UFC card predictions</a>
-        {" · "}
-        <a href={`${import.meta.env.BASE_URL}fighters/`} style={{ color: "inherit" }}>All UFC fighters</a>
-      </Text>
     </Stack>
   );
 }
