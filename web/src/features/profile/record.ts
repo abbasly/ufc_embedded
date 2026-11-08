@@ -95,11 +95,18 @@ export interface Badge {
   how: string; // what earns it
   earned: boolean;
   progress: string; // e.g. "3/5", or what they did
+  fraction: number; // how far along, 0 to 1
+}
+
+/** A badge you earn by doing something ``goal`` times. */
+function counted(key: string, name: string, how: string, count: number, goal: number): Badge {
+  return { key, name, how, earned: count >= goal, progress: `${Math.min(count, goal)}/${goal}`, fraction: Math.min(count / goal, 1) };
 }
 
 /** The badges, earned or not (with progress, so the locked ones say what's left). */
 export function badges(history: PastPick[], vsModel: HeadToHead | null): Badge[] {
-  const underdogs = decided(history).filter((p) => isRight(p) && (chanceOf(p) ?? 1) < 0.5).length;
+  const right = decided(history).filter(isRight);
+  const called = (method: Method) => right.filter((p) => p.pick.method === method && p.bout.method === method).length;
   const { longest } = streaks(history);
   const perfect = perfectCards(history);
   return [
@@ -109,27 +116,21 @@ export function badges(history: PastPick[], vsModel: HeadToHead | null): Badge[]
       how: "Every main-card fight of a card, right",
       earned: perfect.length > 0,
       progress: perfect.length ? `${perfect.length}× · ${perfect[0]}` : "not yet",
+      fraction: perfect.length ? 1 : 0,
     },
-    {
-      key: "underdog",
-      name: "Underdog hunter",
-      how: "5 underdogs called right",
-      earned: underdogs >= 5,
-      progress: `${Math.min(underdogs, 5)}/5`,
-    },
-    {
-      key: "streak",
-      name: "Hot streak",
-      how: "8 right in a row",
-      earned: longest >= 8,
-      progress: `best run ${longest}`,
-    },
+    counted("headliner", "Headliner", "3 main events called right", right.filter((p) => p.bout.position === 1).length, 3),
+    counted("underdog", "Underdog hunter", "5 underdogs called right", right.filter((p) => (chanceOf(p) ?? 1) < 0.5).length, 5),
+    { ...counted("streak", "Hot streak", "8 right in a row", longest, 8), progress: `best run ${longest}` },
     {
       key: "model",
       name: "Beat the model",
       how: "More points than the model on a card",
       earned: !!vsModel && vsModel.wins > 0,
       progress: vsModel ? `${vsModel.wins} ${vsModel.wins === 1 ? "card" : "cards"}` : "–",
+      fraction: vsModel && vsModel.wins > 0 ? 1 : 0,
     },
+    counted("ko", "KO artist", "3 knockouts called right, winner and method", called("KO/TKO"), 3),
+    counted("sub", "Tap-out expert", "2 submissions called right, winner and method", called("SUB"), 2),
+    counted("judge", "Judge's eye", "5 decisions called right, winner and method", called("DEC"), 5),
   ];
 }

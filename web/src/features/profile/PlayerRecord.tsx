@@ -9,7 +9,7 @@ import { MODEL_PLAYER, placeOf } from "../pickem/scoring";
 import { useLeaderboard } from "../pickem/usePickem";
 import { profileImage } from "../share/profileImage";
 import { ShareButton } from "../share/ShareButton";
-import { Badges, Highlights, PointsChart } from "./Insights";
+import { Badges, ClosestPredictors, Highlights, PointsChart } from "./Insights";
 import { badges, bestCall, headToHead } from "./record";
 import { History, Stats } from "./PlayerStats";
 import { usePlayerRecord } from "./usePlayerRecord";
@@ -26,7 +26,7 @@ interface Props {
 }
 
 export function PlayerRecord({ userId, displayName, avatar, isMe, children, after }: Props) {
-  const { scores, history, modelScores } = usePlayerRecord(userId);
+  const { scores, history, closest, modelScores } = usePlayerRecord(userId);
   const isModel = displayName === MODEL_PLAYER;
   const vsModel = modelScores && scores.data ? headToHead(scores.data, modelScores) : null;
   const picks = history.data ?? [];
@@ -71,6 +71,7 @@ export function PlayerRecord({ userId, displayName, avatar, isMe, children, afte
         <>
           <Badges list={list} />
           <Highlights history={picks} vsModel={vsModel} isModel={isModel} whose={isMe ? "you" : "they"} />
+          <ClosestPredictors players={closest} isMe={isMe} />
           <PointsChart scores={scores.data} />
         </>
       )}

@@ -7,7 +7,7 @@ import { useAuth } from "../../auth/AuthProvider";
 import { MODEL_PLAYER } from "../pickem/scoring";
 
 export function usePlayerRecord(userId: string | undefined) {
-  const { backend } = useAuth();
+  const { backend, user } = useAuth();
   const scores = useQuery({
     queryKey: ["pickem", "scores-of", userId],
     queryFn: () => backend!.pickem.scoresOf(userId!),
@@ -29,5 +29,11 @@ export function usePlayerRecord(userId: string | undefined) {
     queryFn: () => backend!.pickem.scoresOf(model.data!.id),
     enabled: !!backend && !!model.data && model.data.id !== userId,
   });
-  return { scores, history, modelScores: model.data && model.data.id !== userId ? modelScores.data : undefined };
+  // Signed in only: it compares picks, which are only ever visible to players.
+  const closest = useQuery({
+    queryKey: ["pickem", "closest", userId, user?.id],
+    queryFn: () => backend!.pickem.closestPredictors(userId!),
+    enabled: !!backend && !!user && !!userId,
+  });
+  return { scores, history, closest: closest.data ?? [], modelScores: model.data && model.data.id !== userId ? modelScores.data : undefined };
 }

@@ -68,9 +68,17 @@ describe("player insights", () => {
     expect(pointsOverTime([s("2026-10-08", 20), s("2026-10-01", 30)]).map((p) => p.total)).toEqual([30, 50]);
   });
 
+  it("counts a method badge only when winner and method were both called", () => {
+    const right = pick({ won: true, method: "SUB", called: "SUB" });
+    const wrongMethod = pick({ won: true, method: "KO/TKO", called: "SUB" });
+    const sub = badges([right, wrongMethod], null).find((b) => b.key === "sub")!;
+    expect(sub.progress).toBe("1/2");
+    expect(sub.fraction).toBe(0.5);
+  });
+
   it("awards badges with progress for the rest", () => {
     const picks = Array.from({ length: 6 }, () => pick({ won: true, market: 0.4 }));
     const earned = Object.fromEntries(badges(picks, { wins: 0, losses: 1, draws: 0, mine: 0, theirs: 0 }).map((b) => [b.key, b.earned]));
-    expect(earned).toEqual({ perfect: true, underdog: true, streak: false, model: false });
+    expect(earned).toEqual({ perfect: true, headliner: true, underdog: true, streak: false, model: false, ko: true, sub: false, judge: false });
   });
 });

@@ -14,7 +14,6 @@ import { MODEL_PLAYER, places } from "./scoring";
 import { EVERYONE, FRIENDS, useLeaderboard, useLeagueActions, useLeagues, useStandings } from "./usePickem";
 
 const TOP = 10; // rows shown before "Show all"
-const MEDALS = ["#f4c430", "#c0c6cf", "#cd7f32"];
 
 /** Marks the model's account on boards: it's the predictor playing, not a person. */
 export function ModelTag() {
@@ -287,21 +286,39 @@ function Standings({ rows, loading, me, inLeague }: { rows?: LeaderboardRow[]; l
           {rows.length} players
         </Text>
       )}
-      {shown.map(({ row, i }) => (
+      {shown.map(({ row, i }) => {
+        // Places 1 to 3 (once there are points to be proud of): a medal for the number, a crown for
+        // the leader, and the row lit in the medal's colour.
+        const podium = place[i]! <= 3 && row.points > 0 ? place[i]! : undefined;
+        return (
         <Group
           key={row.displayName}
           justify="space-between"
           wrap="nowrap"
           className="pickem-row"
           data-me={row.displayName === me || undefined}
+          data-podium={podium}
           // The whole row opens the player's page.
           renderRoot={(props) => <Link {...props} to={playerPath(row.displayName)} />}
         >
           <Group gap="sm" wrap="nowrap" style={{ minWidth: 0 }}>
-            <Text fw={800} w={22} ta="right" c={place[i]! <= 3 && row.points > 0 ? undefined : "dimmed"} style={place[i]! <= 3 && row.points > 0 ? { color: MEDALS[place[i]! - 1] } : undefined}>
-              {place[i]}
-            </Text>
-            <PlayerAvatar name={row.displayName} avatar={row.avatar} size={34} style={place[i]! <= 3 && row.points > 0 ? { boxShadow: `0 0 0 2px ${MEDALS[place[i]! - 1]}` } : undefined} />
+            {podium ? (
+              <span className="pickem-medal" aria-label={`Place ${podium}`}>
+                {podium}
+              </span>
+            ) : (
+              <Text fw={800} w={24} ta="center" c="dimmed">
+                {place[i]}
+              </Text>
+            )}
+            <span className="pickem-avatar-wrap">
+              {podium === 1 && (
+                <svg className="pickem-crown" viewBox="0 0 24 18" aria-hidden>
+                  <path d="M2.5 16.5h19L23 4l-6.3 4.6L12 1 7.3 8.6 1 4Z" />
+                </svg>
+              )}
+              <PlayerAvatar name={row.displayName} avatar={row.avatar} size={34} className="pickem-row-avatar" />
+            </span>
             <div style={{ minWidth: 0 }}>
               <Text fw={700} truncate lh={1.25}>
                 {row.displayName}
@@ -320,7 +337,8 @@ function Standings({ rows, loading, me, inLeague }: { rows?: LeaderboardRow[]; l
             </Text>
           </Text>
         </Group>
-      ))}
+        );
+      })}
       {rows.length > TOP && (
         <Button size="xs" variant="subtle" color="gray" onClick={() => setAll((a) => !a)}>
           {all ? "Show the top 10" : `Show all ${rows.length}`}
