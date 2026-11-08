@@ -14,7 +14,7 @@ interface FlowItem {
   title: string;
   text: string;
   to?: string;
-  tag?: string; // e.g. "BETA"
+  tag?: string; // e.g. "NEW"
 }
 
 // How the site fits together: where the data comes from, what the Python side does with it,
@@ -45,7 +45,7 @@ const FLOW: { label: string; hint?: string; core?: boolean; items: FlowItem[] }[
     hint: "open one",
     // Same order as the navigation bar.
     items: [
-      ...(accountsEnabled ? [{ title: "Pick'em", tag: "BETA", text: "Pick every fight, beat your friends", to: "/" }] : []),
+      ...(accountsEnabled ? [{ title: "Pick'em", text: "Pick every fight, beat your friends", to: "/" }] : []),
       { title: "Fight Predictor", text: "Win chance and how it ends", to: "/predictor" },
       { title: "MMA Math", text: "Anyone beats anyone, in circles", to: "/mma-math" },
       { title: "Style Map", text: "Fighters in 3D by how they fight", to: "/style-map" },

@@ -31,10 +31,10 @@ const AdminPage = lazyPage(() => import("../features/admin/AdminPage"));
 const HOME = accountsEnabled ? "pickem" : "about";
 
 // The tabs: across the header on wider screens, a bottom tab bar on phones (with the `short`
-// labels). `fresh` tabs get a tag ("NEW", or `tag`). Pick'em (tagged BETA, first: it's the
-// landing page) only where accounts are on.
+// labels). `fresh` tabs get a tag ("NEW", or `tag`). Pick'em (first: it's the landing page)
+// only where accounts are on.
 const NAV: NavItem[] = [
-  ...(accountsEnabled ? [{ to: "/", label: "Pick'em", short: "Picks", icon: ICONS.picks, fresh: true, tag: "BETA" }] : []),
+  ...(accountsEnabled ? [{ to: "/", label: "Pick'em", short: "Picks", icon: ICONS.picks }] : []),
   { to: "/predictor", label: "Predictor", short: "Predict", icon: ICONS.predictor },
   { to: "/mma-math", label: "MMA Math", short: "Math", icon: ICONS.math, fresh: !accountsEnabled },
   { to: "/style-map", label: "Style Map", short: "Map", icon: ICONS.map },

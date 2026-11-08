@@ -7,7 +7,7 @@ Every active UFC fighter, mapped by how they fight.
 A personal ML engineering project: three decades of UFC fights turned into interactive,
 explorable models. Data is current to the latest UFC event (fights, records, rankings and odds
 from UFCStats and bookmakers, via Kaggle). Works on desktop and phone; the models are static
-files hosted free on GitHub Pages, and Pick'em (beta) adds accounts on Supabase.
+files hosted free on GitHub Pages, and Pick'em adds accounts on Supabase.
 
 <table>
   <tr>
@@ -33,7 +33,7 @@ files hosted free on GitHub Pages, and Pick'em (beta) adds accounts on Supabase.
   <tr>
     <td width="50%" valign="top">
       <a href="https://ufc.anarli.com/pickem"><img src="docs/screenshots/pickem.png" alt="Pick'em"></a><br>
-      <sub><b>Pick'em</b> (beta): pick every fight on the next UFC card</sub>
+      <sub><b>Pick'em</b>: pick every fight on the next UFC card</sub>
     </td>
     <td width="50%" valign="top">
       <a href="https://ufc.anarli.com/pickem"><img src="docs/screenshots/pickem-locked.png" alt="Pick'em after the lock"></a><br>
@@ -63,7 +63,7 @@ files hosted free on GitHub Pages, and Pick'em (beta) adds accounts on Supabase.
   likely outcome (who, and by KO / submission / decision), what drives the call, past meetings
   and common opponents, and a tale of the tape. Upcoming UFC cards scroll past in a ticker
   (from bookmakers' listings); click a fight to load it, with our pick next to the bookies'.
-- **[Pick'em](https://ufc.anarli.com/pickem)** (beta): sign in with Google or an email link, pick the winner of
+- **[Pick'em](https://ufc.anarli.com/pickem)**: sign in with Google or an email link, pick the winner of
   every fight on the next UFC card (and, for a bonus, how they win) before it locks on fight
   day. Cards come from Wikipedia with the main card, prelims and title fights; results are
   scored automatically (10 for the winner, +5 for the method, +5 for calling an underdog).
