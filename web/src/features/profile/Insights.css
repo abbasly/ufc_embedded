@@ -67,8 +67,11 @@
   color: var(--mantine-color-dimmed);
 }
 
-/* Badges: earned ones in gold, the rest dimmed with their progress. */
+/* Badges: a hexagonal medal each, in its own colours once earned. */
 .badge-tile {
+  --badge-top: #868e96;
+  --badge-bottom: #495057;
+  --badge-glow: 255, 255, 255;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -77,16 +80,148 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
   color: var(--mantine-color-gray-6);
-  opacity: 0.7;
 }
+.badge-tile[data-badge="perfect"] { --badge-top: #ffd95a; --badge-bottom: #c98a12; --badge-glow: 245, 197, 66; }
+.badge-tile[data-badge="headliner"] { --badge-top: #faa2c1; --badge-bottom: #c2255c; --badge-glow: 247, 131, 172; }
+.badge-tile[data-badge="underdog"] { --badge-top: #8ce99a; --badge-bottom: #2b8a3e; --badge-glow: 105, 219, 124; }
+.badge-tile[data-badge="streak"] { --badge-top: #ffc078; --badge-bottom: #e8590c; --badge-glow: 255, 169, 77; }
+.badge-tile[data-badge="model"] { --badge-top: #c5b5fd; --badge-bottom: #6741d9; --badge-glow: 177, 151, 252; }
+.badge-tile[data-badge="ko"] { --badge-top: #ff8787; --badge-bottom: #c92a2a; --badge-glow: 255, 107, 107; }
+.badge-tile[data-badge="sub"] { --badge-top: #66d9e8; --badge-bottom: #0b7285; --badge-glow: 56, 195, 216; }
+.badge-tile[data-badge="judge"] { --badge-top: #a5d8ff; --badge-bottom: #1c7ed6; --badge-glow: 116, 192, 252; }
+
 .badge-tile[data-earned] {
-  color: #f4c430;
-  opacity: 1;
-  border-color: rgba(244, 196, 48, 0.45);
-  background: radial-gradient(120% 120% at 50% 0%, rgba(244, 196, 48, 0.12), transparent 70%);
+  border-color: rgba(var(--badge-glow), 0.4);
+  background: radial-gradient(120% 120% at 50% 0%, rgba(var(--badge-glow), 0.14), transparent 70%);
 }
 .badge-tile[data-earned] .mantine-Text-root:first-of-type {
   color: var(--mantine-color-white);
+}
+.badge-medal {
+  width: 58px;
+  height: 58px;
+  margin-bottom: 2px;
+}
+.badge-tile[data-earned] .badge-medal {
+  filter: drop-shadow(0 3px 8px rgba(var(--badge-glow), 0.35));
+}
+.badge-stop-top {
+  stop-color: var(--badge-top);
+}
+.badge-stop-bottom {
+  stop-color: var(--badge-bottom);
+}
+.badge-hex {
+  stroke: rgba(255, 255, 255, 0.16);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-dasharray: 3 3;
+}
+.badge-tile[data-earned] .badge-hex {
+  stroke: rgba(255, 255, 255, 0.4);
+  stroke-dasharray: none;
+}
+/* Emblems: dark on a coloured medal, dim on a locked one. */
+.badge-icon {
+  color: rgba(255, 255, 255, 0.28);
+}
+.badge-tile[data-earned] .badge-icon {
+  color: #17181c;
+}
+/* The holes in an emblem (eyes, keyhole, scorecard lines) take the medal's colour. */
+.badge-cut {
+  fill: #2a2b31;
+}
+.badge-tile[data-earned] .badge-cut {
+  fill: var(--badge-top);
+}
+.badge-cut-line {
+  stroke: #2a2b31;
+}
+.badge-tile[data-earned] .badge-cut-line {
+  stroke: var(--badge-top);
+}
+.badge-progress {
+  width: 70%;
+  height: 4px;
+  margin-top: 2px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.badge-progress > div {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--badge-top);
+}
+
+/* Method calls: each method in its own colour. */
+.method-row[data-method="KO/TKO"] { --method: #ff6b6b; }
+.method-row[data-method="SUB"] { --method: #38c3d8; }
+.method-row[data-method="DEC"] { --method: #74c0fc; }
+.method-bar {
+  height: 5px;
+  margin-top: 3px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.method-bar > div {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--method);
+}
+
+/* Who picks most like a player: green for the closest, orange for the opposite. */
+.closest-card[data-tone="close"] { --closest: #69db7c; }
+.closest-card[data-tone="far"] { --closest: #ffa94d; }
+.closest-label {
+  letter-spacing: 0.08em;
+  color: var(--closest);
+}
+.closest-pct {
+  color: var(--closest);
+  font-variant-numeric: tabular-nums;
+}
+.closest-card a {
+  color: inherit;
+  text-decoration: none;
+}
+.closest-card a:hover {
+  text-decoration: underline;
+}
+.closest-bar {
+  height: 6px;
+  margin-top: 10px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.closest-bar > div {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--closest);
+}
+
+/* The four numbers at the top, each with its own colour. */
+.stat-tile {
+  position: relative;
+  overflow: hidden;
+}
+.stat-tile::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: var(--stat);
+}
+.stat-tile[data-stat="points"] { --stat: #f5c542; }
+.stat-tile[data-stat="right"] { --stat: #69db7c; }
+.stat-tile[data-stat="cards"] { --stat: #74c0fc; }
+.stat-tile[data-stat="rank"] { --stat: #b197fc; }
+.stat-value {
+  color: var(--stat);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Past cards: a row opens to its picks. */

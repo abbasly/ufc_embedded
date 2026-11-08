@@ -310,6 +310,16 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
           };
         });
       },
+      async closestPredictors(userId) {
+        const { data, error } = await db.rpc("closest_predictors", { player: userId });
+        if (error) throw friendly(error);
+        return (data as { display_name: string; avatar: string | null; shared: number; agreed: number }[]).map((r) => ({
+          displayName: r.display_name,
+          avatar: r.avatar,
+          shared: Number(r.shared),
+          agreed: Number(r.agreed),
+        }));
+      },
       async matesWhoPicked(eventId) {
         const id = await userId().catch(() => null);
         if (!id) return [];

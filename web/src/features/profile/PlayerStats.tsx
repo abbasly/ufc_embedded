@@ -22,20 +22,20 @@ export function Stats({ scores, displayName }: { scores: EventScore[] | undefine
   const rank = placeOf(board.data ?? [], displayName);
 
   const tiles = [
-    { label: "Points", value: String(points) },
-    { label: "Right picks", value: picked ? `${correct}/${picked}` : "–", note: picked ? `${Math.round((100 * correct) / picked)}%` : undefined },
-    { label: "Cards played", value: String(rows.length) },
-    { label: "Rank", value: rank ? `#${rank}` : "–", note: rank ? "overall" : undefined },
+    { key: "points", label: "Points", value: String(points) },
+    { key: "right", label: "Right picks", value: picked ? `${correct}/${picked}` : "–", note: picked ? `${Math.round((100 * correct) / picked)}%` : undefined },
+    { key: "cards", label: "Cards played", value: String(rows.length) },
+    { key: "rank", label: "Rank", value: rank ? `#${rank}` : "–", note: rank ? "overall" : undefined },
   ];
   return (
     <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm">
       {tiles.map((t) => (
-        <Paper key={t.label} p="md" radius="md" className="pickem-board">
+        <Paper key={t.key} p="md" radius="md" className="pickem-board stat-tile" data-stat={t.key}>
           <Text size="xs" c="dimmed" tt="uppercase" fw={700} style={{ letterSpacing: "0.08em" }}>
             {t.label}
           </Text>
           <Group gap={6} align="baseline">
-            <Text fz={26} fw={800} style={{ fontVariantNumeric: "tabular-nums" }}>
+            <Text fz={26} fw={800} className="stat-value">
               {t.value}
             </Text>
             {t.note && (

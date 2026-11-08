@@ -103,6 +103,14 @@ export interface PastPick {
   startsOn: string;
 }
 
+/** Another player, by how often they pick the same fighter as someone. */
+export interface ClosestPredictor {
+  displayName: string;
+  avatar: string | null;
+  shared: number; // locked fights both picked
+  agreed: number; // of those, the same fighter
+}
+
 /** How the signed-in user did on one scored event. */
 export interface EventScore {
   eventId: string;
@@ -193,6 +201,8 @@ export interface Backend {
     /** A player's picks on fought bouts, as far as you may see them: your own; friends' and
      * league-mates'; the model's (public). Empty for anyone else. */
     pickHistory(userId: string): Promise<PastPick[]>;
+    /** Who picks most like this player, most alike first, among the picks you may see. */
+    closestPredictors(userId: string): Promise<ClosestPredictor[]>;
   };
   /** The owner's panel. Everything but ``isAdmin`` is refused unless you're an admin. */
   admin: {
