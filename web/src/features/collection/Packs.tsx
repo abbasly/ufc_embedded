@@ -3,31 +3,23 @@
 
 import "./Collection.css";
 
-import { Button, Group, Modal, Paper, Stack, Text, Title, UnstyledButton } from "@mantine/core";
+import { Button, Group, Modal, Paper, Stack, Text, Title } from "@mantine/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import type { OwnedCard, PackCard, Rarity, UnopenedPack } from "../../backend";
+import type { OwnedCard, PackCard, UnopenedPack } from "../../backend";
 import { useMmaMath, usePredictor } from "../../data/client";
 import { FighterTradingCard } from "../predictor/FighterTradingCard";
 import { recentResults } from "../predictor/model";
 import { captureCards } from "../share/captureCards";
 import { fighterImage } from "../share/fighterImage";
 import { ShareButton } from "../share/ShareButton";
+import { CardStacks, RarityPill } from "./CardStacks";
 import { CardBack, DebutCard } from "./Collection";
 import { byRarityThenElo, RARITIES, rarityLabel, REASON_LABEL, revealOrder, useMyPacks, useOpenPack, usePulledCards } from "./pulls";
 
 const TEAR_MS = 750; // at least this long, so the tear plays out however fast the draw is
 const TURN_MS = 260;
-const SHOWN = 12;
-
-export function RarityPill({ rarity }: { rarity: Rarity }) {
-  return (
-    <span className="rarity-pill" data-rarity={rarity}>
-      {rarityLabel(rarity)}
-    </span>
-  );
-}
 
 function PackArt({ pack, tearing }: { pack?: UnopenedPack; tearing?: boolean }) {
   return (
@@ -67,7 +59,7 @@ export function PacksBanner() {
                   {waiting.length === 1 ? "You have a pack to open" : `You have ${waiting.length} packs to open`}
                 </Text>
                 <Text size="xs" c="dimmed">
-                  3 random fighters in each
+                  Random fighters inside
                 </Text>
               </div>
             </Group>
@@ -176,6 +168,8 @@ function PackOpening({ queue, onDone }: { queue: UnopenedPack[]; onDone: () => v
     timer.current = window.setTimeout(() => setPhase("up"), TURN_MS);
   };
   const advance = () => {
+    // A single card needs no summary.
+    if (last && cards.length === 1) return left > 0 ? nextPack() : onDone();
     if (last) return setStage("summary");
     setAt((i) => i + 1);
     setPhase("down");
@@ -209,7 +203,7 @@ function PackOpening({ queue, onDone }: { queue: UnopenedPack[]; onDone: () => v
         </Text>
       </div>
       <Button fullWidth disabled={!up} onClick={advance}>
-        {last ? "See my pull" : "Next card"}
+        {!last ? "Next card" : cards.length > 1 ? "See my pull" : left > 0 ? `Next pack (${left} left)` : "Add to my collection"}
       </Button>
     </Stack>
   );
@@ -219,14 +213,12 @@ function PackOpening({ queue, onDone }: { queue: UnopenedPack[]; onDone: () => v
 export function PulledCards({ userId, isMe, displayName }: { userId: string; isMe: boolean; displayName: string }) {
   const pulled = usePulledCards(userId);
   const fighters = usePredictor().data?.fighters;
-  const [all, setAll] = useState(false);
   const [open, setOpen] = useState<OwnedCard | null>(null);
   const cards = useMemo(() => {
     const elo = new Map(fighters?.map((f) => [f.id, f.elo]));
     return byRarityThenElo(pulled.data ?? [], (id) => elo.get(id));
   }, [pulled.data, fighters]);
   if (!pulled.isSuccess || (!cards.length && !isMe)) return null;
-  const shown = all ? cards : cards.slice(0, SHOWN);
   const best = RARITIES.filter((r) => r.key !== "common")
     .map((r) => ({ ...r, n: cards.filter((c) => c.rarity === r.key).length }))
     .filter((r) => r.n > 0)
@@ -250,28 +242,24 @@ export function PulledCards({ userId, isMe, displayName }: { userId: string; isM
         )}
       </Group>
       {cards.length > 0 ? (
-        <div className="collection-grid">
-          {shown.map((c) => (
-            <UnstyledButton key={`${c.fighterId}-${c.rarity}`} className="collection-slot pull-slot" data-rarity={c.rarity} onClick={() => setOpen(c)} aria-label={`${c.name}, ${rarityLabel(c.rarity)}: open card`}>
-              <FighterTradingCard id={c.fighterId} still fallback={<DebutCard card={{ name: c.name, shiny: false }} />} />
-              <RarityPill rarity={c.rarity} />
-              {c.copies > 1 && <span className="collection-times">×{c.copies}</span>}
-            </UnstyledButton>
-          ))}
-        </div>
+        <CardStacks
+          cards={cards.map((c) => ({
+            key: `${c.fighterId}-${c.rarity}`,
+            rarity: c.rarity,
+            label: `${c.name}, ${rarityLabel(c.rarity)}`,
+            card: <FighterTradingCard id={c.fighterId} still fallback={<DebutCard card={{ name: c.name, shiny: false }} />} />,
+            extra: c.copies > 1 ? <span className="collection-times">×{c.copies}</span> : undefined,
+            onOpen: () => setOpen(c),
+          }))}
+        />
       ) : (
         <Text size="sm" c="dimmed">
-          Pick every main-card fight on a card and you earn a free pack of 3 random fighters. A top 3 finish or winning a league of 3 or more earns a bonus one.
+          Finish in the top 3 on a card, or win a league of 3 or more, for a free pack of 3 random fighters. One per card.
         </Text>
-      )}
-      {cards.length > SHOWN && (
-        <Button size="xs" variant="subtle" color="gray" mt="xs" fullWidth onClick={() => setAll((a) => !a)}>
-          {all ? "Show fewer" : `Show all ${cards.length}`}
-        </Button>
       )}
       {isMe && (
         <Text size="xs" c="dimmed" mt="sm">
-          Packs are free and can't be bought. Odds per card: {RARITIES.map((r) => `${r.label} ${r.odds}`).join(" · ")}. The third card is always Rare or better.
+          Packs are free and can't be bought. Odds per card: {RARITIES.map((r) => `${r.label} ${r.odds}`).join(" · ")}. The last card in a pack is always Rare or better.
         </Text>
       )}
       <Modal opened={!!open} onClose={() => setOpen(null)} centered size={380} title={open ? `${rarityLabel(open.rarity)} card` : ""}>

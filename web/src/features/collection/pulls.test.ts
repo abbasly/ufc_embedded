@@ -1,13 +1,21 @@
 import { describe, expect, it } from "vitest";
 
 import type { OwnedCard, Rarity } from "../../backend";
-import { byRarityThenElo, RARITIES, revealOrder } from "./pulls";
+import { byRarityThenElo, RARITIES, rarityOf, revealOrder } from "./pulls";
 
 const owned = (fighterId: string, rarity: Rarity): OwnedCard => ({ fighterId, name: fighterId, rarity, copies: 1 });
 
 describe("packs", () => {
   it("has odds that add up to 100%", () => {
     expect(RARITIES.reduce((n, r) => n + parseFloat(r.odds), 0)).toBeCloseTo(100);
+  });
+
+  it("rates fighters the way the database does", () => {
+    expect(rarityOf({ champion: "Lightweight", rank: 0 })).toBe("legendary");
+    expect(rarityOf({ champion: null, rank: 5 })).toBe("epic");
+    expect(rarityOf({ champion: null, rank: 6 })).toBe("rare");
+    expect(rarityOf({ champion: null, rank: null })).toBe("common");
+    expect(rarityOf(undefined)).toBe("common");
   });
 
   it("turns the best card over last", () => {

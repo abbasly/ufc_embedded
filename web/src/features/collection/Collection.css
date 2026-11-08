@@ -437,3 +437,58 @@
   margin: 8px auto 0;
   transform: none;
 }
+
+/* ---- Piles of Rares and Commons ---------------------------------------------------------- */
+.card-pile {
+  position: relative;
+  display: block;
+  border-radius: 10px;
+  transition: transform 0.18s ease-out;
+}
+.card-pile:hover { transform: translateY(-3px); }
+.card-pile:focus-visible { outline: 2px solid #ffd43b; outline-offset: 2px; }
+.card-pile-top {
+  position: relative;
+  z-index: 2;
+}
+/* The cards underneath: only their edges show. */
+.card-pile-under {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  border-radius: 7%/5%;
+  border: 1px solid rgba(var(--rarity-glow), 0.5);
+  background: linear-gradient(150deg, #33363d, #17181c);
+  transform: rotate(4deg) translate(5px, 2px);
+}
+.card-pile-under + .card-pile-under {
+  z-index: 0;
+  opacity: 0.7;
+  transform: rotate(8deg) translate(10px, 5px);
+}
+.card-pile-count {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  bottom: 12%;
+  transform: translateX(-50%);
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(23, 24, 28, 0.92);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.card-pile-open { margin-top: 14px; }
+.card-pile-open-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.collection-grid .collection-slot { margin-top: 4px; }
+@media (prefers-reduced-motion: reduce) {
+  .card-pile { transition: none; }
+}

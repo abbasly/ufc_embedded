@@ -32,7 +32,7 @@ function load(): Stored {
 }
 const PULLS_KEY = "ufc-embedded-demo-pulls";
 const DEMO_PACKS: UnopenedPack[] = [
-  { id: "demo-pack-1", eventId: "demo-e1", eventName: "UFC 330: Pereira vs. Ankalaev 3", reason: "played" },
+  { id: "demo-pack-1", eventId: "welcome", eventName: "Welcome", reason: "welcome" },
   { id: "demo-pack-2", eventId: "demo-e1", eventName: "UFC 330: Pereira vs. Ankalaev 3", reason: "league" },
 ];
 const DEMO_POOL: Omit<PackCard, "slot">[] = [
@@ -263,7 +263,7 @@ export function demoBackend(): Backend {
           : [],
       async openPack(packId) {
         const pulls = loadPulls();
-        pulls[packId] ??= [...DEMO_POOL].sort(() => Math.random() - 0.5).slice(0, 3).map((c, i) => ({ ...c, slot: i + 1 }));
+        pulls[packId] ??= [...DEMO_POOL].sort(() => Math.random() - 0.5).slice(0, packId === "demo-pack-1" ? 1 : 3).map((c, i) => ({ ...c, slot: i + 1 }));
         try {
           localStorage.setItem(PULLS_KEY, JSON.stringify(pulls));
         } catch {

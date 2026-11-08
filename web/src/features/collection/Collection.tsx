@@ -3,7 +3,7 @@
 
 import "./Collection.css";
 
-import { Button, Group, Modal, Paper, Stack, Text, Title, UnstyledButton } from "@mantine/core";
+import { Group, Modal, Paper, Stack, Text, Title } from "@mantine/core";
 import { useMemo, useRef, useState } from "react";
 
 import type { PastPick } from "../../backend";
@@ -13,9 +13,9 @@ import { recentResults } from "../predictor/model";
 import { captureCards } from "../share/captureCards";
 import { fighterImage } from "../share/fighterImage";
 import { ShareButton } from "../share/ShareButton";
+import { CardStacks } from "./CardStacks";
 import { byShinyThenElo, type EarnedCard, earnedCards } from "./earned";
-
-const SHOWN = 12; // cards before "Show all"
+import { rarityOf } from "./pulls";
 
 export const pct = (chance: number) => `${Math.round(chance * 100)}%`;
 const surname = (name: string) => name.split(" ").at(-1)!;
@@ -52,20 +52,16 @@ export function DebutCard({ card }: { card: { name: string; shiny: boolean } }) 
 
 export function CardCollection({ history, isMe, displayName }: { history: PastPick[]; isMe: boolean; displayName: string }) {
   const fighters = usePredictor().data?.fighters;
-  const cards = useMemo(() => {
-    const elo = new Map(fighters?.map((f) => [f.id, f.elo]));
-    return byShinyThenElo(earnedCards(history), (id) => elo.get(id));
-  }, [history, fighters]);
-  const [all, setAll] = useState(false);
+  const byId = useMemo(() => new Map(fighters?.map((f) => [f.id, f])), [fighters]);
+  const cards = useMemo(() => byShinyThenElo(earnedCards(history), (id) => byId.get(id)?.elo), [history, byId]);
   const [open, setOpen] = useState<EarnedCard | null>(null);
   if (!cards.length && !isMe) return null;
   const shiny = cards.filter((c) => c.shiny).length;
-  const shown = all ? cards : cards.slice(0, SHOWN);
 
   return (
     <Paper p="md" radius="md" className="pickem-board">
       <Group justify="space-between" align="baseline" mb="sm" gap="xs">
-        <Title order={4}>Card collection</Title>
+        <Title order={4}>Called it</Title>
         {cards.length > 0 && (
           <Text size="sm" c="dimmed" style={{ fontVariantNumeric: "tabular-nums" }}>
             {cards.length} {cards.length === 1 ? "card" : "cards"}
@@ -91,19 +87,17 @@ export function CardCollection({ history, isMe, displayName }: { history: PastPi
           </Text>
         </Group>
       ) : (
-        <div className="collection-grid">
-          {shown.map((c) => (
-            <UnstyledButton key={c.fighter} className="collection-slot" onClick={() => setOpen(c)} aria-label={`${c.name}${c.shiny ? ", shiny" : ""}: open card`}>
-              <FighterTradingCard id={c.fighter} foil={c.shiny} still fallback={<DebutCard card={c} />} />
-              {c.times > 1 && <span className="collection-times">×{c.times}</span>}
-            </UnstyledButton>
-          ))}
-        </div>
-      )}
-      {cards.length > SHOWN && (
-        <Button size="xs" variant="subtle" color="gray" mt="xs" fullWidth onClick={() => setAll((a) => !a)}>
-          {all ? "Show fewer" : `Show all ${cards.length}`}
-        </Button>
+        <CardStacks
+          cards={cards.map((c) => ({
+            key: c.fighter,
+            rarity: rarityOf(byId.get(c.fighter)),
+            shiny: c.shiny,
+            label: `${c.name}${c.shiny ? ", shiny" : ""}`,
+            card: <FighterTradingCard id={c.fighter} foil={c.shiny} still fallback={<DebutCard card={c} />} />,
+            extra: c.times > 1 ? <span className="collection-times">×{c.times}</span> : undefined,
+            onOpen: () => setOpen(c),
+          }))}
+        />
       )}
 
       <Modal opened={!!open} onClose={() => setOpen(null)} centered size={380} title={open?.shiny ? "Shiny card" : "Card"}>

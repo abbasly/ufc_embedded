@@ -15,6 +15,13 @@ export const RARITIES: { key: Rarity; label: string; odds: string }[] = [
   { key: "legendary", label: "Legendary", odds: "1.5%" },
 ];
 
+/** A fighter's rarity today: the same rule as card_rarity() in pickem_sync.py. */
+export function rarityOf(fighter: { champion: string | null; rank: number | null } | undefined): Rarity {
+  if (fighter?.champion) return "legendary";
+  if (fighter?.rank === null || fighter?.rank === undefined) return "common";
+  return fighter.rank <= 5 ? "epic" : "rare";
+}
+
 const rank = (r: Rarity) => RARITIES.findIndex((x) => x.key === r);
 export const rarityLabel = (r: Rarity) => RARITIES[rank(r)]!.label;
 
@@ -30,6 +37,7 @@ export function byRarityThenElo(cards: OwnedCard[], elo: (id: string) => number 
 
 export const REASON_LABEL: Record<PackReason, string> = {
   played: "For picking the full card",
+  welcome: "Welcome gift",
   podium: "Top 3 bonus",
   league: "League title bonus",
 };

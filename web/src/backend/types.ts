@@ -87,7 +87,7 @@ export interface League {
 }
 
 export type Rarity = "common" | "rare" | "epic" | "legendary";
-export type PackReason = "played" | "podium" | "league";
+export type PackReason = "played" | "podium" | "league" | "welcome";
 
 /** A free pack waiting to be opened. */
 export interface UnopenedPack {
