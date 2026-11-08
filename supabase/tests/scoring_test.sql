@@ -10,24 +10,28 @@
 
 insert into auth.users (id) values
   ('00000000-0000-0000-0000-0000000000f1'),
-  ('00000000-0000-0000-0000-0000000000f2');
+  ('00000000-0000-0000-0000-0000000000f2'),
+  ('00000000-0000-0000-0000-0000000000f3');
 insert into public.profiles (id, display_name, avatar) values
   ('00000000-0000-0000-0000-0000000000f1', 'sam', 'ciryl-gane'),
-  ('00000000-0000-0000-0000-0000000000f2', 'pia', null);
+  ('00000000-0000-0000-0000-0000000000f2', 'pia', null),
+  ('00000000-0000-0000-0000-0000000000f3', 'lou', null);
 insert into public.events (id, name, starts_on, locks_at) values
   ('sc', 'Scored card', current_date - 1, now() - interval '1 day');
 insert into public.bouts (id, event_id, position, fighter_a, fighter_b, a_name, b_name, market_p_a, segment) values
   ('sc:fav:dog', 'sc', 1, 'fav', 'dog', 'Fav', 'Dog', 0.7, 'main'),
   ('sc:big:small', 'sc', 2, 'big', 'small', 'Big', 'Small', 0.8, 'main'),
   ('sc:even:steven', 'sc', 3, 'even', 'steven', 'Even', 'Steven', 0.5, 'main'),
-  ('sc:pre:lim', 'sc', 4, 'pre', 'lim', 'Pre', 'Lim', 0.5, 'prelims');
+  ('sc:pre:lim', 'sc', 4, 'pre', 'lim', 'Pre', 'Lim', 0.5, 'prelims'),
+  ('sc:next:up', 'sc', 5, 'next', 'up', 'Next', 'Up', 0.5, 'main');
 insert into public.picks (user_id, bout_id, winner, method) values
   ('00000000-0000-0000-0000-0000000000f1', 'sc:fav:dog', 'fav', 'KO/TKO'),     -- 10 + 5 method
   ('00000000-0000-0000-0000-0000000000f1', 'sc:big:small', 'small', 'DEC'),    -- 10 + 5 underdog
   ('00000000-0000-0000-0000-0000000000f1', 'sc:even:steven', 'even', null),    -- a draw: not counted
   ('00000000-0000-0000-0000-0000000000f1', 'sc:pre:lim', 'pre', null),         -- a prelim: not counted
   ('00000000-0000-0000-0000-0000000000f2', 'sc:fav:dog', 'dog', 'SUB'),
-  ('00000000-0000-0000-0000-0000000000f2', 'sc:big:small', 'big', null);
+  ('00000000-0000-0000-0000-0000000000f2', 'sc:big:small', 'big', null),
+  ('00000000-0000-0000-0000-0000000000f3', 'sc:next:up', 'next', null);       -- not fought yet
 
 \ir helpers.sql
 
@@ -57,7 +61,9 @@ reset role;
 set role service_role;
 select public.tally_event('sc');
 reset role;
-select pg_temp.expect_count($$select 1 from public.scores where event_id = 'sc'$$, 2, 'live points for each player');
+select pg_temp.expect_count($$select 1 from public.scores where event_id = 'sc'$$, 3, 'live points for each player');
+select pg_temp.expect_count($$select 1 from public.scores where event_id = 'sc' and user_id = '00000000-0000-0000-0000-0000000000f3'
+  and points = 0 and picked = 0$$, 1, 'a player whose fight is still to come: on the card with 0');
 select pg_temp.expect_count($$select 1 from public.events where id = 'sc' and scored_at is null$$, 1,
   'a tallied card still unscored (no podium, no emails yet)');
 
@@ -66,7 +72,7 @@ select public.score_event('sc');
 select public.score_event('sc'); -- twice: same result
 reset role;
 
-select pg_temp.expect_count($$select 1 from public.scores where event_id = 'sc'$$, 2, 'one score per player');
+select pg_temp.expect_count($$select 1 from public.scores where event_id = 'sc'$$, 3, 'one score per player on the card');
 select pg_temp.expect_count($$select 1 from public.scores where event_id = 'sc' and user_id = '00000000-0000-0000-0000-0000000000f1'
   and correct = 2 and picked = 2 and points = 30$$, 1, 'Sam: both winners, the method bonus and the underdog bonus');
 select pg_temp.expect_count($$select 1 from public.scores where event_id = 'sc' and user_id = '00000000-0000-0000-0000-0000000000f2'
@@ -79,7 +85,7 @@ select pg_temp.expect_count($$select 1 from public.leaderboard where display_nam
 
 -- ---- The change log saw all of it, and only the owner can read it -------------------------------------
 select pg_temp.expect_count($$select 1 from public.pickem_log where event_id = 'sc' and kind = 'event added'$$, 1, 'the log: event added');
-select pg_temp.expect_count($$select 1 from public.pickem_log where event_id = 'sc' and kind = 'bout added'$$, 4, 'the log: bouts added');
+select pg_temp.expect_count($$select 1 from public.pickem_log where event_id = 'sc' and kind = 'bout added'$$, 5, 'the log: bouts added');
 select pg_temp.expect_count($$select 1 from public.pickem_log where bout_id = 'sc:fav:dog' and kind = 'result' and detail = 'Fav vs Dog: Fav by KO/TKO'$$, 1, 'the log: a result');
 select pg_temp.expect_count($$select 1 from public.pickem_log where bout_id = 'sc:even:steven' and detail like '%: draw'$$, 1, 'the log: a draw');
 update public.bouts set winner = 'dog', method = 'DEC' where id = 'sc:fav:dog';

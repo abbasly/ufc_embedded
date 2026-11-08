@@ -2,6 +2,7 @@ from datetime import date
 from typing import Any
 
 from ufc_embedded.fight_cards import parse_fight_card, result
+from ufc_embedded.pickem_model import fallback_pick
 from ufc_embedded.pickem_sync import (
     Bout,
     bout_id,
@@ -222,11 +223,19 @@ def test_events_from_the_database_are_synced_but_their_event_row_is_left_alone()
     assert "select public.score_event('2026-11-07-ufc-fight-night');" in sql
 
 
+def test_the_model_picks_every_bout_it_can_even_without_a_prediction() -> None:
+    nobody: dict[str, Any] = {"fighters": []}
+    # A newcomer: the bookmakers' favourite, by decision.
+    assert fallback_pick(nobody, "a", "b", 0.7) == ("a", "DEC", 0.7)
+    assert fallback_pick(nobody, "a", "b", 0.3) == ("b", "DEC", 0.7)
+    # No odds either: the UFC veteran over the debutant.
+    vet: dict[str, Any] = {"fighters": [{"id": "b"}]}
+    assert fallback_pick(vet, "a", "b", None) == ("b", "DEC", 0.5)
+    # Knows neither and no odds: no pick.
+    assert fallback_pick(nobody, "a", "b", None) is None
+
+
 def test_the_model_picks_like_a_player_only_while_bouts_are_open() -> None:
-    model: dict[str, Any] = {"fighters": []}  # nobody known: no picks
-    assert "public.picks" not in sync_sql(
-        [(CARD, card_bouts(CARD, parse_fight_card(BEFORE), KNOWN.get), True)], model
-    )
     sql = model_pick_sql("e:a:b", "a", "KO/TKO")
     assert "display_name = 'the_model'" in sql and "public.bout_is_open('e:a:b')" in sql
     assert "where public.bout_is_open(excluded.bout_id)" in sql  # never changed after the lock
