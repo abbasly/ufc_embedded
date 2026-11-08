@@ -689,7 +689,14 @@ def export_predictor(
     since = today - pd.DateOffset(years=UPCOMING_ACTIVE_YEARS)
     current = {ids[str(i)] for i in summary.index[summary["last_fight"] >= since] if str(i) in ids}
     known = name_index(data.profiles["name"], ids)
-    cards = upcoming_cards(load_listings(), known, current, today, scheduled_events())
+    cards = upcoming_cards(
+        load_listings(),
+        known,
+        current,
+        today,
+        scheduled_events(),
+        last_fought=data.fights["date"].max(),
+    )
     rankings, rankings_date = load_rankings()
     ranks = current_ranks(rankings, data.profiles)
     belt = {

@@ -8,7 +8,11 @@ wheels/
 
 # Virtual environments
 .venv
-/data/
+/data/raw/
+/data/processed/*
+# Looking up ~700 photos takes minutes: kept, so the automatic data refresh only asks for new fighters.
+!/data/processed/fighter_photos.json
+!/data/processed/fighter_photos_search.json
 .venv/
 __pycache__/
 *.ipynb_checkpoints

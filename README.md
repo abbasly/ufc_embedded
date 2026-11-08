@@ -143,6 +143,7 @@ flowchart LR
 
 ```bash
 uv sync                                  # Python dependencies
+scripts/download-data.sh                 # latest public datasets into data/raw
 uv run python -m ufc_embedded.export     # style map + MMA math JSON
 uv run python -m ufc_embedded.train      # train, evaluate (logged to W&B), write predictor.json
 uv run pytest                            # Python tests
@@ -156,8 +157,7 @@ supabase/tests/run.sh                    # database security tests (needs a loca
 scripts/pickem-sync.sh                   # sync Pick'em cards and results now (needs SUPABASE_DB_URL in .env)
 ```
 
-The raw data (four public Kaggle datasets) isn't committed: see
-[docs/TECHNICAL.md#data](docs/TECHNICAL.md#data) for the download script. Database setup is in
-[supabase/README.md](supabase/README.md).
+The site's data refreshes by itself twice a week, after each card and before the next
+([details](docs/TECHNICAL.md#data)). Database setup is in [supabase/README.md](supabase/README.md).
 
 Unofficial fan project, not affiliated with the UFC.
