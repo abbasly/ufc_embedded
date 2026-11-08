@@ -12,7 +12,7 @@ name: Pick'em sync
 
 on:
   schedule:
-    - cron: "*/5 * * * 0,6"
+    - cron: "2-59/5 * * * 0,6" # off the round minutes, when GitHub is busiest
     - cron: "17 * * * 1-5"
   workflow_dispatch: # "Run workflow" button, e.g. right after a fight
 

@@ -149,6 +149,28 @@ def test_one_transaction_scored_only_once_every_result_is_in() -> None:
     assert "select public.score_event('2026-11-14-ufc-334');" in after
 
 
+def test_points_are_tallied_after_each_main_card_result_before_the_card_is_scored() -> None:
+    bouts = card_bouts(CARD, parse_fight_card(AFTER), KNOWN.get)
+    # Half-way: one main-card result in, the rest still to come.
+    halfway = [
+        b if i == 0 else {**b, "outcome": None, "winner": None, "method": None}
+        for i, b in enumerate(bouts)
+    ]
+    assert halfway[0]["segment"] == "main" and halfway[0]["outcome"]
+    sql = sync_sql([(CARD, halfway, True)])
+    assert "select public.tally_event('2026-11-14-ufc-334');" in sql
+    assert "score_event" not in sql
+    # Only prelim results so far: nothing to tally (prelims score no points).
+    prelims_only = [
+        b if b["segment"] != "main" else {**b, "outcome": None, "winner": None, "method": None}
+        for b in bouts
+    ]
+    assert "tally_event" not in sync_sql([(CARD, prelims_only, True)])
+    # Every result in: scored, not just tallied.
+    full = sync_sql([(CARD, bouts, True)])
+    assert "score_event" in full and "tally_event" not in full
+
+
 def test_recent_events_keep_syncing_for_their_results() -> None:
     old = {"date": "2026-10-01", "name": "UFC 333", "fights": []}
     last_week = {"date": "2026-11-07", "name": "UFC Fight Night", "fights": []}

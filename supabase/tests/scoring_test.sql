@@ -47,10 +47,19 @@ update public.bouts set outcome = 'win', winner = 'pre' where id = 'sc:pre:lim';
 set role authenticated;
 set request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000f2';
 select pg_temp.refused($$select public.score_event('sc')$$, 'a user scoring an event');
+select pg_temp.refused($$select public.tally_event('sc')$$, 'a user tallying an event');
 select pg_temp.refused($$update public.profiles set avatar = 'Not An Id!' where id = '00000000-0000-0000-0000-0000000000f2'$$,
   'an avatar that is not a fighter id');
 update public.profiles set avatar = 'josh-hokit' where id = '00000000-0000-0000-0000-0000000000f2';
 reset role;
+
+-- ---- Live: a tally mid-card counts points but doesn't mark the card as scored -------------------
+set role service_role;
+select public.tally_event('sc');
+reset role;
+select pg_temp.expect_count($$select 1 from public.scores where event_id = 'sc'$$, 2, 'live points for each player');
+select pg_temp.expect_count($$select 1 from public.events where id = 'sc' and scored_at is null$$, 1,
+  'a tallied card still unscored (no podium, no emails yet)');
 
 set role service_role;
 select public.score_event('sc');
