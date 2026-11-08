@@ -50,14 +50,19 @@ function Versus({ h2h, them }: { h2h: HeadToHead; them: string }) {
 }
 
 /** You vs the model, best call and method record, side by side. */
-export function Highlights({ history, vsModel, isModel, whose }: { history: PastPick[]; vsModel: HeadToHead | null; isModel: boolean; whose: "you" | "they" }) {
+export function Highlights({ history, vsModel, isModel, whose, picksHidden }: { history: PastPick[]; vsModel: HeadToHead | null; isModel: boolean; whose: "you" | "they"; picksHidden: boolean }) {
   const call = bestCall(history);
   const methods = methodRecord(history).filter((m) => m.total > 0);
+  const hidden = (
+    <Text size="sm" c="dimmed">
+      Only their friends and league-mates can see this.
+    </Text>
+  );
   return (
     <SimpleGrid cols={{ base: 1, sm: isModel ? 2 : 3 }} spacing="sm">
       {!isModel && <Panel label="Vs the model">{vsModel ? <Versus h2h={vsModel} them="the model" /> : <Text size="sm" c="dimmed">The model hasn't played a card yet.</Text>}</Panel>}
       <Panel label="Best call">
-        {call ? (
+        {picksHidden ? hidden : call ? (
           <>
             <Text fz={22} fw={800} lh={1.2}>
               <Text span c="yellow.4" fw={800} inherit>{call.fighter}</Text> <Text span c="green.4" fw={800} inherit>+{call.points}</Text>
@@ -73,7 +78,7 @@ export function Highlights({ history, vsModel, isModel, whose }: { history: Past
         )}
       </Panel>
       <Panel label="Method calls">
-        {methods.length ? (
+        {picksHidden ? hidden : methods.length ? (
           <Stack gap={8}>
             {methods.map((m) => (
               <div key={m.method} className="method-row" data-method={m.method}>
