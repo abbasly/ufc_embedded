@@ -450,6 +450,7 @@
 .card-pile-top {
   position: relative;
   z-index: 2;
+  transition: opacity 0.26s ease-out, transform 0.26s ease-out;
 }
 /* The cards underneath: only their edges show. */
 .card-pile-under {
@@ -481,6 +482,23 @@
   font-weight: 800;
   white-space: nowrap;
 }
+.card-pile { scroll-margin-top: 80px; }
+.card-pile-under { transition: opacity 0.26s ease-out, transform 0.3s ease-out; }
+.card-pile-count { transition: bottom 0.26s ease-out; }
+/* Open: the pile is empty, and marks where the cards go back to. */
+.card-pile[data-open] {
+  outline: 1px dashed rgba(var(--rarity-glow), 0.45);
+  outline-offset: -1px;
+}
+.card-pile[data-open] .card-pile-top {
+  opacity: 0;
+  transform: scale(0.95);
+}
+.card-pile[data-open] .card-pile-under {
+  opacity: 0;
+  transform: none;
+}
+.card-pile[data-open] .card-pile-count { bottom: 45%; }
 .card-pile-open { margin-top: 14px; }
 .card-pile-open-head {
   display: flex;
@@ -490,5 +508,8 @@
 }
 .collection-grid .collection-slot { margin-top: 4px; }
 @media (prefers-reduced-motion: reduce) {
-  .card-pile { transition: none; }
+  .card-pile,
+  .card-pile-top,
+  .card-pile-under,
+  .card-pile-count { transition: none; }
 }
