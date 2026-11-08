@@ -103,6 +103,21 @@ export interface PastPick {
   startsOn: string;
 }
 
+export interface VisitDay {
+  date: string; // yyyy-mm-dd
+  visits: number;
+  pageViews: number;
+}
+
+/** The site's traffic over a period (Cloudflare Web Analytics, admins only). */
+export interface VisitStats {
+  days: number;
+  visits: number;
+  pageViews: number;
+  series: VisitDay[]; // oldest first, every day of the period
+  countries: { country: string; visits: number }[]; // ISO codes, most visits first
+}
+
 /** Another player, by how often they pick the same fighter as someone. */
 export interface ClosestPredictor {
   displayName: string;
@@ -210,6 +225,8 @@ export interface Backend {
     overview(): Promise<{ metric: string; value: number }[]>;
     users(): Promise<AdminUser[]>;
     log(rows?: number): Promise<{ at: string; kind: string; eventId: string | null; detail: string | null }[]>;
+    /** Traffic for the last ``days`` days (7, 30 or 90); null when visit stats are off. */
+    visits(days: number): Promise<VisitStats | null>;
   };
   /** Mutual friends: one asks, the other accepts. */
   friends: {

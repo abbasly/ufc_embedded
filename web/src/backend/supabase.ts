@@ -4,7 +4,7 @@
 
 import { type SupabaseClient, type User as SupabaseUser, createClient } from "@supabase/supabase-js";
 
-import { type Backend, BackendError, type LeaderboardRow, type Method, type PickemBout, type EventScore, type Friend, type PickemEvent, type PickSplit, type Segment, type User } from "./types";
+import { type Backend, BackendError, type LeaderboardRow, type Method, type PickemBout, type EventScore, type Friend, type PickemEvent, type PickSplit, type Segment, type User, type VisitStats } from "./types";
 
 const toRow = (r: Record<string, unknown>): LeaderboardRow => ({
   displayName: r.display_name as string,
@@ -391,6 +391,16 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
           leagues: Number(u.leagues),
           friends: Number(u.friends),
         }));
+      },
+      // Through our Worker, which holds the Cloudflare token and checks you're an admin.
+      async visits(days) {
+        const url: string | undefined = import.meta.env.VITE_VISITS_URL || undefined;
+        if (!url) return null;
+        const { data } = await db.auth.getSession();
+        const res = await fetch(`${url}?days=${days}`, { headers: { Authorization: `Bearer ${data.session?.access_token ?? ""}` } });
+        const body = (await res.json().catch(() => null)) as (VisitStats & { error?: string }) | null;
+        if (!res.ok || !body?.series) throw new BackendError(body?.error ?? "the visits service isn't answering");
+        return body;
       },
       async log(rows = 100) {
         const { data, error } = await db.rpc("admin_log", { max_rows: rows });
