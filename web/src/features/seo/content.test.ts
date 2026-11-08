@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import { buildPages, type SeoData, slug } from "./content";
+import { buildPages, nameMatches, type SeoData, slug } from "./content";
 
 const json = (file: string) => JSON.parse(readFileSync(`public/data/${file}`, "utf8"));
 const data: SeoData = { predictor: json("predictor.json"), mma: json("mma_math.json"), styles: json("style_map.json") };
@@ -40,6 +40,14 @@ describe("search pages", () => {
       }
     }
     expect(dead).toEqual([]);
+  });
+
+  it("finds fighters whatever the accents, case or word order", () => {
+    expect(nameMatches("Jiří Procházka", "prochazka")).toBe(true);
+    expect(nameMatches("Jiří Procházka", "PROCHAZKA jiri")).toBe(true);
+    expect(nameMatches("Jiří Procházka", "proch")).toBe(true);
+    expect(nameMatches("Jiří Procházka", "walker")).toBe(false);
+    expect(nameMatches("Jiří Procházka", "   ")).toBe(true);
   });
 
   it("makes addresses out of names", () => {

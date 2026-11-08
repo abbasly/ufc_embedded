@@ -11,6 +11,7 @@ import { NotFoundPage } from "../../pages/NotFoundPage";
 import { FighterTradingCard } from "../predictor/FighterTradingCard";
 import { SeoArticle } from "./Articles";
 import { buildPages, type FighterPage } from "./content";
+import { FightersIndex } from "./FightersIndex";
 import { prerendered, prerenderedPath } from "./prerendered";
 import { ShareFighter } from "./ShareFighter";
 
@@ -48,5 +49,6 @@ export default function SeoPage() {
     // Still loading: keep showing the static copy of this page, if that's what we have.
     return path === prerenderedPath && prerendered ? <div dangerouslySetInnerHTML={{ __html: prerendered }} /> : null;
   }
+  if (page?.kind === "index" && page.meta.path === "fighters") return <FightersIndex page={page} />;
   return page ? <SeoArticle page={page} card={page.kind === "fighter" ? <FighterCard page={page} /> : undefined} /> : <NotFoundPage />;
 }

@@ -226,7 +226,7 @@ function Fight({ page }: { page: FightPage }) {
   );
 }
 
-function Index({ page }: { page: IndexPage }) {
+function Index({ page, search }: { page: IndexPage; search?: ReactNode }) {
   return (
     <>
       <Crumbs trail={[{ name: page.heading, path: null }]} />
@@ -234,6 +234,8 @@ function Index({ page }: { page: IndexPage }) {
         <h1>{page.heading}</h1>
         <p>{page.intro}</p>
       </header>
+      {/* Empty in the static page: the space is kept, so the list doesn't jump when the box arrives. */}
+      {page.meta.path === "fighters" && <div className="seo-search">{search}</div>}
       {page.groups.map((g) => (
         <section key={g.heading}>
           <h2>{g.heading}</h2>
@@ -251,14 +253,14 @@ function Index({ page }: { page: IndexPage }) {
   );
 }
 
-/** ``card``: the fighter's trading card, on fighter pages inside the app. */
-export function SeoArticle({ page, card }: { page: SeoPageModel; card?: ReactNode }) {
+/** Inside the app: ``card`` is the fighter's trading card, ``search`` the box on the fighters list. */
+export function SeoArticle({ page, card, search }: { page: SeoPageModel; card?: ReactNode; search?: ReactNode }) {
   return (
     <article className="seo-article">
       {page.kind === "fighter" && <Fighter page={page} card={card} />}
       {page.kind === "card" && <Card page={page} />}
       {page.kind === "fight" && <Fight page={page} />}
-      {page.kind === "index" && <Index page={page} />}
+      {page.kind === "index" && <Index page={page} search={search} />}
       <footer>
         <a href={href("fighters")}>All UFC fighters</a> · <a href={href("cards")}>Upcoming UFC cards</a> · Unofficial fan project, not affiliated with the UFC.
       </footer>
