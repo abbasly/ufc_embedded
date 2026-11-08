@@ -25,6 +25,7 @@ import { lazyPage } from "../../app/lazyPage";
 import { useMmaMath, usePredictor, useStyleMap } from "../../data/client";
 import type { MmaMathData, PredictorData, PredictorFighter } from "../../data/types";
 import { FighterTradingCard } from "./FighterTradingCard";
+import { FighterPageLink } from "../seo/FighterPageLink";
 import { styleLabel } from "./TradingCard";
 import { commonOpponents, contributions, headToHead, outcomes, sharedRecord, winProb } from "./model";
 import { canFight, defaultOpponent } from "./matchup";
@@ -244,6 +245,11 @@ function FighterCard({ fighter, options, value: id, onChange }: CardProps) {
     <Stack gap="sm" maw={320} mx="auto" w="100%" data-content>
       <Select searchable limit={200} data={options} value={id} onChange={onChange} placeholder="Pick a fighter" />
       {fighter && <FighterTradingCard id={fighter.id} />}
+      {fighter && (
+        <FighterPageLink id={fighter.id} size="sm" ta="center">
+          {fighter.name.split(" ").at(-1)}'s record and next fight →
+        </FighterPageLink>
+      )}
     </Stack>
   );
 }

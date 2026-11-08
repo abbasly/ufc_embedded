@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import type { Feature, Fighter, Neighbour, StyleMapData } from "../../data/types";
 import { RecordText } from "../../components/RecordText";
 import { FighterTradingCard } from "../predictor/FighterTradingCard";
+import { FighterPageButton } from "../seo/FighterPageLink";
 import { type Scope, colorOfGroup, featureGroups, ordinal, sharedTraits } from "./model";
 
 interface Props {
@@ -63,6 +64,7 @@ export function FighterPanel(props: Props) {
       <Button component={Link} to={`/predictor?a=${fighter.id}`} variant="light" leftSection="🥊">
         Predict a fight with {fighter.name.split(" ").at(-1)}
       </Button>
+      <FighterPageButton id={fighter.id}>{fighter.name.split(" ").at(-1)}'s record and next fight</FighterPageButton>
 
       <SimilarFighters {...props} fighter={fighter} byId={byId} />
 
