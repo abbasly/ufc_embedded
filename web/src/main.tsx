@@ -12,6 +12,8 @@ import { reloadForNewCode } from "./app/lazyPage";
 import { prefetchFor } from "./data/client";
 // Listen for "this site can be installed" from the first moment (see app/install.tsx).
 import "./app/install";
+// Reads a page's static HTML before React replaces it (see features/seo/SeoPage.tsx).
+import "./features/seo/prerendered";
 
 // Vite's signal that a code file from an older deploy couldn't be loaded: reload to get the
 // new version (preventDefault stops Vite from throwing the error).

@@ -241,6 +241,14 @@ Fighter photos are cached in `data/processed/fighter_photos*.json` (committed, s
 only looks up new fighters); delete them to refresh them all.
 Pick'em cards and results come from Wikipedia at sync time.
 
+## Search pages
+
+`web/scripts/route-previews.mjs` writes a real HTML page at build time for every fighter
+(`/fighters/<id>/`), upcoming card (`/cards/<name>/`) and upcoming fight (`/fights/<a>-vs-<b>/`),
+with its own title, description, structured data and sitemap entry. The content comes from
+`web/src/features/seo/` and the site's JSON, so each data refresh updates the pages. A test checks
+that every page has a unique title and that no internal link is dead.
+
 ## Stack
 
 Python 3.12 with uv, pandas, scikit-learn, networkx; ruff, mypy (strict), pytest; Weights &

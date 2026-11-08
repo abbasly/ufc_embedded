@@ -8,6 +8,10 @@
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createServer } from "vite";
+
 // path "" is the home page (About).
 const ROUTES = [
   {
@@ -101,21 +105,26 @@ const structuredData = () =>
 const noscript = (route) =>
   `<noscript><h1>${escape(route.title)}</h1><p>${escape(route.text)}</p><ul>` +
   ROUTES.map((r) => `<li><a href="${pageUrl(r)}">${escape(r.title)}</a></li>`).join("") +
-  `</ul></noscript>`;
+  `<li><a href="${siteUrl}fighters/">All UFC fighters</a></li><li><a href="${siteUrl}cards/">Upcoming UFC cards and predictions</a></li></ul></noscript>`;
 
-for (const route of ROUTES) {
-  const url = pageUrl(route);
-  let page = html.replace(/<title>[^<]*<\/title>/, `<title>${escape(route.title)}</title>`);
+/** This page's own copy of the app's HTML: its title, description, preview and canonical URL. */
+function pageHtml({ url, title, description, image }) {
+  let page = html.replace(/<title>[^<]*<\/title>/, `<title>${escape(title)}</title>`);
   for (const edit of [
-    meta("name", "description", route.description),
-    meta("property", "og:title", route.title),
-    meta("property", "og:description", route.description),
+    meta("name", "description", description),
+    meta("property", "og:title", title),
+    meta("property", "og:description", description),
     meta("property", "og:url", url),
-    meta("property", "og:image", `${siteUrl}${route.image}`),
+    meta("property", "og:image", `${siteUrl}${image}`),
   ]) {
     page = edit(page);
   }
-  page = page.replace(/<link rel="canonical" href="[^"]*"/, `<link rel="canonical" href="${url}"`);
+  return page.replace(/<link rel="canonical" href="[^"]*"/, `<link rel="canonical" href="${url}"`);
+}
+
+for (const route of ROUTES) {
+  const url = pageUrl(route);
+  let page = pageHtml({ url, title: route.title, description: route.description, image: route.image });
   page = page.replace('<div id="root"></div>', `<div id="root"></div>\n    ${noscript(route)}`);
   if (!route.path) page = page.replace("</head>", `  ${structuredData()}\n  </head>`);
   const file = route.path ? `dist/${route.path}/index.html` : "dist/index.html";
@@ -124,12 +133,41 @@ for (const route of ROUTES) {
   console.log(`page: ${file}`);
 }
 
+// A real page for every fighter, upcoming card and upcoming fight, so a search for one of them
+// has something to land on. The content sits in the HTML itself; the app takes over once loaded.
+const json = (file) => JSON.parse(readFileSync(`public/data/${file}`, "utf8"));
+const vite = await createServer({
+  configFile: false,
+  base: process.env.BASE_PATH || "/",
+  appType: "custom",
+  logLevel: "error",
+  server: { middlewareMode: true, hmr: false, ws: false },
+  optimizeDeps: { noDiscovery: true, include: [] },
+});
+const { buildPages } = await vite.ssrLoadModule("/src/features/seo/content.ts");
+const { SeoArticle } = await vite.ssrLoadModule("/src/features/seo/Articles.tsx");
+const pages = [...buildPages({ predictor: json("predictor.json"), mma: json("mma_math.json"), styles: json("style_map.json") }, siteUrl).values()];
+await vite.close();
+
+/** Safe inside a <script>: nothing in the data can close the tag. */
+const jsonLd = (data) => `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, "\\u003c")}</script>`;
+
+for (const seo of pages) {
+  const { path, title, description, jsonLd: data } = seo.meta;
+  const page = pageHtml({ url: `${siteUrl}${path}/`, title, description, image: "og-predictor.png" })
+    .replace('<div id="root"></div>', `<div id="root">${renderToStaticMarkup(createElement(SeoArticle, { page: seo }))}</div>`)
+    .replace("</head>", `  ${data.map(jsonLd).join("\n    ")}\n  </head>`);
+  mkdirSync(`dist/${path}`, { recursive: true });
+  writeFileSync(`dist/${path}/index.html`, page);
+}
+console.log(`${pages.length} fighter, card and fight pages`);
+
 // 404.html (the fallback for every other address) stays a plain copy of the home page.
 const today = new Date().toISOString().slice(0, 10);
 writeFileSync(
   "dist/sitemap.xml",
   `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-    ROUTES.map((r) => `  <url><loc>${pageUrl(r)}</loc><lastmod>${today}</lastmod></url>`).join("\n") +
+    [...ROUTES.map(pageUrl), ...pages.map((p) => `${siteUrl}${p.meta.path}/`)].map((url) => `  <url><loc>${url}</loc><lastmod>${today}</lastmod></url>`).join("\n") +
     `\n</urlset>\n`,
 );
 writeFileSync("dist/robots.txt", `User-agent: *\nAllow: /\n\nSitemap: ${siteUrl}sitemap.xml\n`);

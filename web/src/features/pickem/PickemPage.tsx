@@ -320,6 +320,12 @@ export default function PickemPage() {
           </Stack>
         </Grid.Col>
       </Grid>
+      {/* Ordinary links on purpose: these pages exist as their own files, for search engines. */}
+      <Text size="xs" c="dimmed" ta="center">
+        <a href={`${import.meta.env.BASE_URL}cards/`} style={{ color: "inherit" }}>Upcoming UFC card predictions</a>
+        {" · "}
+        <a href={`${import.meta.env.BASE_URL}fighters/`} style={{ color: "inherit" }}>All UFC fighters</a>
+      </Text>
     </Stack>
   );
 }

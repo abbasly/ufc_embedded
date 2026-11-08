@@ -12,6 +12,8 @@ import { countPage } from "./goatcounter";
 import { lazyPage } from "./lazyPage";
 import { ICONS, type NavItem, NavTabs } from "./NavTabs";
 import "./NewBadge.css";
+// With the app's first styles: the fighter and card pages are readable before any code has run.
+import "../features/seo/seo.css";
 
 // The account corner (sign-in window, user menu) loads only when accounts are on, so a build
 // without them carries none of its code.
@@ -26,6 +28,7 @@ const PickemPage = lazyPage(() => import("../features/pickem/PickemPage"));
 const ProfilePage = lazyPage(() => import("../features/profile/ProfilePage"));
 const PlayerPage = lazyPage(() => import("../features/profile/PlayerPage"));
 const AdminPage = lazyPage(() => import("../features/admin/AdminPage"));
+const SeoPage = lazyPage(() => import("../features/seo/SeoPage"));
 
 // The landing page: Pick'em where accounts are on, else About (also at /about either way).
 const HOME = accountsEnabled ? "pickem" : "about";
@@ -138,6 +141,9 @@ export function App() {
             {accountsEnabled && <Route path="/me" element={<ProfilePage />} />}
             {accountsEnabled && <Route path="/u/:name" element={<PlayerPage />} />}
             {accountsEnabled && <Route path="/admin" element={<AdminPage />} />}
+            <Route path="/fighters/*" element={<SeoPage />} />
+            <Route path="/cards/*" element={<SeoPage />} />
+            <Route path="/fights/*" element={<SeoPage />} />
             <Route path="/about" element={HOME === "about" ? <Navigate to="/" replace /> : <AboutPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/impressum" element={<ImpressumPage />} />
