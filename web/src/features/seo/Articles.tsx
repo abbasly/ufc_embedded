@@ -36,8 +36,6 @@ function Fighter({ page, card }: { page: FighterPage; card?: ReactNode }) {
       <div className="seo-profile">
         <div>
           <header className="seo-head">
-            {/* Inside the app the trading card has the photo. */}
-            {page.image && !card && <img src={page.image.url} alt={page.name} width={120} height={120} loading="eager" />}
             <div>
               <h1>{page.name}</h1>
               <p>{page.intro}</p>
@@ -52,8 +50,8 @@ function Fighter({ page, card }: { page: FighterPage; card?: ReactNode }) {
             ))}
           </dl>
         </div>
-        {/* Empty in the static page: the space is kept, so nothing jumps when the card arrives. */}
-        <div className="seo-card">{card}</div>
+        {/* In the static page the photo holds the card's place, so nothing jumps when it arrives. */}
+        <div className="seo-card">{card ?? (page.image && <img className="seo-card-photo" src={page.image.url} alt={page.name} width={300} height={150} loading="eager" />)}</div>
       </div>
       {page.next && (
         <section>

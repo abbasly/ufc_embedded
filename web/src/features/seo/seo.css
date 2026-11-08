@@ -47,12 +47,14 @@
 .seo-head > div {
   flex: 1 1 260px;
 }
-.seo-head img {
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
+.seo-card-photo {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 1;
+  border-radius: 12px;
   object-fit: cover;
-  object-position: top;
+  object-position: 50% 22%;
 }
 .seo-facts {
   display: grid;

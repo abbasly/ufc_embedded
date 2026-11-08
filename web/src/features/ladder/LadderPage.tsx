@@ -26,6 +26,7 @@ import { RecordText } from "../../components/RecordText";
 import { usePredictor } from "../../data/client";
 import type { PredictorFighter } from "../../data/types";
 import { FighterTradingCard } from "../predictor/FighterTradingCard";
+import { FighterPageButton } from "../seo/FighterPageLink";
 import { GOLD, WEIGHT_CLASSES } from "../style-map/model";
 import { ACTIVE_YEARS, isActive, movers, yearChange } from "./ladder";
 
@@ -185,10 +186,11 @@ export default function LadderPage() {
               <Button component={Link} to={`/predictor?a=${open.id}`} variant="light" leftSection="🥊">
                 Predict
               </Button>
-              <Button variant="default" onClick={() => setOpen(null)}>
-                Close
-              </Button>
+              <FighterPageButton id={open.id}>Fighter page</FighterPageButton>
             </Group>
+            <Button variant="subtle" color="gray" onClick={() => setOpen(null)}>
+              Close
+            </Button>
           </Stack>
         )}
       </Modal>

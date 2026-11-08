@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import type { Fighter as StyleFighter, MmaFighter, StyleMapData } from "../../data/types";
 import { RecordText } from "../../components/RecordText";
 import { FighterTradingCard } from "../predictor/FighterTradingCard";
+import { FighterPageLink } from "../seo/FighterPageLink";
 import { GOLD, STYLE_COLORS, ordinal } from "../style-map/model";
 import { type Fight, isUpset } from "./graph";
 
@@ -140,6 +141,9 @@ export function FighterChip({ fighter, lookup, faded }: { fighter: MmaFighter; l
               Style map →
             </Anchor>
           )}
+          <FighterPageLink id={fighter.id} size="xs">
+            Fighter page →
+          </FighterPageLink>
           <Anchor component={Link} to={`/predictor?a=${fighter.id}`} size="xs">
             Predict a fight →
           </Anchor>
