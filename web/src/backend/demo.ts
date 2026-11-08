@@ -272,6 +272,18 @@ export function demoBackend(): Backend {
           leagues: i % 4,
           friends: i % 5,
         })),
+      // Made-up traffic: a weekly rhythm with fight-weekend peaks.
+      visits: async (days) => {
+        const series = Array.from({ length: days }, (_, i) => {
+          const d = new Date(Date.now() - (days - 1 - i) * 86400e3);
+          const weekend = [0, 6].includes(d.getUTCDay()) ? 2.4 : 1;
+          const visits = Math.round((60 + 35 * Math.sin(i / 3) ** 2 + (i % 7) * 4) * weekend);
+          return { date: d.toISOString().slice(0, 10), visits, pageViews: Math.round(visits * 2.6) };
+        });
+        const visits = series.reduce((n, d) => n + d.visits, 0);
+        const shares: [string, number][] = [["DE", 0.31], ["AZ", 0.2], ["US", 0.14], ["GB", 0.08], ["KR", 0.06], ["FR", 0.05], ["NL", 0.04], ["TR", 0.03], ["CA", 0.03], ["BR", 0.02], ["PL", 0.02], ["AU", 0.02]];
+        return { days, visits, pageViews: Math.round(visits * 2.6), series, countries: shares.map(([country, share]) => ({ country, visits: Math.round(visits * share) })) };
+      },
       log: async () => [
         { at: new Date().toISOString(), kind: "sync", eventId: null, detail: "3 cards, 28 bouts, 0 results" },
         { at: new Date(Date.now() - 3600e3).toISOString(), kind: "result", eventId: "demo-e4", detail: "Ilia Topuria vs Islam Makhachev: Ilia Topuria by KO/TKO" },

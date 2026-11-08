@@ -1,0 +1,117 @@
+/* Traffic charts: one colour, quiet grid, the data the only loud thing. */
+.visits-chart,
+.country-track {
+  --series: #f03e3e;
+}
+.visits-chart {
+  position: relative;
+  padding-top: 42px; /* room for the readout above the plot */
+}
+.visits-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: pan-y;
+}
+.visits-grid {
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.visits-tick {
+  fill: var(--mantine-color-dimmed);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.visits-line {
+  fill: none;
+  stroke: var(--series);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.visits-area {
+  fill: var(--series);
+  opacity: 0.1;
+}
+.visits-crosshair {
+  stroke: rgba(255, 255, 255, 0.28);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.visits-dot {
+  fill: var(--series);
+  stroke: #17181c;
+  stroke-width: 2;
+}
+.visits-tip {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(20, 21, 25, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.visits-tip[data-align="end"] {
+  transform: translateX(-100%);
+  align-items: flex-end;
+}
+.visits-tip[data-align="start"] {
+  transform: none;
+  align-items: flex-start;
+}
+.visits-tip span {
+  color: var(--mantine-color-dimmed);
+}
+
+.visits-table {
+  margin-top: 8px;
+  font-size: 13px;
+}
+.visits-table summary {
+  cursor: pointer;
+  color: var(--mantine-color-dimmed);
+}
+
+/* Countries: ranked bars from one baseline, the number at the end of the row. */
+.country-row {
+  display: grid;
+  grid-template-columns: minmax(90px, 160px) minmax(0, 1fr) 92px;
+  align-items: center;
+  gap: 12px;
+}
+.country-track {
+  height: 14px;
+}
+.country-bar {
+  height: 100%;
+  min-width: 2px;
+  background: var(--series);
+  border-radius: 0 4px 4px 0;
+}
+.country-value {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Phones: name and number on one line, the bar under them at full width. */
+@media (max-width: 520px) {
+  .country-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2px 12px;
+  }
+  .country-track {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    height: 10px;
+  }
+}

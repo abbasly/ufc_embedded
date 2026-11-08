@@ -9,11 +9,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { recentVisits } from "../../app/visits";
 import { NotFoundPage } from "../../pages/NotFoundPage";
 import { useAuth } from "../../auth/AuthProvider";
 import type { AdminUser } from "../../backend";
 import { playerPath } from "../pickem/Leagues";
+import { VisitsPanel } from "./VisitsPanel";
 
 const when = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "–";
@@ -34,11 +34,9 @@ export default function AdminPage() {
   const overview = useQuery({ queryKey: ["admin", "overview"], queryFn: () => backend!.admin.overview(), enabled: yes });
   const users = useQuery({ queryKey: ["admin", "users"], queryFn: () => backend!.admin.users(), enabled: yes });
   const log = useQuery({ queryKey: ["admin", "log"], queryFn: () => backend!.admin.log(60), enabled: yes });
-  const [visits, setVisits] = useState<{ visits: number; days: number } | null>(null);
   useEffect(() => {
     document.title = "Admin | UFC Embedded";
-    if (yes) void recentVisits().then(setVisits);
-  }, [yes]);
+  }, []);
 
   if (loading || (user && admin.isPending)) return <Center h="60vh"><Loader /></Center>;
   // Not signed in, or not an admin: the same as any page that doesn't exist.
@@ -61,12 +59,12 @@ export default function AdminPage() {
       </Group>
 
       <SimpleGrid cols={{ base: 3, sm: 4, md: 6 }} spacing={8}>
-        {visits && <Tile label={`Visits, last ${visits.days} days`} value={visits.visits} />}
         {(overview.data ?? []).map((m) => (
           <Tile key={m.metric} label={m.metric} value={m.value} />
         ))}
       </SimpleGrid>
 
+      <VisitsPanel />
       <MostActive users={users.data ?? []} />
       <Players users={users.data} loading={users.isPending} />
 
