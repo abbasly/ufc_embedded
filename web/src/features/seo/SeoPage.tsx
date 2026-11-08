@@ -2,6 +2,7 @@
 // static HTML when the site loads (see scripts/route-previews.mjs): it stays up until the data
 // has arrived, so there's no flash of a spinner.
 
+import { Stack } from "@mantine/core";
 import { useEffect, useMemo } from "react";
 import { useLocation } from "react-router-dom";
 
@@ -9,8 +10,18 @@ import { useMmaMath, usePredictor, useStyleMap } from "../../data/client";
 import { NotFoundPage } from "../../pages/NotFoundPage";
 import { FighterTradingCard } from "../predictor/FighterTradingCard";
 import { SeoArticle } from "./Articles";
-import { buildPages } from "./content";
+import { buildPages, type FighterPage } from "./content";
 import { prerendered, prerenderedPath } from "./prerendered";
+import { ShareFighter } from "./ShareFighter";
+
+function FighterCard({ page }: { page: FighterPage }) {
+  return (
+    <Stack gap={10}>
+      <FighterTradingCard id={page.id} />
+      <ShareFighter page={page} />
+    </Stack>
+  );
+}
 
 export default function SeoPage() {
   const predictor = usePredictor();
@@ -37,5 +48,5 @@ export default function SeoPage() {
     // Still loading: keep showing the static copy of this page, if that's what we have.
     return path === prerenderedPath && prerendered ? <div dangerouslySetInnerHTML={{ __html: prerendered }} /> : null;
   }
-  return page ? <SeoArticle page={page} card={page.kind === "fighter" ? <FighterTradingCard id={page.id} /> : undefined} /> : <NotFoundPage />;
+  return page ? <SeoArticle page={page} card={page.kind === "fighter" ? <FighterCard page={page} /> : undefined} /> : <NotFoundPage />;
 }

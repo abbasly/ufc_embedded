@@ -172,7 +172,7 @@
   align-items: start;
 }
 .seo-card {
-  min-height: 419px; /* the height of a card at this width */
+  min-height: 465px; /* a card at this width and the share button under it */
 }
 @media (max-width: 720px) {
   .seo-profile {
@@ -183,4 +183,14 @@
     width: min(300px, 100%);
     margin: 12px auto 4px;
   }
+}
+
+/* The card lays itself out for the app's line spacing, not the article's. */
+.seo-card {
+  line-height: var(--mantine-line-height, 1.55);
+}
+
+/* Nor does it want the article's gaps under paragraphs. */
+.seo-card p {
+  margin: 0;
 }
