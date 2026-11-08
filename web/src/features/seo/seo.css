@@ -1,6 +1,6 @@
 /* The fighter, card and fight pages: readable text, also before the app has loaded. */
 .seo-article {
-  max-width: 760px;
+  max-width: 860px;
   margin-inline: auto;
   padding: 16px;
   line-height: 1.6;
@@ -160,4 +160,25 @@
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   font-size: 13px;
   color: var(--mantine-color-dimmed, #909296);
+}
+
+/* A fighter's page: name and facts beside their trading card; card on top on phones. */
+.seo-profile {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 24px;
+  align-items: start;
+}
+.seo-card {
+  min-height: 419px; /* the height of a card at this width */
+}
+@media (max-width: 720px) {
+  .seo-profile {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .seo-card {
+    grid-row: 1;
+    width: min(300px, 100%);
+    margin: 12px auto 4px;
+  }
 }

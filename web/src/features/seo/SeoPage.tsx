@@ -7,6 +7,7 @@ import { useLocation } from "react-router-dom";
 
 import { useMmaMath, usePredictor, useStyleMap } from "../../data/client";
 import { NotFoundPage } from "../../pages/NotFoundPage";
+import { FighterTradingCard } from "../predictor/FighterTradingCard";
 import { SeoArticle } from "./Articles";
 import { buildPages } from "./content";
 import { prerendered, prerenderedPath } from "./prerendered";
@@ -36,5 +37,5 @@ export default function SeoPage() {
     // Still loading: keep showing the static copy of this page, if that's what we have.
     return path === prerenderedPath && prerendered ? <div dangerouslySetInnerHTML={{ __html: prerendered }} /> : null;
   }
-  return page ? <SeoArticle page={page} /> : <NotFoundPage />;
+  return page ? <SeoArticle page={page} card={page.kind === "fighter" ? <FighterTradingCard id={page.id} /> : undefined} /> : <NotFoundPage />;
 }

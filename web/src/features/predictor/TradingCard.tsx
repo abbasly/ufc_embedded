@@ -207,7 +207,7 @@ export function TradingCard({ fighter, cluster, stat, recent }: Props) {
             }}
           >
             {fighter.image ? (
-              <img src={fighter.image.url} alt={fighter.name} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+              <img src={fighter.image.url} alt={fighter.name} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 22%" }} />
             ) : (
               <Box h="100%" style={{ display: "grid", placeItems: "center", color: "#ddd", fontSize: u(48), fontWeight: 800 }}>
                 {initials}
