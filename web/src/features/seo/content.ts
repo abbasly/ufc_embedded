@@ -46,6 +46,7 @@ export interface FighterPage {
   intro: string;
   image: { url: string; creditUrl: string } | null;
   facts: { label: string; value: string }[];
+  stats: { record: string; elo: number; rank: string | null; division: string };
   recent: RecentRow[];
   style: { name: string; description: string; traits: string[] } | null;
   similar: (Link & { similarity: number })[];
@@ -246,6 +247,7 @@ export function buildPages(d: SeoData, siteUrl: string): Map<string, SeoPageMode
         { label: "Peak Elo", value: String(f.elo_peak) },
         { label: "Last fight", value: longDate(f.last_fight) },
       ],
+      stats: { record, elo: f.elo, rank, division: f.weight_class },
       recent,
       style: cluster ? { name: cluster.name, description: cluster.description, traits } : null,
       similar: (style?.neighbours ?? []).slice(0, 5).flatMap((n) => {
