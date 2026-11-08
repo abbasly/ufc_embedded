@@ -100,8 +100,8 @@ All the details (features, evaluation, the style map pipeline, MMA math and Pick
 
 ## Architecture
 
-The Python pipeline runs offline and writes JSON; the website is a static app that reads it,
-hosted free on GitHub Pages. Pick'em is the one live part: Supabase for accounts, picks and
+The Python pipeline runs on its own twice a week and writes JSON; the website is a static app
+that reads it, hosted free on GitHub Pages. Pick'em is the one live part: Supabase for accounts, picks and
 scores, kept up to date from Wikipedia by a scheduled sync.
 
 ```mermaid
@@ -120,8 +120,10 @@ flowchart LR
         mma --> export
     end
 
-    train --> json
-    export --> json[/"web/public/data/*.json<br/>(versioned data contracts)"/]
+    refresh(["Data refresh (GitHub Action)<br/>Mon + Thu: download, rebuild, deploy"]) --> raw
+    train --> check["check_data.py + tests<br/>refuse a bad refresh"]
+    export --> check
+    check --> json[/"web/public/data/*.json<br/>(versioned data contracts)"/]
 
     subgraph web["Web app (web/)"]
         client["data/client.ts<br/>only place that fetches"] --> feat["features/style-map<br/>React + three.js"]

@@ -223,7 +223,8 @@ cases). See [supabase/README.md](../supabase/README.md).
 is in the datasets by then) and Thursdays (fresh odds for the next card), or by hand from the
 Actions tab. It downloads the datasets, rebuilds the style map, MMA math, ratings and
 predictions, refuses the result if `check_data.py` or the tests object, and otherwise commits
-the new JSON and deploys. The model's weights don't change (they're fit on fights before
+the new JSON and deploys. Each run, or failure, leaves a line in `pickem_log` (visible in the
+admin panel). The model's weights don't change (they're fit on fights before
 2024); every fighter's stats move to the latest card.
 
 Raw data isn't committed. `scripts/download-data.sh` fetches these regularly updated Kaggle

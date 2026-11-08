@@ -39,7 +39,11 @@ jobs:
           uv run python -m ufc_embedded.export
           uv run python -m ufc_embedded.train --wandb disabled
       - name: Check the new data
-        run: uv run python -m ufc_embedded.check_data "$RUNNER_TEMP/current-data" web/public/data
+        id: check
+        run: |
+          line="$(uv run python -m ufc_embedded.check_data "$RUNNER_TEMP/current-data" web/public/data)"
+          echo "line=$line" >> "$GITHUB_OUTPUT"
+          echo "$line" >> "$GITHUB_STEP_SUMMARY"
       - run: uv run pytest
       - name: Commit and deploy
         env:
@@ -53,8 +57,31 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "chore(data): refresh fighters, ratings and predictions"
+          # Training also redraws docs/model-comparison.png; only the data is published.
+          git restore .
           git pull --rebase origin master
           git push origin master
           # A push made with this workflow's token doesn't start other workflows: ask for the
           # deploy explicitly.
           gh workflow run ci.yml --ref master
+      # What happened goes in the change log too (the admin panel, or supabase/queries/log.sql).
+      # A logging hiccup never fails the refresh.
+      - name: Log the refresh
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          LINE: ${{ steps.check.outputs.line }}
+        run: |
+          export PATH="$(ls -d /usr/lib/postgresql/*/bin | sort -V | tail -1):$PATH"
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -q -v detail="$LINE" <<'SQL' || echo "couldn't log"
+          insert into public.pickem_log (kind, detail) values ('data refresh', :'detail');
+          SQL
+      - name: Log a failed refresh
+        if: failure()
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          export PATH="$(ls -d /usr/lib/postgresql/*/bin | sort -V | tail -1):$PATH"
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -q -v detail="$RUN_URL" <<'SQL' || echo "couldn't log"
+          insert into public.pickem_log (kind, detail) values ('data refresh FAILED', :'detail');
+          SQL
