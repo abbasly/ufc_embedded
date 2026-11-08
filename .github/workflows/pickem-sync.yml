@@ -4,13 +4,15 @@ name: Pick'em sync
 # site's upcoming list and Wikipedia, and results as Wikipedia's editors add them during the
 # fights (usually minutes after each one). An event is scored once every bout has a result.
 #
-# Every 15 minutes on fight weekends (Saturday and Sunday, UTC), hourly otherwise. Needs the
+# Every 5 minutes on fight weekends (Saturday and Sunday, UTC), GitHub's shortest interval
+# (scheduled runs can still start a few minutes late when GitHub is busy); hourly otherwise.
+# Free, as the repository is public. Needs the
 # SUPABASE_DB_URL secret: the database's Session pooler connection string (GitHub's runners
 # have no IPv6, so not the direct one). Scheduled runs only happen on the default branch.
 
 on:
   schedule:
-    - cron: "*/15 * * * 0,6"
+    - cron: "*/5 * * * 0,6"
     - cron: "17 * * * 1-5"
   workflow_dispatch: # "Run workflow" button, e.g. right after a fight
 
