@@ -101,6 +101,15 @@ export const slug = (s: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 
+/** Whether a name contains every word of a search, ignoring accents and case ("prochazka jiri"
+ * finds Jiří Procházka). An empty search matches everyone. */
+export function nameMatches(name: string, query: string): boolean {
+  const target = slug(name);
+  return slug(query)
+    .split("-")
+    .every((word) => target.includes(word));
+}
+
 const lastName = (name: string) => name.split(" ").at(-1)!;
 const pct = (p: number) => Math.round(p * 100);
 const longDate = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });

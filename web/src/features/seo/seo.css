@@ -194,3 +194,9 @@
 .seo-card p {
   margin: 0;
 }
+
+/* The search box on the list of all fighters. */
+.seo-search {
+  min-height: 42px;
+  margin: 16px 0 4px;
+}
