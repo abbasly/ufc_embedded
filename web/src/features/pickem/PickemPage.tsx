@@ -437,7 +437,7 @@ function Rules() {
         <b>Earn the card:</b> call a winner and you unlock their trading card. Call an underdog and it's <span className="shiny-text">shiny</span>.
       </Text>
       <Text size="sm" mt={4}>
-        <b>Open packs:</b> every card you play earns a free pack of 3 random fighters. A top 3 finish or a league title earns a bonus one.
+        <b>Open packs:</b> pick every main-card fight and you earn a free pack of 3 random fighters. A top 3 finish or winning a league of 3 or more earns a bonus one.
       </Text>
       <Text size="xs" c="dimmed" mt={6}>
         Main card only: prelims are for fun. Picks save as you tap; change them until the card locks.

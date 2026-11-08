@@ -29,7 +29,7 @@ export function byRarityThenElo(cards: OwnedCard[], elo: (id: string) => number 
 }
 
 export const REASON_LABEL: Record<PackReason, string> = {
-  played: "For playing the card",
+  played: "For picking the full card",
   podium: "Top 3 bonus",
   league: "League title bonus",
 };

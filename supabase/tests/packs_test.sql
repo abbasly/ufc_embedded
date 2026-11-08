@@ -20,18 +20,34 @@ insert into public.profiles (id, display_name) values
   ('00000000-0000-0000-0000-00000000cc05', 'pk_none');
 insert into public.events (id, name, starts_on, locks_at, scored_at) values
   ('pk-done', 'Finished card', current_date - 7, now() - interval '7 days', now()),
+  ('pk-part', 'Only partly picked', current_date - 3, now() - interval '3 days', now()),
   ('pk-live', 'Still being fought', current_date, now() - interval '1 hour', null);
+insert into public.bouts (id, event_id, position, fighter_a, fighter_b, a_name, b_name, segment, outcome, winner) values
+  ('pk-part:a:b', 'pk-part', 1, 'a', 'b', 'A', 'B', 'main', 'win', 'a'),
+  ('pk-part:c:d', 'pk-part', 2, 'c', 'd', 'C', 'D', 'main', 'win', 'c');
 insert into public.leagues (id, name, owner_id) values
-  ('00000000-0000-0000-0000-00000000cc09', 'Packers', '00000000-0000-0000-0000-00000000cc01');
-insert into public.league_members (league_id, user_id) values
-  ('00000000-0000-0000-0000-00000000cc09', '00000000-0000-0000-0000-00000000cc01'),
-  ('00000000-0000-0000-0000-00000000cc09', '00000000-0000-0000-0000-00000000cc04');
+  ('00000000-0000-0000-0000-00000000cc09', 'Packers', '00000000-0000-0000-0000-00000000cc01'),
+  ('00000000-0000-0000-0000-00000000cc08', 'Too small', '00000000-0000-0000-0000-00000000cc03'),
+  ('00000000-0000-0000-0000-00000000cc07', 'Started after the results', '00000000-0000-0000-0000-00000000cc02');
+-- Packers: a real league, pk_win tops it. Too small: pk_c tops it, but only 2 played. Started
+-- after the results: pk_b tops it, but nobody was in it before the card locked.
+insert into public.league_members (league_id, user_id, joined_at) values
+  ('00000000-0000-0000-0000-00000000cc09', '00000000-0000-0000-0000-00000000cc01', now() - interval '30 days'),
+  ('00000000-0000-0000-0000-00000000cc09', '00000000-0000-0000-0000-00000000cc03', now() - interval '30 days'),
+  ('00000000-0000-0000-0000-00000000cc09', '00000000-0000-0000-0000-00000000cc04', now() - interval '30 days'),
+  ('00000000-0000-0000-0000-00000000cc08', '00000000-0000-0000-0000-00000000cc03', now() - interval '30 days'),
+  ('00000000-0000-0000-0000-00000000cc08', '00000000-0000-0000-0000-00000000cc04', now() - interval '30 days'),
+  ('00000000-0000-0000-0000-00000000cc07', '00000000-0000-0000-0000-00000000cc02', now()),
+  ('00000000-0000-0000-0000-00000000cc07', '00000000-0000-0000-0000-00000000cc03', now()),
+  ('00000000-0000-0000-0000-00000000cc07', '00000000-0000-0000-0000-00000000cc04', now());
 -- pk_win: top of the card and of the league. pk_d: 4th, so only the pack for playing.
 insert into public.scores (user_id, event_id, correct, picked, points) values
   ('00000000-0000-0000-0000-00000000cc01', 'pk-done', 3, 3, 40),
   ('00000000-0000-0000-0000-00000000cc02', 'pk-done', 2, 3, 30),
   ('00000000-0000-0000-0000-00000000cc03', 'pk-done', 2, 3, 20),
   ('00000000-0000-0000-0000-00000000cc04', 'pk-done', 1, 3, 10),
+  -- One of the card's two main fights picked: no pack for that.
+  ('00000000-0000-0000-0000-00000000cc05', 'pk-part', 0, 1, 0),
   ('00000000-0000-0000-0000-00000000cc01', 'pk-live', 1, 1, 10);
 insert into public.card_pool (fighter_id, name, rarity)
 select 'pk-' || r || '-' || n, r || ' ' || n, r
@@ -60,6 +76,11 @@ select pg_temp.refused($$select 1 from public.pack_cards$$, 'reading the cards t
 select pg_temp.refused($$select 1 from public.card_pool$$, 'reading the pool');
 select pg_temp.refused($$insert into public.packs (user_id, event_id, reason) values ('00000000-0000-0000-0000-00000000cc04', 'pk-done', 'podium')$$, 'giving yourself a pack');
 select pg_temp.refused(format($$update public.packs set opened_at = null where id = %L$$, :'first_pack'), 're-rolling a pack');
+
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000cc02';
+select pg_temp.expect_count($$select 1 from public.claim_packs() where reason = 'league'$$, 0, 'a league bonus from a league started after the results');
+set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000cc03';
+select pg_temp.expect_count($$select 1 from public.claim_packs() where reason = 'league'$$, 0, 'a league bonus with only 2 players');
 
 set request.jwt.claim.sub = '00000000-0000-0000-0000-00000000cc05';
 select pg_temp.expect_count($$select 1 from public.claim_packs()$$, 0, 'no packs without playing');

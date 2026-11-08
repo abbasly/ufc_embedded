@@ -261,7 +261,7 @@ export function PulledCards({ userId, isMe, displayName }: { userId: string; isM
         </div>
       ) : (
         <Text size="sm" c="dimmed">
-          Every card you play earns a free pack of 3 random fighters. A top 3 finish or a league title earns a bonus one.
+          Pick every main-card fight on a card and you earn a free pack of 3 random fighters. A top 3 finish or winning a league of 3 or more earns a bonus one.
         </Text>
       )}
       {cards.length > SHOWN && (
