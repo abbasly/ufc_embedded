@@ -236,6 +236,15 @@ export function demoBackend(): Backend {
       myScores: async () => (load().signedIn ? demoPastScores(DEMO_USER.id) : []),
       scoresOf: async (id) => demoPastScores(id),
       pickHistory: async (id) => demoPastPicks(id),
+      starterBadges: async () => {
+        const s = load();
+        return [
+          ...(s.picks.length ? ["first-pick"] : []),
+          ...(s.picks.some((p) => p.method) ? ["called-method"] : []),
+          ...(s.profile ? ["signed-up"] : []),
+          ...(s.leagues.length ? ["in-league"] : []),
+        ];
+      },
       closestPredictors: async () => [
         { displayName: "olga", avatar: "valentina-shevchenko", shared: 24, agreed: 20 },
         { displayName: "the_model", avatar: null, shared: 24, agreed: 17 },

@@ -284,6 +284,11 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
         const { error } = await db.from("picks").delete().eq("user_id", id).eq("bout_id", boutId);
         if (error) throw friendly(error);
       },
+      async starterBadges(userId) {
+        const { data, error } = await db.rpc("starter_badges", { player: userId });
+        if (error) throw friendly(error);
+        return (data as { badge: string }[]).map((r) => r.badge);
+      },
       async leaderboard(limit = 50) {
         const { data, error } = await db.from("leaderboard").select("*").order("points", { ascending: false }).limit(limit);
         if (error) throw friendly(error);

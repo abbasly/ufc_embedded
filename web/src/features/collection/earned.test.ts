@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { PastPick } from "../../backend";
-import { cardKey, earnedCards, unopened } from "./earned";
+import { byShinyThenElo, cardKey, earnedCards, unopened } from "./earned";
 
 let n = 0;
 function called(fighter: string, opts: { market?: number | null; right?: boolean; day?: string; segment?: "main" | "prelims" } = {}): PastPick {
@@ -30,6 +30,14 @@ function called(fighter: string, opts: { market?: number | null; right?: boolean
     startsOn: day,
   };
 }
+
+describe("byShinyThenElo", () => {
+  it("puts shiny cards first, then the higher rating, with unrated fighters last", () => {
+    const cards = earnedCards([called("low"), called("high"), called("debut"), called("dog", { market: 0.3 })]);
+    const elo = (id: string) => ({ low: 1500, high: 1900, dog: 1400 })[id];
+    expect(byShinyThenElo(cards, elo).map((c) => c.fighter)).toEqual(["dog", "high", "low", "debut"]);
+  });
+});
 
 describe("earnedCards", () => {
   it("earns a card for a right main-card call only", () => {

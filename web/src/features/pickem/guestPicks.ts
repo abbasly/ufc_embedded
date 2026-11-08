@@ -82,6 +82,7 @@ export function useClaimGuestPicks() {
     void claimGuestPicks(backend).finally(() => {
       busy.current = false;
       void client.invalidateQueries({ queryKey: ["pickem", "picks"] });
+      void client.invalidateQueries({ queryKey: ["pickem", "starter"] });
     });
   }, [backend, user, profile, client]);
 }

@@ -235,6 +235,8 @@ export interface Backend {
     /** A player's picks on fought bouts, as far as you may see them: your own; friends' and
      * league-mates'; the model's (public). Empty for anyone else. */
     pickHistory(userId: string): Promise<PastPick[]>;
+    /** Which starter badges a player has earned (public: says nothing about their picks). */
+    starterBadges(userId: string): Promise<string[]>;
     /** Who picks most like this player, most alike first, among the picks you may see. */
     closestPredictors(userId: string): Promise<ClosestPredictor[]>;
   };

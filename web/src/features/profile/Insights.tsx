@@ -161,6 +161,32 @@ export function PointsChart({ scores }: { scores: EventScore[] }) {
 
 /** Each badge's emblem, drawn on a 24 x 24 grid. */
 const BADGE_ICONS: Record<string, React.ReactNode> = {
+  "first-pick": (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m8 12.5 3 3 5-6.5" />
+    </>
+  ),
+  "called-method": <path d="M13 3 5 14h6l-1 7 8-11h-6Z" />,
+  "full-card": (
+    <>
+      <rect x="5" y="3" width="14" height="18" rx="2" />
+      <path d="M9 8h6M9 12h6M9 16h4" />
+    </>
+  ),
+  "signed-up": (
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M5 21c1-4 4-6 7-6s6 2 7 6" />
+    </>
+  ),
+  "in-league": (
+    <>
+      <circle cx="9" cy="9" r="3" />
+      <circle cx="17" cy="10" r="2.5" />
+      <path d="M3 20c.5-3.5 3-5 6-5s5.5 1.5 6 5M17 15c2.2 0 3.6 1.4 4 4" />
+    </>
+  ),
   perfect: <path d="m12 3.2 2.7 5.6 6.1.8-4.5 4.2 1.2 6.1-5.5-3-5.5 3 1.2-6.1-4.5-4.2 6.1-.8Z" fill="currentColor" stroke="none" />,
   headliner: <path d="M4 18.5h16l1.4-10.3-5.4 3.9L12 5l-4 7.1-5.4-3.9Z" fill="currentColor" stroke="none" />,
   underdog: (
@@ -200,7 +226,7 @@ const BADGE_ICONS: Record<string, React.ReactNode> = {
 };
 
 /** A hexagonal medal in the badge's own colours; grey with a dashed edge until it's earned. */
-function Medal({ badge }: { badge: Badge }) {
+export function Medal({ badge }: { badge: Badge }) {
   const gradient = `badge-fill-${badge.key}`;
   return (
     <svg className="badge-medal" viewBox="0 0 64 64" aria-hidden>
@@ -219,42 +245,53 @@ function Medal({ badge }: { badge: Badge }) {
   );
 }
 
-export function Badges({ list }: { list: Badge[] }) {
+export function Badges({ list, starters }: { list: Badge[]; starters: Badge[] }) {
+  const all = [...starters, ...list];
+  if (!all.length) return null;
   return (
     <Paper p="md" radius="md" className="pickem-board">
       <Group justify="space-between" mb="sm">
         <Title order={4}>Badges</Title>
         <Text size="sm" c="dimmed">
-          {list.filter((b) => b.earned).length} of {list.length}
+          {all.filter((b) => b.earned).length} of {all.length}
         </Text>
       </Group>
-      <SimpleGrid cols={{ base: 2, xs: 4 }} spacing="sm">
-        {list.map((b) => (
-          <Tooltip key={b.key} label={b.how} withArrow multiline maw={220} events={{ hover: true, focus: true, touch: true }}>
-            <div className="badge-tile" data-badge={b.key} data-earned={b.earned || undefined} tabIndex={0}>
-              <Medal badge={b} />
-              <Text size="sm" fw={700} lh={1.2} ta="center">
-                {b.name}
-              </Text>
-              {b.earned ? (
-                <Text size="xs" c="dimmed" ta="center" lineClamp={1}>
-                  {b.progress}
-                </Text>
-              ) : (
-                <>
-                  <Text size="xs" c="dimmed" ta="center" lineClamp={1}>
-                    {b.progress}
-                  </Text>
-                  <div className="badge-progress">
-                    <div style={{ width: `${b.fraction * 100}%` }} />
-                  </div>
-                </>
-              )}
-            </div>
-          </Tooltip>
-        ))}
-      </SimpleGrid>
+      {starters.length > 0 && (
+        <SimpleGrid cols={{ base: 3, xs: 5 }} spacing="xs" mb={list.length ? "sm" : 0} className="badge-starters">
+          {starters.map((b) => (
+            <BadgeTile key={b.key} badge={b} />
+          ))}
+        </SimpleGrid>
+      )}
+      {list.length > 0 && (
+        <SimpleGrid cols={{ base: 2, xs: 4 }} spacing="sm">
+          {list.map((b) => (
+            <BadgeTile key={b.key} badge={b} />
+          ))}
+        </SimpleGrid>
+      )}
     </Paper>
+  );
+}
+
+function BadgeTile({ badge: b }: { badge: Badge }) {
+  return (
+    <Tooltip label={b.how} withArrow multiline maw={220} events={{ hover: true, focus: true, touch: true }}>
+      <div className="badge-tile" data-badge={b.key} data-earned={b.earned || undefined} tabIndex={0}>
+        <Medal badge={b} />
+        <Text size="sm" fw={700} lh={1.2} ta="center">
+          {b.name}
+        </Text>
+        <Text size="xs" c="dimmed" ta="center" lineClamp={1}>
+          {b.progress}
+        </Text>
+        {!b.earned && (
+          <div className="badge-progress">
+            <div style={{ width: `${b.fraction * 100}%` }} />
+          </div>
+        )}
+      </div>
+    </Tooltip>
   );
 }
 

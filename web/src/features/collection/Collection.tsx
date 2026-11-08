@@ -13,7 +13,7 @@ import { recentResults } from "../predictor/model";
 import { captureCards } from "../share/captureCards";
 import { fighterImage } from "../share/fighterImage";
 import { ShareButton } from "../share/ShareButton";
-import { type EarnedCard, earnedCards } from "./earned";
+import { byShinyThenElo, type EarnedCard, earnedCards } from "./earned";
 
 const SHOWN = 12; // cards before "Show all"
 
@@ -51,7 +51,11 @@ export function DebutCard({ card }: { card: EarnedCard }) {
 }
 
 export function CardCollection({ history, isMe, displayName }: { history: PastPick[]; isMe: boolean; displayName: string }) {
-  const cards = useMemo(() => earnedCards(history), [history]);
+  const fighters = usePredictor().data?.fighters;
+  const cards = useMemo(() => {
+    const elo = new Map(fighters?.map((f) => [f.id, f.elo]));
+    return byShinyThenElo(earnedCards(history), (id) => elo.get(id));
+  }, [history, fighters]);
   const [all, setAll] = useState(false);
   const [open, setOpen] = useState<EarnedCard | null>(null);
   if (!cards.length && !isMe) return null;

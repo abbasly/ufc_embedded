@@ -87,7 +87,10 @@ export function usePick(eventId: string | undefined) {
       return { before };
     },
     onError: (_error, _vars, context) => client.setQueryData(key, context?.before),
-    onSettled: () => client.invalidateQueries({ queryKey: key }),
+    onSettled: () => {
+      void client.invalidateQueries({ queryKey: ["pickem", "starter"] });
+      return client.invalidateQueries({ queryKey: key });
+    },
   });
 }
 
@@ -176,7 +179,10 @@ export function useStandings(leagueId: string | null) {
 export function useLeagueActions() {
   const { backend } = useAuth();
   const client = useQueryClient();
-  const refresh = () => client.invalidateQueries({ queryKey: ["leagues"] });
+  const refresh = () => {
+    void client.invalidateQueries({ queryKey: ["pickem", "starter"] });
+    return client.invalidateQueries({ queryKey: ["leagues"] });
+  };
   return {
     create: useMutation({ mutationFn: (name: string) => backend!.leagues.create(name), onSuccess: refresh }),
     join: useMutation({ mutationFn: (code: string) => backend!.leagues.join(code), onSuccess: refresh }),

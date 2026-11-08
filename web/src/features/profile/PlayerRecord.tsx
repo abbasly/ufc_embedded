@@ -14,6 +14,7 @@ import { Badges, ClosestPredictors, Highlights, PointsChart } from "./Insights";
 import { LeagueTitles } from "./LeagueTitles";
 import { badges, bestCall, decided, headToHead } from "./record";
 import { History, Stats } from "./PlayerStats";
+import { starterBadges, useStarterBadges } from "./starter";
 import { usePlayerRecord } from "./usePlayerRecord";
 
 interface Props {
@@ -35,6 +36,7 @@ export function PlayerRecord({ userId, displayName, avatar, isMe, children, afte
   const list = badges(picks, vsModel);
   // Scores are public but picks aren't: they've played, and we can't see what they picked.
   const picksHidden = history.isSuccess && !!scores.data?.some((s) => s.picked > 0) && decided(picks).length === 0;
+  const starters = useStarterBadges(userId);
   const board = useLeaderboard();
   const { data: predictor } = usePredictor(isMe && !!avatar);
 
@@ -73,9 +75,9 @@ export function PlayerRecord({ userId, displayName, avatar, isMe, children, afte
       {children}
       <LeagueTitles userId={userId} />
       {history.isSuccess && !picksHidden && <CardCollection history={picks} isMe={isMe} displayName={displayName} />}
+      <Badges list={picksHidden ? [] : list} starters={isModel ? [] : starterBadges(starters.data ?? [])} />
       {!!scores.data?.length && (
         <>
-          {!picksHidden && <Badges list={list} />}
           <Highlights history={picks} vsModel={vsModel} isModel={isModel} whose={isMe ? "you" : "they"} picksHidden={picksHidden} />
           <ClosestPredictors players={closest} isMe={isMe} />
           <PointsChart scores={scores.data} />

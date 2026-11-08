@@ -20,6 +20,8 @@ import { winProb } from "../predictor/model";
 import { cardPath } from "../seo/content";
 import { InstallBar } from "../../app/install";
 import { NewCards } from "../collection/NewCards";
+import { guestStarters, useStarterBadges } from "../profile/starter";
+import { StarterToast } from "../profile/StarterToast";
 import { useClaimGuestPicks, useGuestPicks } from "./guestPicks";
 import { Leagues, ModelTag, playerPath } from "./Leagues";
 import { boutPoints, isUnderdog, marketChance, METHOD_LABEL, MODEL_PLAYER, places, POINTS, scores } from "./scoring";
@@ -128,6 +130,7 @@ export default function PickemPage() {
   const pick = usePick(eventId);
   const guest = useGuestPicks(eventId);
   useClaimGuestPicks();
+  const starters = useStarterBadges(profile ? user?.id : undefined);
   const saving = useIsMutating({ mutationKey: PICK_MUTATION }) > 0;
   const now = useNow(15_000); // the countdown badge ticks by itself, every second
   const locked = !!event.data && new Date(event.data.event.locksAt).getTime() <= now;
@@ -276,6 +279,7 @@ export default function PickemPage() {
         </Paper>
       )}
 
+      <StarterToast earned={user ? (profile ? starters.data : undefined) : guestStarters(guest.picks, mainBouts.map((b) => b.id))} guest={!user} />
       <NewCards />
       <InstallBar />
       {!user && open && guest.picks.length === 0 && (

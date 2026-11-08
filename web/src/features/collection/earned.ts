@@ -45,6 +45,13 @@ export function earnedCards(history: PastPick[]): EarnedCard[] {
   );
 }
 
+/** The collection's order: shiny first, then the best-rated (fighters with no rating yet last). */
+export function byShinyThenElo(cards: EarnedCard[], elo: (id: string) => number | undefined): EarnedCard[] {
+  return [...cards].sort(
+    (a, b) => Number(b.shiny) - Number(a.shiny) || (elo(b.fighter) ?? -Infinity) - (elo(a.fighter) ?? -Infinity) || a.name.localeCompare(b.name),
+  );
+}
+
 /** A plain card and its shiny upgrade count as two things to open. */
 export const cardKey = (c: Pick<EarnedCard, "fighter" | "shiny">) => `${c.fighter}${c.shiny ? ":shiny" : ""}`;
 
