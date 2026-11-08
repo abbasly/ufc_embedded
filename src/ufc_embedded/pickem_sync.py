@@ -11,7 +11,8 @@ come from predictor.json either way.
 
 The SQL is one transaction and safe to run again and again: new bouts are added, changed ones
 updated, cancelled ones deleted (only before the event is scored), results written as they
-come in, and an event whose every bout has a result is scored (``score_event``).
+come in; points are tallied after every main-card result (``tally_event``) and an event whose
+every bout has a result is scored (``score_event``).
 
 The data has each card's date and city but not its start time, so picks lock at
 noon local time on fight day (from the city's rough UTC offset), before the earliest prelims
@@ -311,6 +312,10 @@ def card_sql(card: dict[str, Any], bouts: list[Bout], from_wikipedia: bool = Tru
     )
     if bouts and all(b["outcome"] for b in bouts):
         statements.append(f"select public.score_event({sql_text(eid)});")
+    elif any(b["outcome"] and b["segment"] == "main" for b in bouts):
+        # Mid-card: points so far, so the standings move fight by fight. Scoring proper (the
+        # podium, the results emails) waits for the last result.
+        statements.append(f"select public.tally_event({sql_text(eid)});")
     return statements
 
 
