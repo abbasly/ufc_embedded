@@ -3,6 +3,7 @@ from typing import Any
 
 from ufc_embedded.fight_cards import parse_fight_card, result
 from ufc_embedded.pickem_sync import (
+    Bout,
     bout_id,
     card_bouts,
     card_sql,
@@ -149,22 +150,23 @@ def test_one_transaction_scored_only_once_every_result_is_in() -> None:
     assert "select public.score_event('2026-11-14-ufc-334');" in after
 
 
+def _no_result(bout: Bout) -> Bout:
+    """The same bout, not fought yet."""
+    pending = bout.copy()
+    pending["outcome"] = pending["winner"] = pending["method"] = None
+    return pending
+
+
 def test_points_are_tallied_after_each_main_card_result_before_the_card_is_scored() -> None:
     bouts = card_bouts(CARD, parse_fight_card(AFTER), KNOWN.get)
     # Half-way: one main-card result in, the rest still to come.
-    halfway = [
-        b if i == 0 else {**b, "outcome": None, "winner": None, "method": None}
-        for i, b in enumerate(bouts)
-    ]
+    halfway = [b if i == 0 else _no_result(b) for i, b in enumerate(bouts)]
     assert halfway[0]["segment"] == "main" and halfway[0]["outcome"]
     sql = sync_sql([(CARD, halfway, True)])
     assert "select public.tally_event('2026-11-14-ufc-334');" in sql
     assert "score_event" not in sql
     # Only prelim results so far: nothing to tally (prelims score no points).
-    prelims_only = [
-        b if b["segment"] != "main" else {**b, "outcome": None, "winner": None, "method": None}
-        for b in bouts
-    ]
+    prelims_only = [b if b["segment"] != "main" else _no_result(b) for b in bouts]
     assert "tally_event" not in sync_sql([(CARD, prelims_only, True)])
     # Every result in: scored, not just tallied.
     full = sync_sql([(CARD, bouts, True)])
