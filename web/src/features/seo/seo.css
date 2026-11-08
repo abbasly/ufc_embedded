@@ -1,0 +1,163 @@
+/* The fighter, card and fight pages: readable text, also before the app has loaded. */
+.seo-article {
+  max-width: 760px;
+  margin-inline: auto;
+  padding: 16px;
+  line-height: 1.6;
+  color: var(--mantine-color-text, inherit);
+  font-family: var(--mantine-font-family, system-ui, sans-serif);
+}
+.seo-article a {
+  color: var(--mantine-color-red-4, #ff8787);
+  text-decoration: none;
+}
+.seo-article a:hover {
+  text-decoration: underline;
+}
+.seo-article h1 {
+  margin: 8px 0 8px;
+  font-size: clamp(26px, 5vw, 36px);
+  line-height: 1.15;
+  color: var(--mantine-color-bright, inherit); /* white on the dark app, dark without it */
+}
+.seo-article h2 {
+  margin: 28px 0 8px;
+  font-size: 19px;
+  color: var(--mantine-color-bright, inherit); /* white on the dark app, dark without it */
+}
+.seo-article h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mantine-color-dimmed, #909296);
+}
+.seo-article p {
+  margin: 0 0 8px;
+}
+.seo-crumbs {
+  font-size: 13px;
+  color: var(--mantine-color-dimmed, #909296);
+}
+.seo-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+}
+.seo-head > div {
+  flex: 1 1 260px;
+}
+.seo-head img {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top;
+}
+.seo-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin: 16px 0;
+}
+.seo-facts div {
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+.seo-facts dt {
+  font-size: 12px;
+  color: var(--mantine-color-dimmed, #909296);
+}
+.seo-facts dd {
+  margin: 0;
+  font-weight: 700;
+}
+.seo-list,
+.seo-fights,
+.seo-index {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.seo-list li {
+  padding: 3px 0;
+}
+.seo-result {
+  font-weight: 700;
+}
+.seo-result[data-result="W"] {
+  color: var(--mantine-color-green-4, #69db7c);
+}
+.seo-result[data-result="L"] {
+  color: var(--mantine-color-red-4, #ff8787);
+}
+.seo-fights li {
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.seo-fights p {
+  margin: 2px 0 0;
+}
+.seo-fight-title {
+  font-weight: 700;
+}
+.seo-main {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--mantine-color-dimmed, #909296);
+}
+.seo-odds-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0;
+}
+.seo-odds {
+  flex: 1 1 260px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+.seo-odds p {
+  margin: 0;
+}
+.seo-tape {
+  width: 100%;
+  border-collapse: collapse;
+}
+.seo-tape th,
+.seo-tape td {
+  padding: 6px 8px 6px 0;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.seo-tape tbody th {
+  font-weight: 500;
+  color: var(--mantine-color-dimmed, #909296);
+}
+.seo-index {
+  columns: 220px;
+  column-gap: 20px;
+  font-size: 14px;
+}
+.seo-index li {
+  break-inside: avoid;
+}
+.seo-index span {
+  color: var(--mantine-color-dimmed, #909296);
+  font-size: 12px;
+}
+.seo-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 24px;
+}
+.seo-article footer {
+  margin-top: 32px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 13px;
+  color: var(--mantine-color-dimmed, #909296);
+}
