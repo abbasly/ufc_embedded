@@ -81,3 +81,24 @@ def model_pick(data: dict[str, Any], a_id: str, b_id: str) -> tuple[str, str, fl
     methods = method_probs(data["method_model"], data["win_model"]["inputs"], winner, loser)
     method = data["method_model"]["classes"][max(range(len(methods)), key=methods.__getitem__)]
     return str(winner["id"]), str(method), p
+
+
+FALLBACK_METHOD = "DEC"  # the most common way UFC fights end
+
+
+def fallback_pick(
+    data: dict[str, Any], a_id: str, b_id: str, p_market: float | None
+) -> tuple[str, str, float] | None:
+    """The model's pick when it can't predict the bout itself (a UFC newcomer): the bookmakers'
+    favourite, or, without odds, the fighter it knows (the UFC veteran over the debutant); by
+    decision. None only when it knows neither fighter and there are no odds."""
+    if p_market is not None:
+        return (
+            (a_id, FALLBACK_METHOD, p_market)
+            if p_market >= 0.5
+            else (b_id, FALLBACK_METHOD, 1 - p_market)
+        )
+    known = {f["id"] for f in data["fighters"]}
+    if (a_id in known) != (b_id in known):
+        return (a_id if a_id in known else b_id), FALLBACK_METHOD, 0.5
+    return None

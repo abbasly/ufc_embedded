@@ -32,7 +32,7 @@ from typing import Any, TypedDict
 
 from ufc_embedded.data import PROCESSED_DIR, PROJECT_ROOT, slugify
 from ufc_embedded.fight_cards import CardBout, fetch_fight_card
-from ufc_embedded.pickem_model import MODEL_PLAYER, model_pick
+from ufc_embedded.pickem_model import MODEL_PLAYER, fallback_pick, model_pick
 from ufc_embedded.upcoming import _matcher, scheduled_events
 
 PREDICTOR_JSON = PROJECT_ROOT / "web" / "public" / "data" / "predictor.json"
@@ -371,7 +371,9 @@ def sync_sql(
             if not from_wiki:
                 continue
             for bout in bouts:
-                pick = model_pick(model, bout["a"], bout["b"])
+                pick = model_pick(model, bout["a"], bout["b"]) or fallback_pick(
+                    model, bout["a"], bout["b"], bout["p_market"]
+                )
                 if pick and not bout["outcome"]:
                     body.append(
                         model_pick_sql(bout_id(event_id(card), bout["a"], bout["b"]), *pick[:2])
