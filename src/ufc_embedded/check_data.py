@@ -41,25 +41,31 @@ def problems(file: str, old: dict[str, Any], new: dict[str, Any]) -> list[str]:
     return found
 
 
+def summary(old: dict[str, dict[str, Any]], new: dict[str, dict[str, Any]]) -> str:
+    """One line for the change log: what this refresh brought."""
+    mma, predictor = new["mma_math.json"], new["predictor.json"]
+    return (
+        f"fights until {mma['fights_until']} (was {old['mma_math.json']['fights_until']})"
+        f" · {_size(mma['fights'])} fights"
+        f" · {_size(new['style_map.json']['fighters'])} on the style map"
+        f" · {_size(predictor['fighters'])} with predictions"
+        f" · {len(predictor['upcoming'])} upcoming cards"
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("old", type=Path)
     parser.add_argument("new", type=Path)
     args = parser.parse_args()
-    found = [
-        p
-        for file in FILES
-        for p in problems(
-            file,
-            json.loads((args.old / file).read_text()),
-            json.loads((args.new / file).read_text()),
-        )
-    ]
+    old = {file: json.loads((args.old / file).read_text()) for file in FILES}
+    new = {file: json.loads((args.new / file).read_text()) for file in FILES}
+    found = [p for file in FILES for p in problems(file, old[file], new[file])]
     for p in found:
         print(p, file=sys.stderr)
     if found:
         sys.exit(1)
-    print("data looks fine")
+    print(summary(old, new))
 
 
 if __name__ == "__main__":
