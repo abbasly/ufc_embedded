@@ -264,10 +264,13 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
       async myPicks(eventId) {
         const id = await userId().catch(() => null);
         if (!id) return [];
+        // Only mine: once the card locks, row level security also returns league-mates', friends'
+        // and the model's picks, which would otherwise be read as my own.
         const { data, error } = await db
           .from("picks")
           .select("bout_id, winner, method, bouts!inner(event_id)")
-          .eq("bouts.event_id", eventId);
+          .eq("bouts.event_id", eventId)
+          .eq("user_id", id);
         if (error) throw friendly(error);
         return data.map((p) => ({ boutId: p.bout_id as string, winner: p.winner as string, method: p.method as Method | null }));
       },
