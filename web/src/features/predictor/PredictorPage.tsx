@@ -47,8 +47,10 @@ const HeavyBag = lazyPage(() => import("../heavy-bag/HeavyBag"));
 const bagStrip = (viewportWidth: number) => (viewportWidth >= 1280 ? 160 : 120);
 
 const DEFAULT = ["islam-makhachev", "ilia-topuria"];
+// The two corners: the site's red and a neutral light, as the cards use blue, orange and purple
+// for fighting styles.
 const A_COLOR = "red.6";
-const B_COLOR = "blue.6";
+const B_COLOR = "gray.3";
 
 // Tale of the tape rows: feature, label, formatter, which direction is better (if any).
 const TAPE: [string, string, (v: number) => string, "high" | "low" | null][] = [
@@ -262,6 +264,24 @@ const FILL_MS = 1100;
 // then the name) takes about 2 s more; the share button appears after that (Verdict.css).
 const SHARE_AFTER_MS = FILL_MS * 0.8 + 2100;
 
+/** One side's surname and win chance; the side behind steps back. */
+function WinChance({ name, pct, color, behind, end }: { name: string; pct: number; color: string; behind: boolean; end?: boolean }) {
+  return (
+    <div style={{ minWidth: 0, textAlign: end ? "right" : "left", opacity: behind ? 0.6 : 1 }}>
+      <Text size="sm" c="dimmed" truncate>
+        {name.split(" ").at(-1)}
+      </Text>
+      <Text fw={800} lh={1.05} c={color} style={{ fontVariantNumeric: "tabular-nums", fontSize: "clamp(30px, 13cqw, 46px)" }}>
+        {pct}%
+      </Text>
+    </div>
+  );
+}
+
+function WinBar({ width, color, behind }: { width: number; color: string; behind: boolean }) {
+  return <div style={{ width: `${width}%`, borderRadius: 3, background: `var(--mantine-color-${color.replace(".", "-")})`, opacity: behind ? 0.6 : 1 }} />;
+}
+
 function Verdict({ data, a, b }: { data: PredictorData; a: PredictorFighter; b: PredictorFighter }) {
   const pA = winProb(data.win_model, a, b);
   const best = outcomes(data, a, b)[0]!;
@@ -271,22 +291,19 @@ function Verdict({ data, a, b }: { data: PredictorData; a: PredictorFighter; b: 
   return (
     // A size container: the numbers and the outcome box scale with the column (cqw units).
     <Stack gap="sm" style={{ containerType: "inline-size" }}>
-      <Group justify="space-between" align="flex-end" wrap="nowrap">
-        <Text fw={800} lh={1} c={A_COLOR} style={{ fontVariantNumeric: "tabular-nums", fontSize: "clamp(26px, 11cqw, 40px)" }}>
-          {Math.round(pA * 100 * t)}%
-        </Text>
-        <Text size="xs" tt="uppercase" fw={700} c="dimmed" ta="center" style={{ letterSpacing: 1, whiteSpace: "nowrap" }}>
-          Win chance
-        </Text>
-        <Text fw={800} lh={1} c={B_COLOR} style={{ fontVariantNumeric: "tabular-nums", fontSize: "clamp(26px, 11cqw, 40px)" }}>
-          {Math.round((1 - pA) * 100 * t)}%
-        </Text>
+      <Group justify="space-between" align="flex-end" wrap="nowrap" gap="sm">
+        <WinChance name={a.name} pct={Math.round(pA * 100 * t)} color={A_COLOR} behind={pA < 0.5} />
+        <WinChance name={b.name} pct={Math.round((1 - pA) * 100 * t)} color={B_COLOR} behind={pA > 0.5} end />
       </Group>
-      <Progress.Root size={12} transitionDuration={0}>
-        <Progress.Section value={pA * 100 * t} color={A_COLOR} />
-        <Progress.Section value={100 * (1 - t)} color="transparent" />
-        <Progress.Section value={(1 - pA) * 100 * t} color={B_COLOR} />
-      </Progress.Root>
+      <div
+        role="img"
+        aria-label={`Win chance: ${a.name} ${Math.round(pA * 100)}%, ${b.name} ${Math.round((1 - pA) * 100)}%`}
+        style={{ display: "flex", gap: 3, height: 6 }}
+      >
+        <WinBar width={pA * 100 * t} color={A_COLOR} behind={pA < 0.5} />
+        <div style={{ flex: 1 }} />
+        <WinBar width={(1 - pA) * 100 * t} color={B_COLOR} behind={pA > 0.5} />
+      </div>
       <OutcomeReveal
         key={best.method + best.winner.id}
         method={best.method}

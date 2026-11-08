@@ -1,5 +1,5 @@
 // The fight predictor share image: both fighters' trading cards (captured from the page) face
-// to face, the model's win chances with the red / blue bar, the most likely ending, and the
+// to face, the model's win chances with a bar in the two corners' colours, the most likely ending, and the
 // site's address. Without the cards it falls back to round photos and names.
 
 import { DIM, FONT, SIZE, TEXT, avatar, background, fitFont, footer, header, loadImage, newCanvas, toBlob } from "./draw";
@@ -20,7 +20,7 @@ export interface Prediction {
 }
 
 const A_RED = "#fa5252";
-const B_BLUE = "#339af0";
+const B_LIGHT = "#dee2e6"; // neutral: the cards use blue, orange and purple for styles
 const PHOTO = 290;
 const PHOTO_Y = 420;
 const LEFT = SIZE / 4;
@@ -47,7 +47,7 @@ export async function predictorImage(p: Prediction): Promise<Blob> {
   } else {
     // Face to face, VS between them, names and divisions underneath.
     avatar(ctx, imgA, p.a.name, LEFT, PHOTO_Y, PHOTO, A_RED);
-    avatar(ctx, imgB, p.b.name, RIGHT, PHOTO_Y, PHOTO, B_BLUE);
+    avatar(ctx, imgB, p.b.name, RIGHT, PHOTO_Y, PHOTO, B_LIGHT);
     vs(ctx, SIZE / 2, PHOTO_Y);
     ctx.textAlign = "center";
     ctx.textBaseline = "alphabetic";
@@ -66,10 +66,16 @@ export async function predictorImage(p: Prediction): Promise<Blob> {
   // Win chances and the bar between them.
   const pctY = 818;
   ctx.font = `800 92px ${FONT}`;
+  // The side behind steps back.
+  const alphaA = p.pA < 0.5 ? 0.6 : 1;
+  const alphaB = p.pA > 0.5 ? 0.6 : 1;
   ctx.fillStyle = A_RED;
+  ctx.globalAlpha = alphaA;
   ctx.fillText(`${Math.round(p.pA * 100)}%`, LEFT, pctY);
-  ctx.fillStyle = B_BLUE;
+  ctx.fillStyle = B_LIGHT;
+  ctx.globalAlpha = alphaB;
   ctx.fillText(`${Math.round((1 - p.pA) * 100)}%`, RIGHT, pctY);
+  ctx.globalAlpha = 1;
   ctx.fillStyle = DIM;
   ctx.font = `700 22px ${FONT}`;
   ctx.fillText("WIN CHANCE", SIZE / 2, pctY - 30);
@@ -77,14 +83,16 @@ export async function predictorImage(p: Prediction): Promise<Blob> {
   const barW = SIZE - 2 * barX;
   const barY = pctY + 26;
   const split = barX + barW * p.pA;
-  roundRect(ctx, barX, barY, barW, 18, 9);
-  ctx.save();
-  ctx.clip();
+  const gap = 4;
   ctx.fillStyle = A_RED;
-  ctx.fillRect(barX, barY, split - barX, 18);
-  ctx.fillStyle = B_BLUE;
-  ctx.fillRect(split, barY, barX + barW - split, 18);
-  ctx.restore();
+  ctx.globalAlpha = alphaA;
+  roundRect(ctx, barX, barY, split - gap - barX, 10, 5);
+  ctx.fill();
+  ctx.fillStyle = B_LIGHT;
+  ctx.globalAlpha = alphaB;
+  roundRect(ctx, split + gap, barY, barX + barW - split - gap, 10, 5);
+  ctx.fill();
+  ctx.globalAlpha = 1;
 
   // The most likely ending, the winner's name in their corner's colour.
   ctx.fillStyle = DIM;
@@ -98,7 +106,7 @@ export async function predictorImage(p: Prediction): Promise<Blob> {
   const wRest = ctx.measureText(rest).width;
   const start = SIZE / 2 - (wName + wRest) / 2;
   ctx.textAlign = "left";
-  ctx.fillStyle = p.ending.isA ? A_RED : B_BLUE;
+  ctx.fillStyle = p.ending.isA ? A_RED : B_LIGHT;
   ctx.fillText(surname, start, 966);
   ctx.fillStyle = TEXT;
   ctx.fillText(rest, start + wName, 966);
