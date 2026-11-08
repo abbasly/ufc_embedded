@@ -71,7 +71,7 @@ export default function PlayerPage() {
               {p.displayName === MODEL_PLAYER ? (
                 <>
                   Our prediction model, playing along: it picks the <Anchor component={Link} to="/predictor">predictor's</Anchor> favourite,
-                  and its most likely method, on every fight it knows both fighters of. Can you beat it?
+                  and its most likely method, on every fight (the bookies' favourite when a fighter is new to the UFC). Can you beat it?
                 </>
               ) : (
                 <>

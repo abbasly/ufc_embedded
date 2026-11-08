@@ -88,17 +88,13 @@ FALLBACK_METHOD = "DEC"  # the most common way UFC fights end
 
 def fallback_pick(
     data: dict[str, Any], a_id: str, b_id: str, p_market: float | None
-) -> tuple[str, str, float] | None:
-    """The model's pick when it can't predict the bout itself (a UFC newcomer): the bookmakers'
-    favourite, or, without odds, the fighter it knows (the UFC veteran over the debutant); by
-    decision. None only when it knows neither fighter and there are no odds."""
+) -> tuple[str, str, float]:
+    """The model's pick when it can't predict the bout itself (a UFC newcomer), so that it plays
+    every fight: the bookmakers' favourite, or, without odds, the fighter it knows (the UFC
+    veteran over the debutant), or failing that the first listed; by decision."""
     if p_market is not None:
-        return (
-            (a_id, FALLBACK_METHOD, p_market)
-            if p_market >= 0.5
-            else (b_id, FALLBACK_METHOD, 1 - p_market)
-        )
+        if p_market >= 0.5:
+            return a_id, FALLBACK_METHOD, p_market
+        return b_id, FALLBACK_METHOD, 1 - p_market
     known = {f["id"] for f in data["fighters"]}
-    if (a_id in known) != (b_id in known):
-        return (a_id if a_id in known else b_id), FALLBACK_METHOD, 0.5
-    return None
+    return (b_id if b_id in known and a_id not in known else a_id), FALLBACK_METHOD, 0.5

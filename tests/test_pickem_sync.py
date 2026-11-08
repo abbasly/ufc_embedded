@@ -231,8 +231,8 @@ def test_the_model_picks_every_bout_it_can_even_without_a_prediction() -> None:
     # No odds either: the UFC veteran over the debutant.
     vet: dict[str, Any] = {"fighters": [{"id": "b"}]}
     assert fallback_pick(vet, "a", "b", None) == ("b", "DEC", 0.5)
-    # Knows neither and no odds: no pick.
-    assert fallback_pick(nobody, "a", "b", None) is None
+    # Knows neither and no odds: still a pick, so it plays every fight.
+    assert fallback_pick(nobody, "a", "b", None) == ("a", "DEC", 0.5)
 
 
 def test_the_model_picks_like_a_player_only_while_bouts_are_open() -> None:

@@ -243,3 +243,53 @@ a.pickem-row:hover {
     animation: none;
   }
 }
+
+/* The top three on a leaderboard: a medal for the place, the row lit in its colour, a crown on
+   the leader. */
+.pickem-row[data-podium="1"] { --podium: 245, 197, 66; --podium-top: #ffe08a; --podium-bottom: #c98a12; }
+.pickem-row[data-podium="2"] { --podium: 200, 208, 218; --podium-top: #eef1f5; --podium-bottom: #8a94a3; }
+.pickem-row[data-podium="3"] { --podium: 214, 138, 84; --podium-top: #f0bd92; --podium-bottom: #a4602f; }
+.pickem-row[data-podium] {
+  background: linear-gradient(90deg, rgba(var(--podium), 0.16), rgba(var(--podium), 0) 75%);
+  box-shadow: inset 2px 0 0 rgb(var(--podium));
+}
+.pickem-medal {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 800;
+  color: #17181c;
+  background: radial-gradient(circle at 35% 30%, var(--podium-top), var(--podium-bottom));
+  box-shadow: 0 0 8px rgba(var(--podium), 0.45);
+}
+.pickem-avatar-wrap {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+}
+.pickem-row[data-podium] .pickem-row-avatar {
+  box-shadow: 0 0 0 2px rgb(var(--podium));
+}
+.pickem-crown {
+  position: absolute;
+  z-index: 1;
+  top: -9px;
+  left: -6px;
+  width: 19px;
+  height: 14px;
+  fill: #f5c542;
+  stroke: #17181c;
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+  transform: rotate(-18deg);
+}
+/* Your own row on the podium keeps its red tint under the medal's colour. */
+.pickem-row[data-me][data-podium] {
+  background:
+    linear-gradient(90deg, rgba(var(--podium), 0.16), rgba(var(--podium), 0) 75%),
+    rgba(250, 82, 82, 0.12);
+}
