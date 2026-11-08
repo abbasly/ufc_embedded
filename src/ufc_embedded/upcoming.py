@@ -127,6 +127,7 @@ def upcoming_cards(
     today: pd.Timestamp,
     events: list[Event] | None = None,
     horizon_days: int = HORIZON_DAYS,
+    last_fought: pd.Timestamp | None = None,
 ) -> list[dict[str, Any]]:
     """Upcoming cards, earliest first: ``{"date", "fights": [{"a", "b", "a_name", "b_name",
     "p_market"}]}``. ``a`` / ``b`` are public fighter ids (None for fighters we don't know,
@@ -138,6 +139,9 @@ def upcoming_cards(
     ``known`` maps a name slug to the public id of every UFC fighter; ``current`` holds the
     ids of those still fighting there, so ex-UFC fighters now in other promotions don't make
     those promotions' cards count as UFC.
+
+    ``last_fought`` is the date of the latest card in the fight data: bookmakers can date a card
+    a day late, so without it a card that's already been fought could still look upcoming.
     """
     window = listings[
         (listings["event_date"] >= today)
@@ -185,6 +189,8 @@ def upcoming_cards(
         if pd.concat([card["a_name"], card["b_name"]]).duplicated().any():
             continue  # a rumour list: someone is "booked" against two opponents
         date = card["date"].min()
+        if last_fought is not None and (date - last_fought).days <= SAME_CARD_DAYS:
+            continue  # already fought: the bookmakers' date is just a time zone off
         event = _event_for(date, events or [])
         fights = [_bout(r) for r in card.to_dict("records")]
         for f in fights:

@@ -1,0 +1,60 @@
+name: Data refresh
+
+# Rebuilds the site's data from the latest public datasets, without anyone running anything:
+# fighter records, Elo and Glicko ratings, the style map, MMA math, predictions and upcoming
+# odds. The model's weights stay as trained (fit on fights before 2024); what moves is every
+# fighter's stats as of the latest card.
+#
+# Mondays, once the weekend's card is in the datasets, and Thursdays, for fresh odds before the
+# next one. Nothing goes live unless the new data passes check_data.py and the tests.
+
+on:
+  schedule:
+    - cron: "23 8 * * 1,4"
+  workflow_dispatch: # "Run workflow" button, e.g. straight after a card
+
+concurrency:
+  group: data-refresh
+  cancel-in-progress: false
+
+permissions:
+  contents: write # commit the new data
+  actions: write # start the deploy
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked
+      - run: scripts/download-data.sh
+      - name: Keep the current data to compare against
+        run: cp -R web/public/data "$RUNNER_TEMP/current-data"
+      - name: Rebuild
+        run: |
+          uv run python -m ufc_embedded.export
+          uv run python -m ufc_embedded.train --wandb disabled
+      - name: Check the new data
+        run: uv run python -m ufc_embedded.check_data "$RUNNER_TEMP/current-data" web/public/data
+      - run: uv run pytest
+      - name: Commit and deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git add web/public/data data/processed/fighter_photos.json data/processed/fighter_photos_search.json
+          if git diff --cached --quiet; then
+            echo "nothing new"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(data): refresh fighters, ratings and predictions"
+          git pull --rebase origin master
+          git push origin master
+          # A push made with this workflow's token doesn't start other workflows: ask for the
+          # deploy explicitly.
+          gh workflow run ci.yml --ref master

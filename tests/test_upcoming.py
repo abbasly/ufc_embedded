@@ -92,6 +92,15 @@ def test_spelling_variants_match_on_surname_and_first_name_start() -> None:
     assert out[0]["fights"][0]["b"] == "sergei-pavlovich"
 
 
+def test_a_card_already_fought_is_not_upcoming_even_if_dated_a_day_late() -> None:
+    rows = [listing("Tatiana Suarez", "Virna Jandiroba", "2026-11-08")]
+    fought = pd.Timestamp("2026-11-07")
+    assert upcoming_cards(pd.DataFrame(rows), KNOWN, set(NAMES), TODAY, last_fought=fought) == []
+    # A card the following weekend is still upcoming.
+    later = [listing("Tatiana Suarez", "Virna Jandiroba", "2026-11-14")]
+    assert upcoming_cards(pd.DataFrame(later), KNOWN, set(NAMES), TODAY, last_fought=fought)
+
+
 WIKITEXT = """==Scheduled events==
 {| class="sortable wikitable"
 ! Event
