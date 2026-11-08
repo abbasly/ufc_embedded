@@ -1,212 +1,108 @@
 # UFC Embedded
 
-Every active UFC fighter, mapped by how they fight.
+Three decades of UFC fights, turned into machine learning models you can play with.
 
-**Live:** https://ufc.anarli.com
-
-A personal ML engineering project: three decades of UFC fights turned into interactive,
-explorable models. Data is current to the latest UFC event (fights, records, rankings and odds
-from UFCStats and bookmakers, via Kaggle). Works on desktop and phone; the models are static
-files hosted free on GitHub Pages, and Pick'em adds accounts on Supabase.
+**Live:** https://ufc.anarli.com · **Details:** [docs/TECHNICAL.md](docs/TECHNICAL.md)
 
 <table>
   <tr>
     <td width="50%" valign="top">
       <a href="https://ufc.anarli.com/style-map"><img src="docs/screenshots/style-map.png" alt="Style map"></a><br>
-      <sub><b>Style Map</b>: 3D map of fighting styles</sub>
+      <sub><b>Style Map</b>: every active fighter in 3D, by how they fight</sub>
     </td>
     <td width="50%" valign="top">
       <a href="https://ufc.anarli.com/predictor"><img src="docs/screenshots/predictor.png" alt="Fight predictor"></a><br>
-      <sub><b>Fight Predictor</b>: win chance and most likely outcome</sub>
+      <sub><b>Fight Predictor</b>: win chance and how it ends</sub>
     </td>
   </tr>
   <tr>
     <td width="50%" valign="top">
-      <a href="https://ufc.anarli.com/predictor"><img src="docs/screenshots/card-flip.png" alt="Flipped fighter card"></a><br>
-      <sub>Cards flip to a <b>fighter file</b>: record, recent form, stats</sub>
+      <a href="https://ufc.anarli.com"><img src="docs/screenshots/pickem.png" alt="Pick'em"></a><br>
+      <sub><b>Pick'em</b>: pick every fight on the next card, against friends and the model</sub>
     </td>
     <td width="50%" valign="top">
-      <a href="https://ufc.anarli.com/ladder"><img src="docs/screenshots/ladder.png" alt="Elo ladder"></a><br>
-      <sub><b>Elo Ladder</b>: ratings, official ranks, climbers and drops</sub>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <a href="https://ufc.anarli.com/pickem"><img src="docs/screenshots/pickem.png" alt="Pick'em"></a><br>
-      <sub><b>Pick'em</b>: pick every fight on the next UFC card</sub>
-    </td>
-    <td width="50%" valign="top">
-      <a href="https://ufc.anarli.com/pickem"><img src="docs/screenshots/pickem-locked.png" alt="Pick'em after the lock"></a><br>
-      <sub>After the lock: your league's picks, the crowd's split, standings</sub>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <a href="https://ufc.anarli.com/mma-math"><img src="docs/screenshots/mma-math.png" alt="MMA math"></a><br>
-      <sub><b>MMA Math</b>: any fighter &ldquo;beats&rdquo; any other, shareable as an image</sub>
-    </td>
-    <td width="50%" valign="top">
-      <a href="https://ufc.anarli.com/"><img src="docs/screenshots/about.png" alt="About page"></a><br>
-      <sub><b>Home</b>: how the data, models and pages fit together</sub>
+      <a href="https://ufc.anarli.com/?event=2026-11-07-ufc-fight-night"><img src="docs/screenshots/pickem-locked.png" alt="Pick'em results"></a><br>
+      <sub>After the fights: results live, the crowd's split, final standings</sub>
     </td>
   </tr>
 </table>
 
-## Features
+More: [MMA Math](https://ufc.anarli.com/mma-math) (anyone "beats" anyone through a chain of
+wins), the [Elo Ladder](https://ufc.anarli.com/ladder) and fighter cards that flip to a full
+fighter file.
 
-- **[Style Map](https://ufc.anarli.com/style-map)**: ~700 active fighters placed in 3D by how they fight. Click anyone and the camera
-  flies to them, with lines and photo labels out to their 5 most similar fighters (across the
-  map or in their own division), ranked with a similarity score out of 100 and what they share
-  ("Leg kicks · Top control"). Readable style axes or a t-SNE similarity view; filter by style,
-  weight class, champions or ranked fighters.
-- **[Fight Predictor](https://ufc.anarli.com/predictor)**: pick two fighters for the win chance and the most
-  likely outcome (who, and by KO / submission / decision), what drives the call, past meetings
-  and common opponents, and a tale of the tape. Upcoming UFC cards scroll past in a ticker
-  (from bookmakers' listings); click a fight to load it, with our pick next to the bookies'.
-- **[Pick'em](https://ufc.anarli.com/pickem)**: sign in with Google or an email link, pick the winner of
-  every fight on the next UFC card (and, for a bonus, how they win) before it locks on fight
-  day. Cards come from Wikipedia with the main card, prelims and title fights; results are
-  scored automatically (10 for the winner, +5 for the method, +5 for calling an underdog).
-  Private leagues with invite links; once a card locks, you see your league-mates' picks and
-  how the whole crowd picked. Each bout links to its full prediction and MMA math. Profiles
-  have a fighter of your choice as the picture, your points and past cards.
-- **[Elo Ladder](https://ufc.anarli.com/ladder)**: every fighter rated chess-style from every UFC fight since 1994,
-  next to their official rank, with the year's biggest climbers and drops.
-- **[MMA Math](https://ufc.anarli.com/mma-math)**: a calculator that "proves" any fighter beats any other with a chain of
-  wins, drawn as a circle that animates from winner to loser. One click turns the proof into a
-  square image (with the site's address) for Reddit, Instagram or WhatsApp, and the link reopens
-  the same proof. Plus loops of fighters who beat each other in a circle.
-- **Fighter cards everywhere**: collectible-style cards (style = card type, Elo where the HP would
-  be, signature stats as moves, gold holo for champions) that flip in 3D to a fighter file. They
-  show up in the predictor, the style map, MMA math hovers and the ladder.
-- **[Home](https://ufc.anarli.com)**: a one-screen overview of the data, the Python pipeline and the pages, with a live
-  count of recent visits (Cloudflare Web Analytics, read through a small Cloudflare Worker so the
-  API token never reaches the browser; see `worker/visits.js`).
+## Contents
 
-## How the style map works
+- [Why](#why)
+- [What's inside](#whats-inside)
+- [The models](#the-models)
+- [Architecture](#architecture)
+- [Running it](#running-it)
 
-1. Take fighters active in the last 3 years with at least 3 UFC fights (~700).
-2. Rebuild 14 style stats from every fight's totals: output, accuracy, knockdowns, strikes
-   absorbed and defence; where strikes land (body, legs) and where they're thrown from (clinch,
-   ground); takedowns, takedown accuracy/defence, control time and submission attempts.
-3. **Shrink** noisy stats toward the average using real counts (minutes, attempts), so a 100%
-   takedown accuracy from 1 attempt doesn't count, then log-transform the skewed rates and
-   standardise.
-4. **Weight** each stat by how steady it is over a career: the correlation between a fighter's
-   first and second half of fights (body strikes 0.64, takedowns 0.59 ... takedown accuracy 0.04,
-   which is mostly noise).
-5. **Test** the embedding: split each fighter's fights alternately into two halves and look for
-   one half's profile among everyone's other halves (517 fighters with 6+ fights).
+## Why
 
-   | Embedding | Own other half in top 10 | Top 1 | Median rank |
-   |---|---|---|---|
-   | 8 UFCStats career averages | 17.8% | 3.9% | 70 |
-   | 14 stats | 28.2% | 10.1% | 38 |
-   | 14 stats, stability-weighted (deployed) | **32.9%** | **10.8%** | **27** |
+Fight fans argue about styles, matchups and who would win, mostly on gut feeling. The data to
+do better exists: UFCStats has every fight since 1994, round by round. This project is an
+end-to-end attempt to turn that data into something useful and honest:
 
-   `uv run python -m ufc_embedded.style_map` reproduces this.
-6. Two layouts:
-   - **Style axes:** hand-defined Grappling, Striking and Defence scores (weighted stat averages),
-     readable by construction. PCA/varimax axes were tried first, but the data's strongest
-     pattern is "accuracy", which made them hard to name.
-   - **Similarity:** t-SNE, which keeps far more true neighbours together but has meaningless axes.
+- **models that don't cheat:** every prediction uses only what was known before the fight;
+- **an honest benchmark:** the betting market, which the models are measured against and
+  don't beat;
+- **a product people use:** a fast website, and a prediction game where friends play against
+  each other and against the model on real cards.
 
-   Each layout reports how many of every fighter's 10 nearest neighbours (in the full embedding)
-   it keeps: about 15% for style axes vs 47% for t-SNE in 3D.
-7. k-means for five styles (kickboxers, volume boxers, dominant wrestlers, clinch fighters,
-   low-volume all-rounders), nearest neighbours in the embedding for "most similar". The match
-   score runs 0-100: 100 is the same style, 0 is as far apart as a typical pair of fighters.
-8. Current champions and rankings come from the official rankings; fighter photos (free licences
-   only, about a third of fighters) from Wikipedia.
+## What's inside
 
-## How MMA math works
+| Page | What it does | Under the hood |
+|---|---|---|
+| [Style Map](https://ufc.anarli.com/style-map) | ~700 active fighters in 3D, 5 most similar for each | 14 stability-weighted style stats, t-SNE, k-means |
+| [Fight Predictor](https://ufc.anarli.com/predictor) | Win chance, method, what drives the call | Logistic regression on point-in-time features, Glicko ratings |
+| [Pick'em](https://ufc.anarli.com) | Picks, leagues, live scoring, the model as a player | Supabase (Postgres, row level security), live sync from Wikipedia |
+| [Elo Ladder](https://ufc.anarli.com/ladder) | Ratings next to official ranks | Elo from every UFC fight since 1994 |
+| [MMA Math](https://ufc.anarli.com/mma-math) | Chains and loops of wins, shareable as an image | Win graph, cycle search, BFS in the browser |
 
-1. Every decisive UFC fight since 1994 is an edge from winner to loser (draws and no contests
-   are skipped). Fighters are identified by their UFCStats id, so namesakes stay apart.
-2. Simple cycles of 3 to 5 fighters are found with networkx and ranked by the "fame" of the
-   least known fighter in the loop (UFC fights, title wins, current belt).
-3. The calculator runs a breadth-first search in the browser for the shortest chain of wins
-   from one fighter to another, drawn as a circle (⇅ swaps the direction). Over 1,200 fighters
-   form one strongly connected component, so within it anyone "beats" anyone.
-4. "Share this proof" draws the same circle on a canvas (photos, arrows, results, the verdict)
-   as a 1080 x 1080 PNG, sized to the chain's length, and hands it to the phone's share sheet or
-   offers download / copy.
+## The models
 
-## How the predictor works
+**Fight predictor.** Two models, both deliberately simple: about 9,000 fights is too little for
+deep nets, and gradient boosting did worse on the same features.
 
-**Data without leakage.** UFCStats career stats and W-L-D records are *as of today*, so using
-them to predict past fights would leak the results. Every feature is rebuilt from per-fight
-stats using only fights on *earlier dates* (`features.py`), and a test checks that changing a
-future fight changes no earlier feature. The raw data also always lists the winner first, so
-fighters are randomly assigned to corners A and B.
+- **Who wins:** L2 logistic regression on the difference between the two fighters' features.
+  It has no intercept, so P(A beats B) = 1 − P(B beats A) exactly.
+- **How:** multinomial logistic regression for KO/TKO, submission or decision, given the
+  winner.
+- **Features:** experience, form, finishing rates, age, reach, per-minute striking and
+  grappling rates, recent margins over opponents, a Glicko rating and strength of schedule.
+  All are rebuilt from per-fight stats using only *earlier* fights, so nothing leaks from the
+  future, and a test checks it.
 
-**Features.** Two versions, both built only from fights before the one being predicted.
-- **v1:** 28 career features per fighter plus Elo. Experience (UFC fights, cage minutes), form
-  (win rate, win / loss streaks), finishing (KO and submission win rates, how often they get
-  finished), pro record going in, age, layoff, height, reach, stance, and shrunk per-minute
-  rates for striking, defence, takedowns, submissions, control time and knockdowns.
-- **v2 (deployed):** v1 plus recent form (margins over opponents in results, strikes,
-  takedowns, control and knockdowns: a weighted average favouring recent fights and the last
-  3 fights), an age curve (years past 32, distance from 30), a **Glicko** rating instead of Elo
-  (a rating plus how sure we are about it: newcomers start unsure, and it grows again during
-  layoffs), strength of schedule (average rating of past opponents) and distance below their
-  career peak.
+Evaluated on time-based splits, each year 2019–23 predicted by a model trained on all earlier
+years (2,457 fights):
 
-**Models** (`train.py`, all deliberately simple: ~9k fights is too little for deep nets):
-
-| Model | What it is |
-|---|---|
-| Betting market | Consensus bookmaker odds with the margin (vig) removed: the benchmark |
-| Elo | Online rating, K tuned on validation |
-| **Win model** | L2 logistic regression on A − B feature differences, no intercept, so P(A beats B) = 1 − P(B beats A) exactly |
-| **Method model** | Multinomial logistic regression for KO/TKO vs submission vs decision *given the winner*, from the winner's finishing profile, the loser's durability and the weight class |
-
-Gradient boosting (sklearn's HistGradientBoosting, trained on both corner orders and
-symmetrised) was tried on the same features and did *worse* than the logistic regression
-(rolling log loss ~0.659): there's too little signal per fight for it to find interactions the
-linear model misses.
-
-**Evaluation.** Split by time: train ≤ 2021, tune on 2022–23, and the 2024+ test set stays
-locked until a final run (`--final`). Feature sets are compared on **rolling validation**: each
-year 2019–23 is predicted by a model trained on all earlier years (2,457 fights).
-
-| Rolling 2019–23 | Accuracy | Log loss ↓ | AUC |
+| | Accuracy | Log loss ↓ | AUC |
 |---|---|---|---|
-| **Win model v2** | **62.2%** | **0.652** | **0.661** |
-| Win model v1 | 61.1% | 0.654 | 0.657 |
+| **Win model** (deployed) | **62.2%** | **0.652** | **0.661** |
 | Elo | 55.5% | 0.685 | 0.578 |
-| Betting market (2,284 fights with odds) | 66.2% | 0.614 | 0.722 |
+| Betting market | 66.2% | 0.614 | 0.722 |
 
-Accuracy counts how often the fighter given over 50% won; log loss also rewards being
-confident only when it's deserved, so it's the main metric. Calibration, ROC and
-accuracy-vs-coverage (how often the favourite wins when the model is at least 60, 70, 80%
-sure, the precision/recall trade-off for picking winners) on fights with odds:
+![Model comparison: calibration, ROC, accuracy vs coverage](docs/model-comparison.png)
 
-![Model comparison](docs/model-comparison.png)
+The model stays behind the market: bookmakers know about injuries, short notice and
+debutants' careers before the UFC, which the stats don't.
 
-On the 2022–23 validation years (896 fights) the deployed v2 scores 65.5% / 0.638, against
-63.2% / 0.645 for v1 and 69.0% / 0.596 for the market. The gap to the market is information
-the stats don't have: injuries, short notice, camps, and debutants' pre-UFC careers.
+**Style map.** Each fighter becomes a vector of 14 style stats (output, accuracy, where strikes
+land, takedowns, control, submissions...), shrunk toward the average when based on little
+data and weighted by how stable each stat is over a career. Tested by splitting every career
+in two and finding the other half: the deployed embedding finds it in the top 10 for 32.9% of
+fighters, against 17.8% for UFCStats' own career averages.
 
-Method model: log loss 0.990 vs 1.041 for always predicting the base rates. Everything (sweep
-curves, calibration plots, feature weights, worst misses, disagreements with the market, an Elo
-leaderboard and the dataset) is logged to Weights & Biases.
-
-**Reality check.** Scored with pre-fight data only, the v1 model got 5 of 14 winners right at
-UFC 333 (2026-10-24), including both headliners wrong. One card is a small sample, but it shows
-what career averages miss (rematches, decline with age, short UFC records).
-
-**In the browser.** `train.py --features v1|v2` (default v2) exports the deployed weights (fit
-on fights before 2024) and every active fighter's features as of today to `predictor.json`;
-the page evaluates both models client-side, no server needed.
-Opponents are limited to the same gender and at most one division apart: the UFC has never had
-bigger gaps, so the model has learned nothing about size beyond that.
+All the details (features, evaluation, the style map pipeline, MMA math and Pick'em) are in
+[docs/TECHNICAL.md](docs/TECHNICAL.md).
 
 ## Architecture
 
-The Python side runs offline and writes JSON files; the website is a separate static app
-that only reads them. No server needed, so it hosts for free on GitHub Pages (Pick'em's
-accounts are the one exception: see below).
+The Python pipeline runs offline and writes JSON; the website is a static app that reads it,
+hosted free on GitHub Pages. Pick'em is the one live part: Supabase for accounts, picks and
+scores, kept up to date from Wikipedia by a scheduled sync.
 
 ```mermaid
 flowchart LR
@@ -216,7 +112,7 @@ flowchart LR
         data --> champs["champions.py<br/>champions + ranks"]
         wiki(["Wikipedia API"]) --> photos["wikipedia.py<br/>fighter photos"]
         data --> mma["mma_math.py<br/>win graph + cycles"]
-        data --> pit["features.py + ratings.py<br/>point-in-time features, Elo"]
+        data --> pit["features.py + ratings.py<br/>point-in-time features, Elo, Glicko"]
         pit --> train["train.py + method.py<br/>win + method models, W&B"]
         sm --> export["export.py"]
         champs --> export
@@ -225,7 +121,6 @@ flowchart LR
     end
 
     train --> json
-
     export --> json[/"web/public/data/*.json<br/>(versioned data contracts)"/]
 
     subgraph web["Web app (web/)"]
@@ -237,75 +132,32 @@ flowchart LR
 
     json --> client
     web -->|"GitHub Actions"| pages(["GitHub Pages<br/>ufc.anarli.com"])
-    worker(["Cloudflare Worker<br/>visit count"]) --> web
-    wiki --> sync["pickem_sync.py<br/>fight cards, results"]
+    cron(["cron-job.org<br/>every 5 min"]) --> sync["pickem_sync.py (GitHub Action)<br/>fight cards, results, live points"]
+    wiki --> sync
     sync --> supa[("Supabase<br/>accounts, picks, scores, leagues")]
+    supa --> mail["Edge Functions + Resend<br/>results + friend emails"]
     supa <-->|"row level security"| backend
 ```
-
-- **Data contract:** `export.py` writes JSON with a `schema_version`; `web/src/data/types.ts`
-  mirrors it. Moving to a real API later only changes `client.ts`.
-- **Features are modular:** each product lives in `web/src/features/<name>/` and is lazy-loaded
-  by its route.
-- **Accounts (Pick'em):** the only server-side part. Supabase (Postgres + Auth, Frankfurt) is
-  reached straight from the browser with its public key; what each visitor may read and write
-  is enforced by row level security in the database, tested on every push
-  (`supabase/tests`). `web/src/backend/` is the only code that knows it's Supabase, behind a
-  `Backend` interface (with an in-browser demo backend for development). Cards, results and
-  scoring come from `pickem_sync.py` (Wikipedia fight cards + bookmakers' odds). See
-  [supabase/README.md](supabase/README.md).
-- **CI/CD:** every push to `master` runs ruff, mypy, pytest, the database tests, the web tests
-  and build, then deploys. The `beta` branch is built separately (Cloudflare) at
-  beta.anarli.com, for trying things before they reach the live site.
-
-## Stack
-
-Python 3.12 with uv, pandas, scikit-learn, networkx; ruff, mypy (strict), pytest.
-Web: Vite, React, TypeScript, Mantine, react-three-fiber/drei, TanStack Query; vitest.
-Accounts: Supabase (Postgres with row level security, Auth with Google and email links), Resend
-for email.
 
 ## Running it
 
 ```bash
-uv sync                                  # Python deps
-uv run python -m ufc_embedded.export     # rebuild style map + MMA math JSON
-uv run python -m ufc_embedded.train      # compare v1/v2, log to W&B, write predictor.json (v2)
-uv run python -m ufc_embedded.train --features v1   # deploy the v1 feature set instead
+uv sync                                  # Python dependencies
+uv run python -m ufc_embedded.export     # style map + MMA math JSON
+uv run python -m ufc_embedded.train      # train, evaluate (logged to W&B), write predictor.json
 uv run pytest                            # Python tests
 
 cd web && npm install
 npm run dev                              # http://localhost:5173
+VITE_ACCOUNTS=demo npm run dev           # with Pick'em on an in-browser demo backend
 npm test                                 # web tests
-VITE_ACCOUNTS=demo npm run dev           # Pick'em with an in-browser demo backend
 
-uv run python -m ufc_embedded.pickem_sync | pbcopy   # Pick'em cards + results as SQL (see supabase/README.md)
 supabase/tests/run.sh                    # database security tests (needs a local Postgres)
+scripts/pickem-sync.sh                   # sync Pick'em cards and results now (needs SUPABASE_DB_URL in .env)
 ```
 
-Raw data isn't committed. Download these regularly updated Kaggle datasets into
-`data/raw/<dataset-name>/` (no account needed for public datasets):
-
-| Dataset | Used for |
-|---|---|
-| [`scarekrow/ufc-data`](https://www.kaggle.com/datasets/scarekrow/ufc-data) | Every UFC fight (UFCStats), fighter records and career stats |
-| [`valihameed/ufc-stats`](https://www.kaggle.com/datasets/valihameed/ufc-stats) | Betting odds up to 2024 (MMA math upsets, market baseline fallback) |
-| [`jerzyszocik/ufc-betting-odds-daily-dataset`](https://www.kaggle.com/datasets/jerzyszocik/ufc-betting-odds-daily-dataset) | Betting odds keyed by UFCStats ids, incl. 2025+ (market baseline) |
-| [`jerzyszocik/ufc-rankings-history`](https://www.kaggle.com/datasets/jerzyszocik/ufc-rankings-history) | Official rankings and current champions |
-
-```bash
-for ds in scarekrow/ufc-data valihameed/ufc-stats jerzyszocik/ufc-rankings-history \
-          jerzyszocik/ufc-betting-odds-daily-dataset; do
-  n=$(basename $ds); [ $n = ufc-betting-odds-daily-dataset ] && n=ufc-betting-odds; mkdir -p data/raw/$n
-  curl -sSL "https://www.kaggle.com/api/v1/datasets/download/$ds" -o /tmp/$n.zip && unzip -oq /tmp/$n.zip -d data/raw/$n
-done
-```
-
-Fighter photos are cached in `data/processed/fighter_photos*.json`; delete them to refresh.
-
-## Limitations
-
-- Career averages hide style changes over time; fighters with few fights are noisy.
-- Rankings and champions are matched to fighters by name, so namesakes could be confused.
+The raw data (four public Kaggle datasets) isn't committed: see
+[docs/TECHNICAL.md#data](docs/TECHNICAL.md#data) for the download script. Database setup is in
+[supabase/README.md](supabase/README.md).
 
 Unofficial fan project, not affiliated with the UFC.
