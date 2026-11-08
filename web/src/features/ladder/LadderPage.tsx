@@ -1,4 +1,5 @@
 import {
+  Anchor,
   Alert,
   Avatar,
   Badge,
@@ -70,6 +71,9 @@ export default function LadderPage() {
             fight the winner takes points from the loser, and upsets move more points than expected wins. One
             ladder across all divisions.
           </Text>
+          <Anchor component={Link} to="/fighters/" size="sm">
+            All fighters: records, styles and next fights →
+          </Anchor>
         </Stack>
 
         <Grid>
