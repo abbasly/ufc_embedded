@@ -23,8 +23,9 @@ const CACHE_SECONDS = 600; // ask Cloudflare's API at most every 10 minutes
 const ALLOWED_ORIGINS = ["https://ufc.anarli.com", "https://beta.anarli.com", "http://localhost:5173"];
 const API = "https://api.cloudflare.com/client/v4/graphql";
 const DAY = 86400e3;
-// Workers may make 50 outgoing requests per run; each piece of the range takes two.
-const MAX_PIECES = 22;
+const MAX_DAYS = Math.max(...RANGES);
+// Workers may make 50 outgoing requests per run; each piece of the period takes one.
+const MAX_PIECES = 45;
 
 // The analytics API caps how long a time range one query may cover, and how far back it goes;
 // read those, then ask for the days in pieces of that size.
@@ -33,12 +34,12 @@ const SETTINGS = `query ($account: string!) {
     settings { rumPageloadEventsAdaptiveGroups { maxDuration notOlderThan } }
   } }
 }`;
-const byDimension = (dimension) => `query ($account: string!, $site: string!, $from: Time!, $to: Time!) {
+const ROWS = `query ($account: string!, $site: string!, $from: Time!, $to: Time!) {
   viewer { accounts(filter: { accountTag: $account }) {
     rumPageloadEventsAdaptiveGroups(
       limit: 1000
       filter: { siteTag: $site, datetime_geq: $from, datetime_lt: $to }
-    ) { count sum { visits } dimensions { ${dimension} } }
+    ) { count sum { visits } dimensions { date countryName } }
   } }
 }`;
 
@@ -69,47 +70,54 @@ async function limits(env) {
 
 const isoDay = (ms) => new Date(ms).toISOString().slice(0, 10);
 
-async function stats(env, days) {
-  const end = Date.now();
+// Cloudflare's numbers are estimates from a sample, so separate queries for a week and a month
+// don't add up and can even contradict each other. So there's one read of the whole period, in
+// whole UTC days, and every range is cut out of that same data.
+async function loadDays(env) {
+  const now = Date.now();
   const { step, oldest } = await limits(env);
-  const start = Math.max(end - days * DAY, end - oldest + 60e3, end - MAX_PIECES * step);
+  const today = Math.floor(now / DAY) * DAY;
+  const earliest = Math.ceil(Math.max(now - oldest + 60e3, now - MAX_PIECES * step) / DAY) * DAY;
+  const start = Math.max(today - (MAX_DAYS - 1) * DAY, earliest);
   const pieces = [];
-  for (let t = start; t < end; t += step) pieces.push([new Date(t).toISOString(), new Date(Math.min(t + step, end)).toISOString()]);
+  for (let t = start; t < now; t += step) pieces.push([new Date(t).toISOString(), new Date(Math.min(t + step, now)).toISOString()]);
+  const groups = await Promise.all(
+    pieces.map(async ([from, to]) => {
+      const data = await graphql(env, ROWS, { account: env.ACCOUNT_ID, site: env.SITE_TAG, from, to });
+      return data.rumPageloadEventsAdaptiveGroups;
+    }),
+  );
+  const rows = groups.flat().map((g) => ({
+    date: g.dimensions.date,
+    country: g.dimensions.countryName || "",
+    visits: g.sum?.visits ?? 0,
+    pageViews: g.count ?? 0,
+  }));
+  return { start, today, rows, updated: new Date(now).toISOString() };
+}
 
-  const groups = (dimension) =>
-    Promise.all(
-      pieces.map(async ([from, to]) => {
-        const data = await graphql(env, byDimension(dimension), { account: env.ACCOUNT_ID, site: env.SITE_TAG, from, to });
-        return data.rumPageloadEventsAdaptiveGroups;
-      }),
-    ).then((rows) => rows.flat());
-  const [perDay, perCountry] = await Promise.all([groups("date"), groups("countryName")]);
-
-  // Every day in the range, including the ones nobody visited.
+/** The last ``days`` days of the data, as the admin panel shows them. */
+function forRange({ start, today, rows, updated }, days) {
   const series = new Map();
-  for (let t = start; isoDay(t) <= isoDay(end); t += DAY) series.set(isoDay(t), { date: isoDay(t), visits: 0, pageViews: 0 });
-  for (const row of perDay) {
-    const day = series.get(row.dimensions.date);
-    if (day) {
-      day.visits += row.sum?.visits ?? 0;
-      day.pageViews += row.count ?? 0;
-    }
-  }
+  for (let t = Math.max(start, today - (days - 1) * DAY); t <= today; t += DAY) series.set(isoDay(t), { date: isoDay(t), visits: 0, pageViews: 0 });
   const countries = new Map();
-  for (const row of perCountry) {
-    const code = row.dimensions.countryName || "";
-    const c = countries.get(code) ?? { country: code, visits: 0 };
-    c.visits += row.sum?.visits ?? 0;
-    countries.set(code, c);
+  for (const row of rows) {
+    const day = series.get(row.date);
+    if (!day) continue;
+    day.visits += row.visits;
+    day.pageViews += row.pageViews;
+    const c = countries.get(row.country) ?? { country: row.country, visits: 0 };
+    c.visits += row.visits;
+    countries.set(row.country, c);
   }
-  const days_ = [...series.values()];
+  const list = [...series.values()];
   return {
     days,
-    visits: days_.reduce((n, d) => n + d.visits, 0),
-    pageViews: days_.reduce((n, d) => n + d.pageViews, 0),
-    series: days_,
+    visits: list.reduce((n, d) => n + d.visits, 0),
+    pageViews: list.reduce((n, d) => n + d.pageViews, 0),
+    series: list,
     countries: [...countries.values()].filter((c) => c.visits > 0).sort((a, b) => b.visits - a.visits),
-    updated: new Date(end).toISOString(),
+    updated,
   };
 }
 
@@ -125,7 +133,7 @@ async function isAdmin(env, authorization) {
 }
 
 // Also kept in memory, for when the cache isn't available (on *.workers.dev).
-const memo = new Map(); // days -> { at: ms, body: string }
+let memo = null; // { at: ms, data }
 
 export default {
   async fetch(request, env, ctx) {
@@ -145,19 +153,18 @@ export default {
     const days = Number(new URL(request.url).searchParams.get("days") ?? 7);
     if (!RANGES.includes(days)) return answer({ error: "days must be 7, 30 or 90" }, 400);
 
-    // Past the admin check: one cached answer per range. (Worker-side only, never public.)
+    // Past the admin check: one cached read of the data. (Worker-side only, never public.)
     const cache = caches.default;
-    const key = new Request(`https://visits.cache/stats/${days}`);
+    const key = new Request("https://visits.cache/days");
     const hit = await cache.match(key);
-    if (hit) return answer(await hit.text());
-    const kept = memo.get(days);
-    if (kept && Date.now() - kept.at < CACHE_SECONDS * 1000) return answer(kept.body);
+    if (hit) return answer(forRange(await hit.json(), days));
+    if (memo && Date.now() - memo.at < CACHE_SECONDS * 1000) return answer(forRange(memo.data, days));
 
     try {
-      const body = JSON.stringify(await stats(env, days));
-      memo.set(days, { at: Date.now(), body });
-      ctx.waitUntil(cache.put(key, new Response(body, { headers: { "Cache-Control": `public, max-age=${CACHE_SECONDS}` } })));
-      return answer(body);
+      const data = await loadDays(env);
+      memo = { at: Date.now(), data };
+      ctx.waitUntil(cache.put(key, new Response(JSON.stringify(data), { headers: { "Cache-Control": `public, max-age=${CACHE_SECONDS}` } })));
+      return answer(forRange(data, days));
     } catch (err) {
       return answer({ error: String(err.message ?? err) }, 502);
     }
