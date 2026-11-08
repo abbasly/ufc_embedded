@@ -3,6 +3,8 @@
 // (scripts/route-previews.mjs) and shown inside the app (SeoPage.tsx). Links are ordinary links:
 // every one of these pages exists as its own file.
 
+import type { ReactNode } from "react";
+
 import type { CardPage, FighterPage, FightPage, IndexPage, Link, SeoPageModel } from "./content";
 
 const base = import.meta.env.BASE_URL;
@@ -27,25 +29,32 @@ function Crumbs({ trail }: { trail: { name: string; path: string | null }[] }) {
   );
 }
 
-function Fighter({ page }: { page: FighterPage }) {
+function Fighter({ page, card }: { page: FighterPage; card?: ReactNode }) {
   return (
     <>
       <Crumbs trail={[{ name: "Fighters", path: "fighters" }, { name: page.name, path: null }]} />
-      <header className="seo-head">
-        {page.image && <img src={page.image.url} alt={page.name} width={120} height={120} loading="eager" />}
+      <div className="seo-profile">
         <div>
-          <h1>{page.name}</h1>
-          <p>{page.intro}</p>
+          <header className="seo-head">
+            {/* Inside the app the trading card has the photo. */}
+            {page.image && !card && <img src={page.image.url} alt={page.name} width={120} height={120} loading="eager" />}
+            <div>
+              <h1>{page.name}</h1>
+              <p>{page.intro}</p>
+            </div>
+          </header>
+          <dl className="seo-facts">
+            {page.facts.map((f) => (
+              <div key={f.label}>
+                <dt>{f.label}</dt>
+                <dd>{f.value}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
-      </header>
-      <dl className="seo-facts">
-        {page.facts.map((f) => (
-          <div key={f.label}>
-            <dt>{f.label}</dt>
-            <dd>{f.value}</dd>
-          </div>
-        ))}
-      </dl>
+        {/* Empty in the static page: the space is kept, so nothing jumps when the card arrives. */}
+        <div className="seo-card">{card}</div>
+      </div>
       {page.next && (
         <section>
           <h2>Next fight</h2>
@@ -244,10 +253,11 @@ function Index({ page }: { page: IndexPage }) {
   );
 }
 
-export function SeoArticle({ page }: { page: SeoPageModel }) {
+/** ``card``: the fighter's trading card, on fighter pages inside the app. */
+export function SeoArticle({ page, card }: { page: SeoPageModel; card?: ReactNode }) {
   return (
     <article className="seo-article">
-      {page.kind === "fighter" && <Fighter page={page} />}
+      {page.kind === "fighter" && <Fighter page={page} card={card} />}
       {page.kind === "card" && <Card page={page} />}
       {page.kind === "fight" && <Fight page={page} />}
       {page.kind === "index" && <Index page={page} />}
