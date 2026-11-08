@@ -481,6 +481,29 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
         if (error) throw friendly(error);
         return (data as Record<string, unknown>[]).map(toRow);
       },
+      async champions(leagueId) {
+        const { data, error } = await db.rpc("league_champions", { league: leagueId });
+        if (error) throw friendly(error);
+        return (data as { event_id: string; event_name: string; starts_on: string; display_name: string; avatar: string | null; points: number }[]).map((r) => ({
+          eventId: r.event_id,
+          eventName: r.event_name,
+          startsOn: r.starts_on,
+          displayName: r.display_name,
+          avatar: r.avatar,
+          points: r.points,
+        }));
+      },
+      async titlesOf(userId) {
+        const { data, error } = await db.rpc("league_titles", { player: userId });
+        if (error) throw friendly(error);
+        return (data as { event_id: string; event_name: string; starts_on: string; points: number; league_name: string | null }[]).map((r) => ({
+          eventId: r.event_id,
+          eventName: r.event_name,
+          startsOn: r.starts_on,
+          points: r.points,
+          leagueName: r.league_name,
+        }));
+      },
     },
   };
 }

@@ -86,6 +86,25 @@ export interface League {
   isOwner: boolean;
 }
 
+/** Someone who topped a league on a finished card (a tie has one row per winner). */
+export interface LeagueChampion {
+  eventId: string;
+  eventName: string;
+  startsOn: string;
+  displayName: string;
+  avatar: string | null;
+  points: number;
+}
+
+/** A league card a player won. ``leagueName`` is null unless you're in that league. */
+export interface LeagueTitle {
+  eventId: string;
+  eventName: string;
+  startsOn: string;
+  points: number;
+  leagueName: string | null;
+}
+
 export interface LeaderboardRow {
   displayName: string;
   avatar: string | null;
@@ -249,6 +268,10 @@ export interface Backend {
     standings(leagueId: string): Promise<LeaderboardRow[]>;
     /** The display names of a league's members (members only). */
     members(leagueId: string): Promise<string[]>;
+    /** Who won each finished card in a league, latest first (members only). */
+    champions(leagueId: string): Promise<LeagueChampion[]>;
+    /** The league cards a player has won, latest first (public; league names are members-only). */
+    titlesOf(userId: string): Promise<LeagueTitle[]>;
   };
 }
 

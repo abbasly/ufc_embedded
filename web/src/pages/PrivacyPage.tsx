@@ -26,8 +26,10 @@ export function PrivacyPage() {
 
         <Title order={3}>Browsing the site</Title>
         <Text>
-          You can use everything except Pick'em without an account. The site sets no cookies of its own. Your browser
-          keeps a few settings locally (for example whether the punch sound is muted); they never leave your device.
+          You can use everything without an account, except saving Pick'em picks. The site sets no cookies of its own.
+          Your browser keeps a few things locally: settings such as whether the punch sound is muted, which earned cards
+          you've opened, and any picks made before signing up. Those picks move to your account when you sign up;
+          everything else stays on your device.
         </Text>
 
         {accountsEnabled && (

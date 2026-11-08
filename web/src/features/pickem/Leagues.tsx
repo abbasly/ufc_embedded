@@ -10,6 +10,7 @@ import { useAuth } from "../../auth/AuthProvider";
 import { PlayerAvatar } from "../../auth/PlayerAvatar";
 import type { LeaderboardRow } from "../../backend";
 import { useFriends, useFriendsStandings } from "../friends/useFriends";
+import { LeagueChampion, reigning, useLeagueChampions } from "./LeagueChampion";
 import { MODEL_PLAYER, places } from "./scoring";
 import { EVERYONE, FRIENDS, useLeaderboard, useLeagueActions, useLeagues, useStandings } from "./usePickem";
 
@@ -75,6 +76,8 @@ export function Leagues({ selected, setSelected }: Props) {
   const everyone = useLeaderboard();
   const standings = useStandings(league?.id ?? null);
   const friendsBoard = useFriendsStandings(showFriends);
+  const champions = useLeagueChampions(league?.id ?? null);
+  const crowned = new Set(reigning(champions.data ?? []).map((c) => c.displayName));
   const rows = league ? standings : showFriends ? friendsBoard : everyone;
   const boards = [
     { value: EVERYONE, label: "Everyone" },
@@ -110,7 +113,8 @@ export function Leagues({ selected, setSelected }: Props) {
           </Text>
         )}
 
-        <Standings rows={rows.data} loading={rows.isPending && rows.fetchStatus !== "idle"} me={profile?.displayName} inLeague={!!league} />
+        {league && <LeagueChampion league={league} rows={champions.data ?? []} me={profile?.displayName} />}
+        <Standings rows={rows.data} loading={rows.isPending && rows.fetchStatus !== "idle"} me={profile?.displayName} inLeague={!!league} crowned={league ? crowned : undefined} />
 
         {league && (
           <Group gap="xs">
@@ -266,7 +270,7 @@ function BoardTabs({ boards, value, onChange }: { boards: { value: string; label
   );
 }
 
-function Standings({ rows, loading, me, inLeague }: { rows?: LeaderboardRow[]; loading: boolean; me?: string; inLeague: boolean }) {
+function Standings({ rows, loading, me, inLeague, crowned }: { rows?: LeaderboardRow[]; loading: boolean; me?: string; inLeague: boolean; crowned?: Set<string> }) {
   const [all, setAll] = useState(false);
   if (loading) return <Loader size="sm" />;
   if (!rows?.length)
@@ -323,6 +327,11 @@ function Standings({ rows, loading, me, inLeague }: { rows?: LeaderboardRow[]; l
               <Text fw={700} truncate lh={1.25}>
                 {row.displayName}
                 {row.displayName === MODEL_PLAYER && <ModelTag />}
+                {crowned?.has(row.displayName) && (
+                  <Badge component="span" size="xs" variant="light" color="yellow" ml={6} style={{ verticalAlign: 2 }}>
+                    Champ
+                  </Badge>
+                )}
               </Text>
               <Text size="xs" c="dimmed" style={{ fontVariantNumeric: "tabular-nums" }}>
                 {row.correct}/{row.picked} right{row.events > 1 ? ` · ${row.events} cards` : ""}

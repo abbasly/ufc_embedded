@@ -107,9 +107,13 @@ interface Props {
   cluster?: Cluster;
   stat: (key: string) => number;
   recent: RecentResult[]; // last UFC fights, for the back of the card
+  foil?: boolean; // a shiny card, earned with an underdog call
+  still?: boolean; // a thumbnail: doesn't flip or take the keyboard
 }
 
-export function TradingCard({ fighter, cluster, stat, recent }: Props) {
+const FOIL_FRAME = "linear-gradient(115deg, #ff4ecd, #ffd23f, #3cf0be, #4696ff, #b44dff, #ff4ecd) 0 0 / 300% 300%";
+
+export function TradingCard({ fighter, cluster, stat, recent, foil, still }: Props) {
   // Half-turns so far: the card always keeps rotating the same way (0 -> 180 -> 360 ...).
   const [turns, setTurns] = useState(0);
   const flipped = turns % 2 === 1;
@@ -124,7 +128,7 @@ export function TradingCard({ fighter, cluster, stat, recent }: Props) {
   const frame = {
     borderRadius: u(18),
     padding: u(10),
-    background: fighter.champion ? GOLD_FRAME : type.frame,
+    background: foil ? FOIL_FRAME : fighter.champion ? GOLD_FRAME : type.frame,
     boxShadow: "0 10px 30px rgba(0,0,0,0.45)",
   };
   const flip = () => setTurns((t) => t + 1);
@@ -146,22 +150,23 @@ export function TradingCard({ fighter, cluster, stat, recent }: Props) {
     <Box w="100%" maw={DESIGN_WIDTH} mx="auto" style={{ containerType: "inline-size", perspective: u(1400) }}>
       <Box className={`flip-lift${lift}`} style={{ aspectRatio: "63 / 88", position: "relative" }}>
       <Box
-        role="button"
-        tabIndex={0}
-        aria-pressed={flipped}
-        aria-label={`${fighter.name}: flip card for more stats`}
-        onClick={flip}
-        onPointerMove={track}
+        role={still ? undefined : "button"}
+        tabIndex={still ? undefined : 0}
+        aria-pressed={still ? undefined : flipped}
+        aria-label={still ? undefined : `${fighter.name}: flip card for more stats`}
+        onClick={still ? undefined : flip}
+        onPointerMove={still ? undefined : track}
         onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
+          if (!still && (e.key === "Enter" || e.key === " ")) {
             e.preventDefault();
             flip();
           }
         }}
         className="flip-card"
+        data-still={still || undefined}
         style={{ transform: `rotateY(${turns * 180}deg)` }}
       >
-      <Box className="flip-face" style={frame}>
+      <Box className={`flip-face${foil ? " foil-frame" : ""}`} style={frame}>
         <Box className="hover-shine" />
         <Stack
           gap={u(6)}
@@ -177,6 +182,7 @@ export function TradingCard({ fighter, cluster, stat, recent }: Props) {
         >
           {/* Champions shimmer; everyone else gets a still sheen so the face isn't flat. */}
           <Box className={fighter.champion ? "holo" : "sheen"} pos="absolute" inset={0} style={{ pointerEvents: "none" }} />
+          {foil && <Box className="foil" pos="absolute" inset={0} style={{ pointerEvents: "none" }} />}
 
           {/* Header: name, then "HP" (Elo) and the type icon */}
           <Group justify="space-between" wrap="nowrap" gap={u(4)}>
@@ -250,7 +256,7 @@ export function TradingCard({ fighter, cluster, stat, recent }: Props) {
           )}
           <Group justify="space-between" mt="auto">
             <Text fz={u(9)} fw={700}>UFC Embedded</Text>
-            <Text fz={u(9)} fw={700} className="flip-hint" style={{ opacity: 0.7 }}>↻ tap to flip</Text>
+            {!still && <Text fz={u(9)} fw={700} className="flip-hint" style={{ opacity: 0.7 }}>↻ tap to flip</Text>}
             <Text fz={u(11)} fw={800}>{rarity}</Text>
           </Group>
         </Stack>

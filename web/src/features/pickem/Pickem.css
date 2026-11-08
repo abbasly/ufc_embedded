@@ -293,3 +293,17 @@ a.pickem-row:hover {
     linear-gradient(90deg, rgba(var(--podium), 0.16), rgba(var(--podium), 0) 75%),
     rgba(250, 82, 82, 0.12);
 }
+
+/* Signed out with picks made: the way to keep them stays in reach above the phone's tab bar. */
+.pickem-guest-bar {
+  position: sticky;
+  bottom: calc(var(--app-shell-footer-offset, 0px) + 10px);
+  z-index: 20;
+  width: 100%;
+  max-width: 560px;
+  margin-inline: auto;
+  background: rgba(30, 31, 36, 0.94);
+  border: 1px solid rgba(250, 82, 82, 0.5);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
+}

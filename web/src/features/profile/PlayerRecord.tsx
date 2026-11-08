@@ -9,7 +9,9 @@ import { MODEL_PLAYER, placeOf } from "../pickem/scoring";
 import { useLeaderboard } from "../pickem/usePickem";
 import { profileImage } from "../share/profileImage";
 import { ShareButton } from "../share/ShareButton";
+import { CardCollection } from "../collection/Collection";
 import { Badges, ClosestPredictors, Highlights, PointsChart } from "./Insights";
+import { LeagueTitles } from "./LeagueTitles";
 import { badges, bestCall, decided, headToHead } from "./record";
 import { History, Stats } from "./PlayerStats";
 import { usePlayerRecord } from "./usePlayerRecord";
@@ -69,6 +71,8 @@ export function PlayerRecord({ userId, displayName, avatar, isMe, children, afte
       <Stats scores={scores.data} displayName={displayName} />
       {share}
       {children}
+      <LeagueTitles userId={userId} />
+      {history.isSuccess && !picksHidden && <CardCollection history={picks} isMe={isMe} displayName={displayName} />}
       {!!scores.data?.length && (
         <>
           {!picksHidden && <Badges list={list} />}

@@ -5,7 +5,7 @@
 
 import "./Pickem.css";
 
-import { Alert, Anchor, Avatar, Badge, Center, Collapse, Grid, Group, Loader, Paper, SegmentedControl, Stack, Text, Title, Tooltip, UnstyledButton } from "@mantine/core";
+import { Alert, Anchor, Avatar, Badge, Button, Center, Collapse, Grid, Group, Loader, Paper, SegmentedControl, Stack, Text, Title, Tooltip, UnstyledButton } from "@mantine/core";
 import { useIsMutating } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -19,6 +19,8 @@ import type { PredictorData, PredictorFighter } from "../../data/types";
 import { winProb } from "../predictor/model";
 import { cardPath } from "../seo/content";
 import { InstallBar } from "../../app/install";
+import { NewCards } from "../collection/NewCards";
+import { useClaimGuestPicks, useGuestPicks } from "./guestPicks";
 import { Leagues, ModelTag, playerPath } from "./Leagues";
 import { boutPoints, isUnderdog, marketChance, METHOD_LABEL, MODEL_PLAYER, places, POINTS, scores } from "./scoring";
 import {
@@ -124,6 +126,8 @@ export default function PickemPage() {
   const event = useCard(eventId);
   const picks = useMyPicks(eventId);
   const pick = usePick(eventId);
+  const guest = useGuestPicks(eventId);
+  useClaimGuestPicks();
   const saving = useIsMutating({ mutationKey: PICK_MUTATION }) > 0;
   const now = useNow(15_000); // the countdown badge ticks by itself, every second
   const locked = !!event.data && new Date(event.data.event.locksAt).getTime() <= now;
@@ -157,7 +161,8 @@ export default function PickemPage() {
   const { event: card, bouts } = event.data;
   const lockIn = new Date(card.locksAt).getTime() - now;
   const open = lockIn > 0;
-  const mine = new Map((picks.data ?? []).map((p) => [p.boutId, p]));
+  // Signed out, picks live in this browser until there's an account to save them to.
+  const mine = new Map((user ? (picks.data ?? []) : guest.picks).map((p) => [p.boutId, p]));
   // Being fought: locked, not all results in, and still fight day (or the night after).
   const live = !open && !card.scoredAt && now - new Date(card.locksAt).getTime() < 20 * 3600e3;
   const mainBouts = bouts.filter(scores);
@@ -180,13 +185,13 @@ export default function PickemPage() {
         choice={choice}
         byId={byId}
         chance={modelChance(predictor, byId, bout)}
-        canPick={open} // signed out, a tap asks you to sign in first
+        canPick={open}
         mates={(mates.data ?? []).filter((m) => m.boutId === bout.id && inLeague.has(m.displayName))}
         // Before the lock only: after it, the faces sit under the fighter each friend picked.
         pickedBy={locked ? [] : (whoPicked.data ?? []).filter((m) => m.boutId === bout.id && inLeague.has(m.displayName))}
         split={split.data?.[bout.id]}
         leagueName={leagueName}
-        onPick={(winner, method) => (user ? pick.mutate({ boutId: bout.id, winner, method }) : setSigningIn(true))}
+        onPick={(winner, method) => (user ? pick.mutate({ boutId: bout.id, winner, method }) : guest.pick(bout.id, winner, method))}
       />
     );
   };
@@ -234,12 +239,12 @@ export default function PickemPage() {
           <Text size="xs" c="dimmed">
             {open ? "Closes" : "Closed"} {lockLabel(card.locksAt)}
           </Text>
-          {user && (
+          {(user || picked > 0) && (
             <Text size="sm" c="dimmed" style={{ fontVariantNumeric: "tabular-nums" }}>
               {card.scoredAt ? `${earned} points from ` : "You've picked "}
               {picked} of {mainBouts.length}
               {prelims.length > 0 && " main-card fights"}
-              {open && picked > 0 && <span className="pickem-saved"> · {saving ? "Saving…" : "✓ Saved"}</span>}
+              {open && picked > 0 && user && <span className="pickem-saved"> · {saving ? "Saving…" : "✓ Saved"}</span>}
             </Text>
           )}
         </Stack>
@@ -271,8 +276,13 @@ export default function PickemPage() {
         </Paper>
       )}
 
+      <NewCards />
       <InstallBar />
-      {/* No separate sign-in box: tapping a fighter while signed out opens sign-in. */}
+      {!user && open && guest.picks.length === 0 && (
+        <Text size="sm" c="dimmed">
+          Tap a fighter to start picking. No account needed until you want to save them.
+        </Text>
+      )}
       <SignInModal opened={signingIn} onClose={() => setSigningIn(false)} />
       {pick.error && (
         <Alert color="red" withCloseButton onClose={() => pick.reset()}>
@@ -332,6 +342,24 @@ export default function PickemPage() {
           </Stack>
         </Grid.Col>
       </Grid>
+
+      {!user && open && guest.picks.length > 0 && (
+        <Paper p="sm" radius="md" className="pickem-guest-bar">
+          <Group justify="space-between" wrap="nowrap" gap="sm">
+            <div style={{ minWidth: 0 }}>
+              <Text fw={700} lh={1.25} style={{ fontVariantNumeric: "tabular-nums" }}>
+                {picked} of {mainBouts.length} picked
+              </Text>
+              <Text size="xs" c="dimmed">
+                They're only on this device until you save them.
+              </Text>
+            </div>
+            <Button onClick={() => setSigningIn(true)} style={{ flexShrink: 0 }}>
+              Save my picks
+            </Button>
+          </Group>
+        </Paper>
+      )}
     </Stack>
   );
 }
@@ -399,6 +427,9 @@ function Rules() {
           <b>+{POINTS.underdog}</b> if your winner was the bookies' underdog (under 50% in the odds, whatever our model says)
         </Text>
       </Stack>
+      <Text size="sm" mt={8}>
+        <b>Earn the card:</b> call a winner and you unlock their trading card. Call an underdog and it's <span className="shiny-text">shiny</span>.
+      </Text>
       <Text size="xs" c="dimmed" mt={6}>
         Main card only: prelims are for fun. Picks save as you tap; change them until the card locks.
       </Text>

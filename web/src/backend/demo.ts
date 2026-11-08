@@ -324,6 +324,18 @@ export function demoBackend(): Backend {
     },
     // Demo leagues: yours, plus two made-up friends in every league you join.
     leagues: {
+      champions: async () => {
+        const me = load().profile;
+        const [displayName, avatar] = me ? [me.displayName, me.avatar] : ["olga", "valentina-shevchenko"];
+        return [
+          { eventId: "demo-e2", eventName: "UFC Fight Night: Holloway vs. Topuria", startsOn: "2026-10-17", displayName, avatar, points: 55 },
+          { eventId: "demo-e1", eventName: "UFC 330: Pereira vs. Ankalaev 3", startsOn: "2026-10-10", displayName: "olga", avatar: "valentina-shevchenko", points: 60 },
+        ];
+      },
+      titlesOf: async () => [
+        { eventId: "demo-e2", eventName: "UFC Fight Night: Holloway vs. Topuria", startsOn: "2026-10-17", points: 55, leagueName: "Gym boys" },
+        { eventId: "demo-e1", eventName: "UFC 330: Pereira vs. Ankalaev 3", startsOn: "2026-10-10", points: 60, leagueName: null },
+      ],
       mine: async () => (load().signedIn ? load().leagues : []),
       async create(name) {
         signedIn();

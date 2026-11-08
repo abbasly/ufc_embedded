@@ -5,6 +5,7 @@
 import { avatar, background, DIM, FONT, fitFont, footer, header, loadImage, newCanvas, RED, SIZE, TEXT, toBlob } from "./draw";
 
 export interface FighterShare {
+  heading?: string; // at the top of the image; "Fighter file" unless given
   name: string;
   photo: string | undefined;
   detail: string; // e.g. "#12 Heavyweight"
@@ -27,7 +28,7 @@ export async function fighterImage(f: FighterShare): Promise<Blob> {
   const { canvas, ctx } = newCanvas();
   const photo = f.card ? null : await loadImage(f.photo);
   background(ctx);
-  header(ctx, "Fighter file");
+  header(ctx, f.heading ?? "Fighter file");
 
   if (f.card) {
     ctx.save();
