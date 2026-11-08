@@ -86,6 +86,33 @@ export interface League {
   isOwner: boolean;
 }
 
+export type Rarity = "common" | "rare" | "epic" | "legendary";
+export type PackReason = "played" | "podium" | "league";
+
+/** A free pack waiting to be opened. */
+export interface UnopenedPack {
+  id: string;
+  eventId: string;
+  eventName: string;
+  reason: PackReason;
+}
+
+/** One card drawn from a pack. */
+export interface PackCard {
+  slot: number;
+  fighterId: string;
+  name: string;
+  rarity: Rarity;
+}
+
+/** A card a player owns from packs: the same fighter at the same rarity counts as copies. */
+export interface OwnedCard {
+  fighterId: string;
+  name: string;
+  rarity: Rarity;
+  copies: number;
+}
+
 /** Someone who topped a league on a finished card (a tie has one row per winner). */
 export interface LeagueChampion {
   eventId: string;
@@ -235,6 +262,12 @@ export interface Backend {
     /** A player's picks on fought bouts, as far as you may see them: your own; friends' and
      * league-mates'; the model's (public). Empty for anyone else. */
     pickHistory(userId: string): Promise<PastPick[]>;
+    /** Hands out any packs you've earned, and lists the ones still to open. */
+    claimPacks(): Promise<UnopenedPack[]>;
+    /** Opens one of your packs: the draw is done by the backend. */
+    openPack(packId: string): Promise<PackCard[]>;
+    /** The cards a player has pulled from packs (public). */
+    packCards(userId: string): Promise<OwnedCard[]>;
     /** Which starter badges a player has earned (public: says nothing about their picks). */
     starterBadges(userId: string): Promise<string[]>;
     /** Who picks most like this player, most alike first, among the picks you may see. */

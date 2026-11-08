@@ -359,6 +359,36 @@ def model_pick_sql(bid: str, winner: str, method: str) -> str:
     )
 
 
+def card_rarity(fighter: dict[str, Any]) -> str:
+    """How rare a fighter's card is in packs: champions, the top 5 (rank 0 is the champion),
+    anyone else ranked, everyone else."""
+    if fighter.get("champion"):
+        return "legendary"
+    rank = fighter.get("rank")
+    if rank is None:
+        return "common"
+    return "epic" if rank <= 5 else "rare"
+
+
+def card_pool_sql(fighters: list[dict[str, Any]]) -> list[str]:
+    """Statements that make the pool packs draw from match the predictor's fighters. Only rows
+    that changed are written, as this runs with every sync."""
+    if not fighters:
+        return []
+    rows = ", ".join(
+        f"({sql_text(f['id'])}, {sql_text(f['name'])}, {sql_text(card_rarity(f))})"
+        for f in fighters
+    )
+    ids = ", ".join(sql_text(f["id"]) for f in fighters)
+    return [
+        f"insert into public.card_pool (fighter_id, name, rarity) values {rows} "
+        "on conflict (fighter_id) do update set name = excluded.name, rarity = excluded.rarity "
+        "where (public.card_pool.name, public.card_pool.rarity) "
+        "is distinct from (excluded.name, excluded.rarity);",
+        f"delete from public.card_pool where fighter_id not in ({ids});",
+    ]
+
+
 def sync_sql(
     cards: list[tuple[dict[str, Any], list[Bout], bool]], model: dict[str, Any] | None = None
 ) -> str:
@@ -378,6 +408,8 @@ def sync_sql(
                     body.append(
                         model_pick_sql(bout_id(event_id(card), bout["a"], bout["b"]), *pick[:2])
                     )
+    if model:
+        body.extend(card_pool_sql(model.get("fighters", [])))
     n_bouts = sum(len(bouts) for _, bouts, _ in cards)
     n_results = sum(1 for _, bouts, _ in cards for b in bouts if b["outcome"])
     summary = f"{len(cards)} cards, {n_bouts} bouts, {n_results} results"

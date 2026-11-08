@@ -7,6 +7,8 @@ from ufc_embedded.pickem_sync import (
     Bout,
     bout_id,
     card_bouts,
+    card_pool_sql,
+    card_rarity,
     card_sql,
     event_id,
     events_to_sync,
@@ -284,3 +286,18 @@ def test_scheduled_events_join_pickem_before_the_bookmakers_list_them() -> None:
     cards = with_scheduled([CARD], scheduled, date(2026, 11, 10))
     assert [c["name"] for c in cards] == [CARD["name"], "UFC 335: Oliveira vs. Lopes"]
     assert cards[1]["fights"] == [] and cards[1]["city"] == "Las Vegas"
+
+
+def test_card_rarity_follows_status() -> None:
+    assert card_rarity({"champion": "Lightweight", "rank": 0}) == "legendary"
+    assert card_rarity({"champion": None, "rank": 1}) == "epic"
+    assert card_rarity({"champion": None, "rank": 5}) == "epic"
+    assert card_rarity({"champion": None, "rank": 6}) == "rare"
+    assert card_rarity({"champion": None, "rank": None}) == "common"
+
+
+def test_card_pool_sql_quotes_names_and_leaves_an_empty_list_alone() -> None:
+    sql = card_pool_sql([{"id": "sean-o-malley", "name": "Sean O'Malley", "rank": 3}])
+    assert "('sean-o-malley', 'Sean O''Malley', 'epic')" in sql[0]
+    assert "not in ('sean-o-malley')" in sql[1]
+    assert card_pool_sql([]) == []

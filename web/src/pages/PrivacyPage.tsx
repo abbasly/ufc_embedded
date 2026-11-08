@@ -50,7 +50,7 @@ export function PrivacyPage() {
                 leaderboards.
               </List.Item>
               <List.Item>
-                <b>Your picks, scores, league memberships and friends.</b> Your picks are private until a card locks;
+                <b>Your picks, scores, card packs, league memberships and friends.</b> Your picks are private until a card locks;
                 before that, your friends and league-mates only see that you've picked, and after it, whom. Nobody else
                 ever sees them. Leaderboards and player pages show display names, pictures and totals.
               </List.Item>
@@ -59,7 +59,7 @@ export function PrivacyPage() {
               We use this only to run the game: signing you in, saving your picks, scoring them and showing the
               leaderboards (Art. 6(1)(b) GDPR: providing the service you signed up for). We keep it until you delete your
               account, which you can do yourself at any time on your profile page: it deletes your account, display
-              name, picks, scores, memberships and friendships straight away, for good. Leagues you created are deleted with it.
+              name, picks, scores, cards, memberships and friendships straight away, for good. Leagues you created are deleted with it.
             </Text>
           </>
         )}

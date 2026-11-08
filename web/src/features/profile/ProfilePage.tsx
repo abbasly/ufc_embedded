@@ -17,6 +17,7 @@ import type { League } from "../../backend";
 import { copyInviteLink } from "../pickem/Leagues";
 import { useLeagues, useStandings } from "../pickem/usePickem";
 import { NewCards } from "../collection/NewCards";
+import { PacksBanner } from "../collection/Packs";
 import { FriendsList } from "../friends/FriendsList";
 import { EmailSettings } from "./EmailSettings";
 import { PlayerRecord } from "./PlayerRecord";
@@ -51,6 +52,7 @@ function Own({ displayName }: { displayName: string }) {
     <Stack gap="lg" maw={720} mx="auto" pt={4}>
       <Identity />
       <NewCards />
+      <PacksBanner />
       <PlayerRecord userId={profile!.id} displayName={displayName} avatar={profile!.avatar} isMe after={
           <>
             <EmailSettings />

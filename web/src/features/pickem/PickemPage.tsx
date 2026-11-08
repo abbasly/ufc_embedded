@@ -20,6 +20,7 @@ import { winProb } from "../predictor/model";
 import { cardPath } from "../seo/content";
 import { InstallBar } from "../../app/install";
 import { NewCards } from "../collection/NewCards";
+import { PacksBanner } from "../collection/Packs";
 import { guestStarters, useStarterBadges } from "../profile/starter";
 import { StarterToast } from "../profile/StarterToast";
 import { useClaimGuestPicks, useGuestPicks } from "./guestPicks";
@@ -281,6 +282,7 @@ export default function PickemPage() {
 
       <StarterToast earned={user ? (profile ? starters.data : undefined) : guestStarters(guest.picks, mainBouts.map((b) => b.id))} guest={!user} />
       <NewCards />
+      <PacksBanner />
       <InstallBar />
       {!user && open && guest.picks.length === 0 && (
         <Text size="sm" c="dimmed">
@@ -433,6 +435,9 @@ function Rules() {
       </Stack>
       <Text size="sm" mt={8}>
         <b>Earn the card:</b> call a winner and you unlock their trading card. Call an underdog and it's <span className="shiny-text">shiny</span>.
+      </Text>
+      <Text size="sm" mt={4}>
+        <b>Open packs:</b> every card you play earns a free pack of 3 random fighters. A top 3 finish or a league title earns a bonus one.
       </Text>
       <Text size="xs" c="dimmed" mt={6}>
         Main card only: prelims are for fun. Picks save as you tap; change them until the card locks.

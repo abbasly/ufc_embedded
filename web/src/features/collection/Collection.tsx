@@ -40,7 +40,7 @@ export function CardBack({ shiny }: { shiny?: boolean }) {
 }
 
 /** A fighter who isn't in the predictor's data yet (their first UFC fight): a simple card. */
-export function DebutCard({ card }: { card: EarnedCard }) {
+export function DebutCard({ card }: { card: { name: string; shiny: boolean } }) {
   return (
     <div className="debut-card" data-shiny={card.shiny || undefined}>
       <span className="debut-card-initials">{card.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}</span>
