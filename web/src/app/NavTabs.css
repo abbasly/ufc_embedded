@@ -102,3 +102,10 @@
     transition: none;
   }
 }
+
+/* Narrow header (tablets): the tabs and Sign in only fit without the extra tab. */
+@media (max-width: 960px) {
+  .nav-tab[data-top-only] {
+    display: none;
+  }
+}

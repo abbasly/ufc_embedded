@@ -42,6 +42,7 @@ const NAV: NavItem[] = [
   { to: "/mma-math", label: "MMA Math", short: "Math", icon: ICONS.math, fresh: !accountsEnabled },
   { to: "/style-map", label: "Style Map", short: "Map", icon: ICONS.map },
   { to: "/ladder", label: "Ladder", icon: ICONS.ladder },
+  { to: "/fighters", label: "Fighters", icon: ICONS.ladder, topOnly: true },
   { to: HOME === "about" ? "/" : "/about", label: "About", icon: ICONS.about },
 ];
 
@@ -111,7 +112,7 @@ export function App() {
           </Anchor>
           <Group gap="xs" wrap="nowrap">
             <Group visibleFrom="sm" gap={0}>
-              <NavTabs items={NAV} active={pathname} placement="top" />
+              <NavTabs items={NAV} active={pathname.startsWith("/fighters/") ? "/fighters" : pathname} placement="top" />
             </Group>
             {/* Sign in / account menu: only when accounts are on (src/backend). */}
             {UserMenu && (
