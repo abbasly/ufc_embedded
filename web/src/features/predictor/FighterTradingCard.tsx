@@ -8,7 +8,7 @@ import { useMmaMath, usePredictor, useStyleMap } from "../../data/client";
 import { recentResults } from "./model";
 import { TradingCard } from "./TradingCard";
 
-export function FighterTradingCard({ id, fallback = null, foil, still }: { id: string; fallback?: ReactNode; foil?: boolean; still?: boolean }) {
+export function FighterTradingCard({ id, fallback = null, foil, still, gold }: { id: string; fallback?: ReactNode; foil?: boolean; still?: boolean; gold?: boolean }) {
   const predictor = usePredictor().data;
   const styleMap = useStyleMap().data;
   const mma = useMmaMath().data;
@@ -24,6 +24,7 @@ export function FighterTradingCard({ id, fallback = null, foil, still }: { id: s
       key={id} // a different fighter starts face up
       foil={foil}
       still={still}
+      gold={gold}
       fighter={fighter}
       cluster={cluster}
       stat={(k) => fighter.x[inputs.indexOf(k)] ?? 0}

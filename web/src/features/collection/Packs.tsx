@@ -141,7 +141,7 @@ function PackOpening({ queue, onDone }: { queue: UnopenedPack[]; onDone: () => v
         <div className="pull-summary">
           {cards.map((c) => (
             <div key={c.slot} className="pull-slot" data-rarity={c.rarity}>
-              <FighterTradingCard id={c.fighterId} still fallback={<DebutCard card={{ name: c.name, shiny: false }} />} />
+              <FighterTradingCard id={c.fighterId} still gold={c.rarity === "legendary"} fallback={<DebutCard card={{ name: c.name, shiny: false }} />} />
               <RarityPill rarity={c.rarity} />
             </div>
           ))}
@@ -184,7 +184,7 @@ function PackOpening({ queue, onDone }: { queue: UnopenedPack[]; onDone: () => v
         <div className="reveal-turn" data-turning={phase === "turning" || undefined} key={`${at}-${up}`}>
           {up ? (
             <div className="pull-slot" data-rarity={card.rarity}>
-              <FighterTradingCard id={card.fighterId} fallback={<DebutCard card={{ name: card.name, shiny: false }} />} />
+              <FighterTradingCard id={card.fighterId} gold={card.rarity === "legendary"} fallback={<DebutCard card={{ name: card.name, shiny: false }} />} />
             </div>
           ) : (
             <button type="button" className="reveal-back" onClick={turn} aria-label="Turn the card over">
@@ -247,7 +247,7 @@ export function PulledCards({ userId, isMe, displayName }: { userId: string; isM
             key: `${c.fighterId}-${c.rarity}`,
             rarity: c.rarity,
             label: `${c.name}, ${rarityLabel(c.rarity)}`,
-            card: <FighterTradingCard id={c.fighterId} still fallback={<DebutCard card={{ name: c.name, shiny: false }} />} />,
+            card: <FighterTradingCard id={c.fighterId} still gold={c.rarity === "legendary"} fallback={<DebutCard card={{ name: c.name, shiny: false }} />} />,
             extra: c.copies > 1 ? <span className="collection-times">×{c.copies}</span> : undefined,
             onOpen: () => setOpen(c),
           }))}
@@ -276,7 +276,7 @@ function PullCloseUp({ card, isMe, displayName }: { card: OwnedCard; isMe: boole
   const label = rarityLabel(card.rarity);
   return (
     <Stack gap="sm" ref={root}>
-      <FighterTradingCard id={card.fighterId} fallback={<DebutCard card={{ name: card.name, shiny: false }} />} />
+      <FighterTradingCard id={card.fighterId} gold={card.rarity === "legendary"} fallback={<DebutCard card={{ name: card.name, shiny: false }} />} />
       {isMe && fighter && (
         <ShareButton
           label="Share this pull"

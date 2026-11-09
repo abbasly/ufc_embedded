@@ -109,16 +109,18 @@ interface Props {
   recent: RecentResult[]; // last UFC fights, for the back of the card
   foil?: boolean; // a shiny card, earned with an underdog call
   still?: boolean; // a thumbnail: doesn't flip or take the keyboard
+  gold?: boolean; // the champions' gold card, for someone who isn't one (a Legendary pull)
 }
 
 const FOIL_FRAME = "linear-gradient(115deg, #ff4ecd, #ffd23f, #3cf0be, #4696ff, #b44dff, #ff4ecd) 0 0 / 300% 300%";
 
-export function TradingCard({ fighter, cluster, stat, recent, foil, still }: Props) {
+export function TradingCard({ fighter, cluster, stat, recent, foil, still, gold }: Props) {
+  const golden = !!fighter.champion || !!gold;
   // Half-turns so far: the card always keeps rotating the same way (0 -> 180 -> 360 ...).
   const [turns, setTurns] = useState(0);
   const flipped = turns % 2 === 1;
   const type = (cluster && TYPES[cluster.name]) ?? UNKNOWN;
-  const rarity = fighter.champion ? "★" : fighter.rank !== null ? "◆" : "●";
+  const rarity = golden ? "★" : fighter.rank !== null ? "◆" : "●";
   const initials = fighter.name.split(" ").map((w) => w[0]).slice(0, 2).join("");
   const record = `${fighter.record.wins}-${fighter.record.losses}-${fighter.record.draws}`;
   const subtitle = fighter.champion
@@ -128,7 +130,7 @@ export function TradingCard({ fighter, cluster, stat, recent, foil, still }: Pro
   const frame = {
     borderRadius: u(18),
     padding: u(10),
-    background: foil ? FOIL_FRAME : fighter.champion ? GOLD_FRAME : type.frame,
+    background: foil ? FOIL_FRAME : golden ? GOLD_FRAME : type.frame,
     boxShadow: "0 10px 30px rgba(0,0,0,0.45)",
   };
   const flip = () => setTurns((t) => t + 1);
@@ -177,11 +179,11 @@ export function TradingCard({ fighter, cluster, stat, recent, foil, still }: Pro
             padding: `${u(8)} ${u(10)}`,
             overflow: "hidden",
             color: "#1a1b1e",
-            background: fighter.champion ? CHAMPION_FACE : type.face,
+            background: golden ? CHAMPION_FACE : type.face,
           }}
         >
           {/* Champions shimmer; everyone else gets a still sheen so the face isn't flat. */}
-          <Box className={fighter.champion ? "holo" : "sheen"} pos="absolute" inset={0} style={{ pointerEvents: "none" }} />
+          <Box className={golden ? "holo" : "sheen"} pos="absolute" inset={0} style={{ pointerEvents: "none" }} />
           {foil && <Box className="foil" pos="absolute" inset={0} style={{ pointerEvents: "none" }} />}
 
           {/* Header: name, then "HP" (Elo) and the type icon */}
@@ -262,7 +264,7 @@ export function TradingCard({ fighter, cluster, stat, recent, foil, still }: Pro
         </Stack>
       </Box>
       <Box className="flip-face flip-back" style={frame}>
-        <BackFace fighter={fighter} type={type} stat={stat} recent={recent} rarity={rarity} />
+        <BackFace fighter={fighter} type={type} stat={stat} recent={recent} rarity={rarity} golden={golden} />
       </Box>
       </Box>
       </Box>
@@ -284,6 +286,7 @@ const STAT_SHEET: [string, string, (v: number) => string, number][] = [
 ];
 
 interface BackProps {
+  golden: boolean;
   fighter: PredictorFighter;
   type: CardType;
   stat: (key: string) => number;
@@ -292,7 +295,7 @@ interface BackProps {
 }
 
 /** The back of the card: full record, recent form and a stat sheet. */
-function BackFace({ fighter, type, stat, recent, rarity }: BackProps) {
+function BackFace({ fighter, type, stat, recent, rarity, golden }: BackProps) {
   const r = fighter.record;
   const hours = stat("ufc_minutes") / 60;
   const facts: [string, string][] = [
@@ -310,13 +313,13 @@ function BackFace({ fighter, type, stat, recent, rarity }: BackProps) {
         padding: `${u(9)} ${u(11)}`,
         overflow: "hidden",
         color: "#f1f3f5",
-        background: fighter.champion
+        background: golden
           ? "linear-gradient(165deg, #3d3000 0%, #6b5200 55%, #b8860b 130%)"
           : `linear-gradient(165deg, #1b1c22 0%, #24252d 55%, ${type.color} 160%)`,
       }}
       pos="relative"
     >
-      {fighter.champion && <Box className="holo holo-dark" pos="absolute" inset={0} style={{ pointerEvents: "none" }} />}
+      {golden && <Box className="holo holo-dark" pos="absolute" inset={0} style={{ pointerEvents: "none" }} />}
       <Group justify="space-between" wrap="nowrap">
         <Text fw={800} fz={u(15)} lineClamp={1}>
           {fighter.name}
@@ -413,7 +416,7 @@ function BackFace({ fighter, type, stat, recent, rarity }: BackProps) {
                     width: `${Math.min(100, (stat(key) / full) * 100)}%`,
                     height: "100%",
                     borderRadius: u(3),
-                    background: fighter.champion ? "#ffd43b" : type.light,
+                    background: golden ? "#ffd43b" : type.light,
                   }}
                 />
               </Box>
