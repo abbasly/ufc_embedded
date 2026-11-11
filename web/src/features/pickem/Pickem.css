@@ -117,6 +117,21 @@
   background: rgba(250, 82, 82, 0.18);
   color: var(--mantine-color-white);
 }
+/* Numbered events ("UFC 334") are the big cards: gold in the card switcher. */
+.pickem-method[data-numbered] {
+  border-color: rgba(244, 196, 48, 0.55);
+  color: #ffd95a;
+  font-weight: 800;
+}
+.pickem-method[data-numbered]:hover {
+  background: rgba(244, 196, 48, 0.1);
+}
+.pickem-method[data-numbered][data-chosen] {
+  border-color: #f4c430;
+  background: rgba(244, 196, 48, 0.2);
+  color: #fff3bf;
+  box-shadow: 0 0 12px rgba(244, 196, 48, 0.25);
+}
 
 .pickem-side {
   padding: 8px 10px;

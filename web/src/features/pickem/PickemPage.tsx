@@ -95,6 +95,9 @@ const isLive = (e: PickemEvent, now: number) => !e.scoredAt && Date.parse(e.lock
 const shortName = (e: PickemEvent) =>
   `${e.name.split(":")[0]} · ${new Date(`${e.startsOn}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
 
+/** A numbered event ("UFC 334"), the big ones, as opposed to a Fight Night. */
+export const isNumbered = (e: PickemEvent) => /^UFC \d+\b/.test(e.name);
+
 /** How long a just-scored card stays the one shown first, so everyone sees how they did. */
 const RESULTS_SHOWN_MS = 36 * 3600e3;
 
@@ -205,7 +208,7 @@ export default function PickemPage() {
       {(events.data?.length ?? 0) > 1 && (
         <Group gap={6} wrap="wrap">
           {events.data!.map((e) => (
-            <UnstyledButton key={e.id} className="pickem-method" data-chosen={e.id === card.id || undefined} onClick={() => choose(e.id)}>
+            <UnstyledButton key={e.id} className="pickem-method" data-chosen={e.id === card.id || undefined} data-numbered={isNumbered(e) || undefined} onClick={() => choose(e.id)}>
               {isLive(e, now) && <span className="pickem-live-dot" aria-label="live" />}
               {shortName(e)}
             </UnstyledButton>
