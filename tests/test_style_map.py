@@ -4,6 +4,7 @@ import pandas as pd
 from ufc_embedded.style_map import (
     STATS,
     STYLE_FEATURES,
+    axes_projection,
     build_feature_table,
     career_stats,
     fit_style_map,
@@ -123,3 +124,20 @@ def test_style_axes_follow_their_stats() -> None:
     absorbed = xs[:, STYLE_FEATURES.index("significant_strikes_absorbed_per_minute")]
     assert np.corrcoef(scores[:, 0], takedowns)[0, 1] > 0.5  # grappling
     assert np.corrcoef(scores[:, 2], absorbed)[0, 1] < -0.3  # defence
+
+
+def test_axes_projection_places_vectors_where_the_map_does() -> None:
+    sm = fit_style_map(career_stats(make_app(40, 4)), n_clusters=3)
+    p = axes_projection(sm.xs)
+    z = (sm.xs @ np.array(p["matrix"]) - p["mean"]) / p["std"]
+    np.testing.assert_allclose(z * p["scale3"], sm.axes.coords3, atol=1e-9)
+    np.testing.assert_allclose(z[:, :2] * p["scale2"], sm.axes.coords2, atol=1e-9)
+    # Linear: the sum of two fighters' arrows from the centre is the arrow of their sum.
+    a, b = sm.xs[0], sm.xs[1]
+
+    def place(v: np.ndarray) -> np.ndarray:
+        out: np.ndarray = (v @ np.array(p["matrix"]) - p["mean"]) / p["std"] * p["scale3"]
+        return out
+
+    centre = place(np.zeros_like(a))
+    np.testing.assert_allclose(place(a + b) - centre, (place(a) - centre) + (place(b) - centre))

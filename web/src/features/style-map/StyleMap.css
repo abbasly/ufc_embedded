@@ -27,3 +27,33 @@
     transition: none;
   }
 }
+
+/* Fighter math: preset and "also close" chips, and the answer. */
+.math-chip {
+  padding: 2px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-gray-4);
+  transition: background 0.15s, border-color 0.15s;
+}
+.math-chip:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 212, 59, 0.5);
+}
+.math-answer {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 212, 59, 0.5);
+  background: linear-gradient(100deg, rgba(255, 212, 59, 0.14), rgba(255, 212, 59, 0.02) 70%);
+  animation: nb-in 0.5s ease-out;
+}
+.math-answer:hover {
+  border-color: #ffd43b;
+}
+@media (prefers-reduced-motion: reduce) {
+  .math-chip { transition: none; }
+  .math-answer { animation: none; }
+}

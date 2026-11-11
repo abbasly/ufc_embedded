@@ -9,6 +9,7 @@ Each stat is weighted by how stable it is over a career (see ``reliability``).
 
 from dataclasses import dataclass
 from functools import cached_property
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -267,12 +268,36 @@ AXIS_WEIGHTS: dict[str, dict[str, float]] = {
 SCENE_RADIUS = 4.0  # layouts are rescaled so ~all fighters fit within this radius
 
 
+def axis_matrix() -> np.ndarray:
+    """AXIS_WEIGHTS as a (stats, 3) matrix, each column's weights summing to 1 in size."""
+    weights = np.array([[w.get(f, 0.0) for f in STYLE_FEATURES] for w in AXIS_WEIGHTS.values()]).T
+    matrix: np.ndarray = weights / np.abs(weights).sum(axis=0)
+    return matrix
+
+
 def style_axes(xs: np.ndarray) -> np.ndarray:
     """Scores on the AXIS_WEIGHTS axes, each standardised; shape (n, 3)."""
-    weights = np.array([[w.get(f, 0.0) for f in STYLE_FEATURES] for w in AXIS_WEIGHTS.values()]).T
-    scores = xs @ (weights / np.abs(weights).sum(axis=0))
+    scores = xs @ axis_matrix()
     standardised: np.ndarray = (scores - scores.mean(axis=0)) / scores.std(axis=0)
     return standardised
+
+
+def axes_projection(xs: np.ndarray) -> dict[str, Any]:
+    """The Style axes layout of ``xs`` as one formula, so any vector in the same space (a sum
+    or difference of fighters, say) lands where it belongs on the map: its 3D position is
+    ``(v @ matrix - mean) / std * scale3``, and its 2D position the first two of those with
+    ``scale2`` instead. It's linear, so adding vectors adds their arrows on the map."""
+    matrix = axis_matrix()
+    scores = xs @ matrix
+    mean, std = scores.mean(axis=0), scores.std(axis=0)
+    z = (scores - mean) / std
+    return {
+        "matrix": matrix.tolist(),
+        "mean": mean.tolist(),
+        "std": std.tolist(),
+        "scale3": float(SCENE_RADIUS / np.percentile(np.abs(z), 97.5)),
+        "scale2": float(SCENE_RADIUS / np.percentile(np.abs(z[:, :2]), 97.5)),
+    }
 
 
 def rescale(coords: np.ndarray) -> np.ndarray:
