@@ -33,6 +33,7 @@ from ufc_embedded.style_map import (
     CAREER_FEATURES,
     STYLE_FEATURES,
     StyleMap,
+    axes_projection,
     build_feature_table,
     career_stats,
     fit_style_map,
@@ -189,6 +190,8 @@ def style_map_payload(
                 "similarity": [round(float(v), 3) for v in sm.similarity.coords2[i]],
             },
             "stats": {f: round(float(row[f]), 2) for f in STYLE_FEATURES},
+            # The standardised stats the map is fitted on, for fighter arithmetic ("math").
+            "vec": [round(float(v), 4) for v in sm.xs[i]],
             "percentiles": {f: round(float(pct[fid][f]), 3) for f in STYLE_FEATURES},
             "neighbours": similar(neighbours[fid]),
             "division_neighbours": similar(division[fid]),
@@ -262,8 +265,32 @@ def style_map_payload(
         "axes": axes,
         "layouts": layouts,
         "clusters": clusters,
+        # Fighter arithmetic (A - B + C) in the browser: the fighters' "vec" times these
+        # weights is the embedding similarity is measured in, "typical_distance" turns a
+        # distance into the 0-100 score, and "projection" places any vector on Style axes.
+        # Added after schema 6 without a bump: the page only offers the feature when present.
+        # "keys" is the order of the numbers in "vec" and "weights" (not the "features" order).
+        "math": {
+            "keys": STYLE_FEATURES,
+            "weights": _rounded(
+                list(weights[STYLE_FEATURES])
+                if weights is not None
+                else [1.0] * len(STYLE_FEATURES)
+            ),
+            "typical_distance": round(sm.typical_distance, 4),
+            "projection": _rounded(axes_projection(sm.xs), 6),
+        },
         "fighters": fighters,
     }
+
+
+def _rounded(value: Any, digits: int = 4) -> Any:
+    """Numbers rounded for the JSON, however deep in lists and dicts."""
+    if isinstance(value, dict):
+        return {k: _rounded(v, digits) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_rounded(v, digits) for v in value]
+    return round(float(value), digits)
 
 
 def write_json(payload: dict[str, Any], path: Path) -> None:
