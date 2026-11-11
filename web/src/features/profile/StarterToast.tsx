@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { Medal } from "./Insights";
+import { useMarkSeen, useSeen, withPrefix } from "./seen";
 import { readAnnounced, starterBadges, STARTERS, writeAnnounced } from "./starter";
 
 const SHOWN_MS = 6000;
@@ -15,17 +16,30 @@ export function StarterToast({ earned, guest }: { earned: string[] | undefined; 
   const [batch, setBatch] = useState<string[]>([]);
   const [leaving, setLeaving] = useState(false);
 
+  // Signed in, what's been announced is also kept with the account: wait until that's known.
+  const seen = useSeen();
+  const markSeen = useMarkSeen();
+  const saved = withPrefix(seen.data, "badge:");
+  const savedKey = saved.join(",");
+  const ready = guest || !seen.isPending;
+
   const list = earned?.join(",");
   useEffect(() => {
-    if (list === undefined) return;
-    const announced = readAnnounced();
-    const fresh = list.split(",").filter((k) => k && !announced.has(k));
+    if (list === undefined || !ready) return;
+    const earnedNow = list.split(",").filter(Boolean);
+    const announced = new Set([...readAnnounced(), ...saved]);
+    const fresh = earnedNow.filter((k) => !announced.has(k));
+    // Everything earned so far counts as told: the new ones are being announced right now.
+    if (!guest && seen.isSuccess) {
+      const missing = earnedNow.filter((k) => !saved.includes(k));
+      if (missing.length) markSeen(missing.map((k) => `badge:${k}`));
+    }
     if (!fresh.length) return;
     fresh.forEach((k) => announced.add(k));
     writeAnnounced(announced);
     setLeaving(false);
     setBatch((shown) => [...shown, ...fresh.filter((k) => !shown.includes(k))]);
-  }, [list]);
+  }, [list, ready, savedKey]);
 
   useEffect(() => {
     if (!batch.length) return;

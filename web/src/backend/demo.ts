@@ -341,6 +341,23 @@ export function demoBackend(): Backend {
         { at: new Date(Date.now() - 2 * 3600e3).toISOString(), kind: "scored", eventId: "demo-e4", detail: "31 players scored" },
       ],
     },
+    seen: {
+      list: async () => {
+        try {
+          return JSON.parse(localStorage.getItem("ufc-embedded-demo-seen") ?? "[]") as string[];
+        } catch {
+          return [];
+        }
+      },
+      async add(items) {
+        const had = await this.list();
+        try {
+          localStorage.setItem("ufc-embedded-demo-seen", JSON.stringify([...new Set([...had, ...items])]));
+        } catch {
+          // private window: the demo just doesn't persist
+        }
+      },
+    },
     friends: {
       list: async () => (load().signedIn ? (load().friends ?? DEMO_FRIENDS) : []),
       async request(userId) {

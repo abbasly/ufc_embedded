@@ -1,5 +1,6 @@
 // Newly earned cards, opened one at a time: a banner says how many are waiting, and each card
-// starts face down until you tap it. Which ones you've opened is remembered in this browser.
+// starts face down until you tap it. Which ones you've opened is kept with the account (and in
+// this browser, which also covers the time before that was saved).
 
 import "./Collection.css";
 
@@ -7,6 +8,7 @@ import { Button, Group, Modal, Paper, Stack, Text } from "@mantine/core";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useAuth } from "../../auth/AuthProvider";
+import { useMarkSeen, useSeen, withPrefix } from "../profile/seen";
 import { FighterTradingCard } from "../predictor/FighterTradingCard";
 import { CardBack, DebutCard, earnedLine } from "./Collection";
 import { cardKey, type EarnedCard, earnedCards, readOpened, unopened, useMyHistory, writeOpened } from "./earned";
@@ -19,21 +21,35 @@ export function NewCards() {
   const cards = useMemo(() => earnedCards(history.data ?? []), [history.data]);
   // Set when the banner is opened, so the pack doesn't shrink while it's being opened.
   const [pack, setPack] = useState<EarnedCard[] | null>(null);
-  const [opened, setOpened] = useState<Set<string>>(new Set());
+  const [local, setLocal] = useState<Set<string>>(new Set());
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
   if (user && loadedFor !== user.id) {
     setLoadedFor(user.id);
-    setOpened(readOpened(user.id));
+    setLocal(readOpened(user.id));
   }
-  if (!user) return null;
+  const seen = useSeen();
+  const markSeen = useMarkSeen();
+  const saved = withPrefix(seen.data, "card:");
+  const savedKey = saved.join(",");
+  const opened = useMemo(() => new Set([...local, ...saved]), [local, savedKey]);
+  // Opened in this browser before that was kept with the account: save those too.
+  const unsaved = seen.isSuccess ? [...local].filter((k) => !saved.includes(k)) : [];
+  const unsavedKey = unsaved.join(",");
+  useEffect(() => {
+    if (unsaved.length) markSeen(unsaved.map((k) => `card:${k}`));
+  }, [unsavedKey]);
+  // Until it's known what's been opened, show nothing rather than everything.
+  if (!user || seen.isPending) return null;
 
   const waiting = unopened(cards, opened);
-  const open = (card: EarnedCard) =>
-    setOpened((seen) => {
-      const next = new Set(seen).add(cardKey(card));
+  const open = (card: EarnedCard) => {
+    markSeen([`card:${cardKey(card)}`]);
+    setLocal((was) => {
+      const next = new Set(was).add(cardKey(card));
       writeOpened(user.id, next);
       return next;
     });
+  };
 
   return (
     <>

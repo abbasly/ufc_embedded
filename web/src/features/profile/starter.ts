@@ -1,8 +1,8 @@
 // The starter badges: quick ones for getting going, earned by playing rather than by results.
 // With an account they come from the database (public.starter_badges). Before signing up they're
-// worked out from the picks in this browser, so a visitor's very first tap can earn one. The list
-// of what's been announced is per browser and not per account, so signing up doesn't announce
-// the same badges twice.
+// worked out from the picks in this browser, so a visitor's very first tap can earn one. What's
+// been announced is kept in this browser (so signing up doesn't announce the same badges twice)
+// and, once signed in, with the account too (seen.ts).
 
 import { useQuery } from "@tanstack/react-query";
 

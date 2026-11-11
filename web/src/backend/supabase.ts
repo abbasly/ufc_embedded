@@ -183,13 +183,14 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
         const { data: auth } = await db.auth.getUser();
         if (!auth.user) throw new BackendError("Sign in first.");
         const id = auth.user.id;
-        const [profile, picks, scores, leagues, friends, cards] = await Promise.all([
+        const [profile, picks, scores, leagues, friends, cards, seen] = await Promise.all([
           db.from("profiles").select("*").eq("id", id).maybeSingle(),
           db.from("picks").select("bout_id, winner, method, updated_at, bouts(a_name, b_name, events(name, starts_on))").eq("user_id", id),
           db.from("scores").select("event_id, points, correct, picked, events(name, starts_on)").eq("user_id", id),
           db.from("leagues").select("name, invite_code, owner_id, created_at"),
           db.rpc("my_friends"),
           db.rpc("pack_cards_of", { player: id }),
+          db.from("seen").select("item, seen_at"),
         ]);
         return {
           exported_at: new Date().toISOString(),
@@ -206,6 +207,7 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
           leagues: (leagues.data ?? []).map((l) => ({ name: l.name, invite_code: l.invite_code, yours: l.owner_id === id, created_at: l.created_at })),
           friends: friends.data ?? [],
           pack_cards: cards.data ?? [],
+          seen: seen.data ?? [],
         };
       },
       async byName(displayName) {
@@ -451,6 +453,21 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
       },
     },
 
+    seen: {
+      async list() {
+        const { data, error } = await db.from("seen").select("item");
+        if (error) throw friendly(error);
+        return data.map((r) => r.item as string);
+      },
+      async add(items) {
+        const id = await userId();
+        const { error } = await db.from("seen").upsert(
+          items.map((item) => ({ user_id: id, item })),
+          { onConflict: "user_id,item", ignoreDuplicates: true },
+        );
+        if (error) throw friendly(error);
+      },
+    },
     friends: {
       async list() {
         const id = await userId().catch(() => null);

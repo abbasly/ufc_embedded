@@ -282,6 +282,11 @@ export interface Backend {
     /** Traffic for the last ``days`` days (7, 30 or 90); null when visit stats are off. */
     visits(days: number): Promise<VisitStats | null>;
   };
+  /** What the signed-in player has been shown: opened cards, announced badges. */
+  seen: {
+    list(): Promise<string[]>;
+    add(items: string[]): Promise<void>;
+  };
   /** Mutual friends: one asks, the other accepts. */
   friends: {
     /** Your friends and open requests. */

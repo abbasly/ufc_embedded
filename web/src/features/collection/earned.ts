@@ -1,6 +1,6 @@
 // The card collection: call a winner on the main card and you earn that fighter's trading card;
 // call them as the bookies' underdog and it's shiny. Worked out from a player's pick history, so
-// there's nothing extra to store. Only which cards you've already opened is kept, in this browser.
+// there's nothing extra to store. Only which cards you've already opened is kept (seen.ts).
 
 import { useQuery } from "@tanstack/react-query";
 
