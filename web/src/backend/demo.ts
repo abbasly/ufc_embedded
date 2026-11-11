@@ -4,7 +4,7 @@
 // Turned on with VITE_ACCOUNTS=demo (local development only; see backend/index.ts).
 
 import { demoPastPicks, demoPastScores } from "./demoHistory";
-import { type Backend, BackendError, type Friend, type LeaderboardRow, type League, type Method, type Pick, type PickemBout, type PickemEvent, type Profile, type User } from "./types";
+import { type Backend, BackendError, type Friend, type LeaderboardRow, type League, type Method, type Pick, type PickemBout, type PickemEvent, type Profile, type User, type PackCard, type UnopenedPack } from "./types";
 
 const KEY = "ufc-embedded-demo-backend";
 const DEMO_USER: User = { id: "demo-user", email: "demo@example.com" };
@@ -30,6 +30,27 @@ function load(): Stored {
     return { signedIn: false, profile: null, picks: [], leagues: [] };
   }
 }
+const PULLS_KEY = "ufc-embedded-demo-pulls";
+const DEMO_PACKS: UnopenedPack[] = [
+  { id: "demo-pack-1", eventId: "welcome", eventName: "Welcome", reason: "welcome" },
+  { id: "demo-pack-2", eventId: "demo-e1", eventName: "UFC 330: Pereira vs. Ankalaev 3", reason: "league" },
+];
+const DEMO_POOL: Omit<PackCard, "slot">[] = [
+  { fighterId: "islam-makhachev", name: "Islam Makhachev", rarity: "legendary" },
+  { fighterId: "ilia-topuria", name: "Ilia Topuria", rarity: "epic" },
+  { fighterId: "max-holloway", name: "Max Holloway", rarity: "epic" },
+  { fighterId: "magomed-ankalaev", name: "Magomed Ankalaev", rarity: "rare" },
+  { fighterId: "dustin-poirier", name: "Dustin Poirier", rarity: "common" },
+  { fighterId: "tatiana-suarez", name: "Tatiana Suarez", rarity: "rare" },
+];
+function loadPulls(): Record<string, PackCard[]> {
+  try {
+    return JSON.parse(localStorage.getItem(PULLS_KEY) ?? "{}") as Record<string, PackCard[]>;
+  } catch {
+    return {};
+  }
+}
+
 function save(s: Stored) {
   try {
     localStorage.setItem(KEY, JSON.stringify(s));
@@ -236,6 +257,36 @@ export function demoBackend(): Backend {
       myScores: async () => (load().signedIn ? demoPastScores(DEMO_USER.id) : []),
       scoresOf: async (id) => demoPastScores(id),
       pickHistory: async (id) => demoPastPicks(id),
+      claimPacks: async () =>
+        load().signedIn
+          ? DEMO_PACKS.filter((p) => !loadPulls()[p.id])
+          : [],
+      async openPack(packId) {
+        const pulls = loadPulls();
+        pulls[packId] ??= [...DEMO_POOL].sort(() => Math.random() - 0.5).slice(0, packId === "demo-pack-1" ? 1 : 3).map((c, i) => ({ ...c, slot: i + 1 }));
+        try {
+          localStorage.setItem(PULLS_KEY, JSON.stringify(pulls));
+        } catch {
+          // private window: the demo just doesn't persist
+        }
+        return pulls[packId];
+      },
+      packCards: async () => {
+        const cards = Object.values(loadPulls()).flat();
+        return [...new Set(cards.map((c) => c.fighterId))].map((id) => {
+          const same = cards.filter((c) => c.fighterId === id);
+          return { fighterId: id, name: same[0]!.name, rarity: same[0]!.rarity, copies: same.length };
+        });
+      },
+      starterBadges: async () => {
+        const s = load();
+        return [
+          ...(s.picks.length ? ["first-pick"] : []),
+          ...(s.picks.some((p) => p.method) ? ["called-method"] : []),
+          ...(s.profile ? ["signed-up"] : []),
+          ...(s.leagues.length ? ["in-league"] : []),
+        ];
+      },
       closestPredictors: async () => [
         { displayName: "olga", avatar: "valentina-shevchenko", shared: 24, agreed: 20 },
         { displayName: "the_model", avatar: null, shared: 24, agreed: 17 },
@@ -290,6 +341,23 @@ export function demoBackend(): Backend {
         { at: new Date(Date.now() - 2 * 3600e3).toISOString(), kind: "scored", eventId: "demo-e4", detail: "31 players scored" },
       ],
     },
+    seen: {
+      list: async () => {
+        try {
+          return JSON.parse(localStorage.getItem("ufc-embedded-demo-seen") ?? "[]") as string[];
+        } catch {
+          return [];
+        }
+      },
+      async add(items) {
+        const had = await this.list();
+        try {
+          localStorage.setItem("ufc-embedded-demo-seen", JSON.stringify([...new Set([...had, ...items])]));
+        } catch {
+          // private window: the demo just doesn't persist
+        }
+      },
+    },
     friends: {
       list: async () => (load().signedIn ? (load().friends ?? DEMO_FRIENDS) : []),
       async request(userId) {
@@ -324,6 +392,18 @@ export function demoBackend(): Backend {
     },
     // Demo leagues: yours, plus two made-up friends in every league you join.
     leagues: {
+      champions: async () => {
+        const me = load().profile;
+        const [displayName, avatar] = me ? [me.displayName, me.avatar] : ["olga", "valentina-shevchenko"];
+        return [
+          { eventId: "demo-e2", eventName: "UFC Fight Night: Holloway vs. Topuria", startsOn: "2026-10-17", displayName, avatar, points: 55 },
+          { eventId: "demo-e1", eventName: "UFC 330: Pereira vs. Ankalaev 3", startsOn: "2026-10-10", displayName: "olga", avatar: "valentina-shevchenko", points: 60 },
+        ];
+      },
+      titlesOf: async () => [
+        { eventId: "demo-e2", eventName: "UFC Fight Night: Holloway vs. Topuria", startsOn: "2026-10-17", points: 55, leagueName: "Gym boys" },
+        { eventId: "demo-e1", eventName: "UFC 330: Pereira vs. Ankalaev 3", startsOn: "2026-10-10", points: 60, leagueName: null },
+      ],
       mine: async () => (load().signedIn ? load().leagues : []),
       async create(name) {
         signedIn();

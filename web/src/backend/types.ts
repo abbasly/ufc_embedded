@@ -86,6 +86,52 @@ export interface League {
   isOwner: boolean;
 }
 
+export type Rarity = "common" | "rare" | "epic" | "legendary";
+export type PackReason = "played" | "podium" | "league" | "welcome";
+
+/** A free pack waiting to be opened. */
+export interface UnopenedPack {
+  id: string;
+  eventId: string;
+  eventName: string;
+  reason: PackReason;
+}
+
+/** One card drawn from a pack. */
+export interface PackCard {
+  slot: number;
+  fighterId: string;
+  name: string;
+  rarity: Rarity;
+}
+
+/** A card a player owns from packs: the same fighter at the same rarity counts as copies. */
+export interface OwnedCard {
+  fighterId: string;
+  name: string;
+  rarity: Rarity;
+  copies: number;
+}
+
+/** Someone who topped a league on a finished card (a tie has one row per winner). */
+export interface LeagueChampion {
+  eventId: string;
+  eventName: string;
+  startsOn: string;
+  displayName: string;
+  avatar: string | null;
+  points: number;
+}
+
+/** A league card a player won. ``leagueName`` is null unless you're in that league. */
+export interface LeagueTitle {
+  eventId: string;
+  eventName: string;
+  startsOn: string;
+  points: number;
+  leagueName: string | null;
+}
+
 export interface LeaderboardRow {
   displayName: string;
   avatar: string | null;
@@ -216,6 +262,14 @@ export interface Backend {
     /** A player's picks on fought bouts, as far as you may see them: your own; friends' and
      * league-mates'; the model's (public). Empty for anyone else. */
     pickHistory(userId: string): Promise<PastPick[]>;
+    /** Hands out any packs you've earned, and lists the ones still to open. */
+    claimPacks(): Promise<UnopenedPack[]>;
+    /** Opens one of your packs: the draw is done by the backend. */
+    openPack(packId: string): Promise<PackCard[]>;
+    /** The cards a player has pulled from packs (public). */
+    packCards(userId: string): Promise<OwnedCard[]>;
+    /** Which starter badges a player has earned (public: says nothing about their picks). */
+    starterBadges(userId: string): Promise<string[]>;
     /** Who picks most like this player, most alike first, among the picks you may see. */
     closestPredictors(userId: string): Promise<ClosestPredictor[]>;
   };
@@ -227,6 +281,11 @@ export interface Backend {
     log(rows?: number): Promise<{ at: string; kind: string; eventId: string | null; detail: string | null }[]>;
     /** Traffic for the last ``days`` days (7, 30 or 90); null when visit stats are off. */
     visits(days: number): Promise<VisitStats | null>;
+  };
+  /** What the signed-in player has been shown: opened cards, announced badges. */
+  seen: {
+    list(): Promise<string[]>;
+    add(items: string[]): Promise<void>;
   };
   /** Mutual friends: one asks, the other accepts. */
   friends: {
@@ -249,6 +308,10 @@ export interface Backend {
     standings(leagueId: string): Promise<LeaderboardRow[]>;
     /** The display names of a league's members (members only). */
     members(leagueId: string): Promise<string[]>;
+    /** Who won each finished card in a league, latest first (members only). */
+    champions(leagueId: string): Promise<LeagueChampion[]>;
+    /** The league cards a player has won, latest first (public; league names are members-only). */
+    titlesOf(userId: string): Promise<LeagueTitle[]>;
   };
 }
 

@@ -7,12 +7,15 @@ from ufc_embedded.pickem_sync import (
     Bout,
     bout_id,
     card_bouts,
+    card_pool_sql,
+    card_rarity,
     card_sql,
     event_id,
     events_to_sync,
     fighter_id,
     locks_at,
     model_pick_sql,
+    same_day_sql,
     sql_text,
     sync_sql,
     with_recent,
@@ -284,3 +287,45 @@ def test_scheduled_events_join_pickem_before_the_bookmakers_list_them() -> None:
     cards = with_scheduled([CARD], scheduled, date(2026, 11, 10))
     assert [c["name"] for c in cards] == [CARD["name"], "UFC 335: Oliveira vs. Lopes"]
     assert cards[1]["fights"] == [] and cards[1]["city"] == "Las Vegas"
+
+
+def test_card_rarity_follows_status() -> None:
+    assert card_rarity({"champion": "Lightweight", "rank": 0}) == "legendary"
+    assert card_rarity({"champion": None, "rank": 1}) == "epic"
+    assert card_rarity({"champion": None, "rank": 5}) == "epic"
+    assert card_rarity({"champion": None, "rank": 6}) == "rare"
+    assert card_rarity({"champion": None, "rank": None}) == "common"
+
+
+def test_card_pool_sql_quotes_names_and_leaves_an_empty_list_alone() -> None:
+    sql = card_pool_sql([{"id": "sean-o-malley", "name": "Sean O'Malley", "rank": 3}])
+    assert "('sean-o-malley', 'Sean O''Malley', 'epic')" in sql[0]
+    assert "not in ('sean-o-malley')" in sql[1]
+    assert card_pool_sql([]) == []
+
+
+RENAMED = {"date": "2026-12-05", "name": "UFC Fight Night 295", "fights": []}
+NAMED = {"date": "2026-12-05", "name": "UFC Fight Night: Adesanya vs. Magomedov", "fights": []}
+
+
+def test_a_renamed_card_is_still_one_card() -> None:
+    today = date(2026, 11, 11)
+    # Synced under its old name, now listed under the new one: only the new one.
+    assert [c["name"] for c in events_to_sync([NAMED], [RENAMED], today)] == [NAMED["name"]]
+    # Wikipedia's schedule still has the old name: the listed card covers that day.
+    scheduled = [{"date": "2026-12-05", "name": "UFC Fight Night 295", "city": "Riyadh"}]
+    assert [c["name"] for c in with_scheduled([NAMED], scheduled, today)] == [NAMED["name"]]
+    # The database knows the day under the old name: not synced a second time.
+    assert [c["name"] for c in with_recent([NAMED], [RENAMED])] == [NAMED["name"]]
+
+
+def test_a_card_takes_over_the_old_copy_of_its_day() -> None:
+    move, drop = same_day_sql(NAMED, "2026-12-05-ufc-fight-night")
+    assert "on conflict (user_id, bout_id) do nothing" in move
+    assert "old.starts_on = '2026-12-05' and old.id <> '2026-12-05-ufc-fight-night'" in move
+    assert drop == (
+        "delete from public.events where starts_on = '2026-12-05'"
+        " and id <> '2026-12-05-ufc-fight-night' and scored_at is null;"
+    )
+    full = sync_sql([(CARD, card_bouts(CARD, parse_fight_card(AFTER), KNOWN.get), True)])
+    assert "delete from public.events where starts_on = '2026-11-14'" in full

@@ -9,9 +9,13 @@ import { MODEL_PLAYER, placeOf } from "../pickem/scoring";
 import { useLeaderboard } from "../pickem/usePickem";
 import { profileImage } from "../share/profileImage";
 import { ShareButton } from "../share/ShareButton";
+import { CardCollection } from "../collection/Collection";
+import { PulledCards } from "../collection/Packs";
 import { Badges, ClosestPredictors, Highlights, PointsChart } from "./Insights";
-import { badges, bestCall, headToHead } from "./record";
+import { LeagueTitles } from "./LeagueTitles";
+import { badges, bestCall, decided, headToHead } from "./record";
 import { History, Stats } from "./PlayerStats";
+import { starterBadges, useStarterBadges } from "./starter";
 import { usePlayerRecord } from "./usePlayerRecord";
 
 interface Props {
@@ -31,6 +35,9 @@ export function PlayerRecord({ userId, displayName, avatar, isMe, children, afte
   const vsModel = modelScores && scores.data ? headToHead(scores.data, modelScores) : null;
   const picks = history.data ?? [];
   const list = badges(picks, vsModel);
+  // Scores are public but picks aren't: they've played, and we can't see what they picked.
+  const picksHidden = history.isSuccess && !!scores.data?.some((s) => s.picked > 0) && decided(picks).length === 0;
+  const starters = useStarterBadges(userId);
   const board = useLeaderboard();
   const { data: predictor } = usePredictor(isMe && !!avatar);
 
@@ -67,10 +74,13 @@ export function PlayerRecord({ userId, displayName, avatar, isMe, children, afte
       <Stats scores={scores.data} displayName={displayName} />
       {share}
       {children}
+      <LeagueTitles userId={userId} />
+      {history.isSuccess && !picksHidden && <CardCollection history={picks} isMe={isMe} displayName={displayName} />}
+      <PulledCards userId={userId} isMe={isMe} displayName={displayName} />
+      <Badges list={picksHidden ? [] : list} starters={isModel ? [] : starterBadges(starters.data ?? [])} />
       {!!scores.data?.length && (
         <>
-          <Badges list={list} />
-          <Highlights history={picks} vsModel={vsModel} isModel={isModel} whose={isMe ? "you" : "they"} />
+          <Highlights history={picks} vsModel={vsModel} isModel={isModel} whose={isMe ? "you" : "they"} picksHidden={picksHidden} />
           <ClosestPredictors players={closest} isMe={isMe} />
           <PointsChart scores={scores.data} />
         </>

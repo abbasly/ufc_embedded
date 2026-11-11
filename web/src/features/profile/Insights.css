@@ -90,6 +90,12 @@
 .badge-tile[data-badge="sub"] { --badge-top: #66d9e8; --badge-bottom: #0b7285; --badge-glow: 56, 195, 216; }
 .badge-tile[data-badge="judge"] { --badge-top: #a5d8ff; --badge-bottom: #1c7ed6; --badge-glow: 116, 192, 252; }
 
+.badge-tile[data-badge="first-pick"] { --badge-top: #b2f2bb; --badge-bottom: #37b24d; --badge-glow: 140, 233, 154; }
+.badge-tile[data-badge="called-method"] { --badge-top: #ffe066; --badge-bottom: #f08c00; --badge-glow: 255, 212, 59; }
+.badge-tile[data-badge="full-card"] { --badge-top: #a5d8ff; --badge-bottom: #1971c2; --badge-glow: 116, 192, 252; }
+.badge-tile[data-badge="signed-up"] { --badge-top: #ffa8a8; --badge-bottom: #e03131; --badge-glow: 255, 135, 135; }
+.badge-tile[data-badge="in-league"] { --badge-top: #d0bfff; --badge-bottom: #7048e8; --badge-glow: 177, 151, 252; }
+
 .badge-tile[data-earned] {
   border-color: rgba(var(--badge-glow), 0.4);
   background: radial-gradient(120% 120% at 50% 0%, rgba(var(--badge-glow), 0.14), transparent 70%);
@@ -235,4 +241,129 @@
 }
 .history-row:not(:disabled):hover {
   background: rgba(255, 255, 255, 0.05);
+}
+
+/* Starter badges: a row of smaller ones above the rest. */
+.badge-starters .badge-tile { padding: 8px 4px; }
+.badge-starters .badge-medal { width: 42px; height: 42px; }
+.badge-starters .badge-progress { display: none; }
+.badge-starters .mantine-Text-root { font-size: 12px; }
+
+/* ---- "Badge unlocked" ------------------------------------------------------------------- */
+.starter-toast-wrap {
+  position: fixed;
+  z-index: 400;
+  top: calc(env(safe-area-inset-top, 0px) + 66px);
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  padding-inline: 12px;
+  pointer-events: none;
+}
+.starter-toast {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(400px, 100%);
+  padding: 12px 10px 14px 14px;
+  overflow: hidden;
+  pointer-events: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 212, 59, 0.5);
+  background: linear-gradient(100deg, #39301a, #1c1d22 62%);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.6), 0 0 26px rgba(255, 212, 59, 0.16);
+  animation: toast-in 0.55s cubic-bezier(0.2, 1.35, 0.4, 1);
+}
+.starter-toast[data-leaving] {
+  animation: toast-out 0.22s ease-in forwards;
+}
+/* One sweep of light across it as it lands. */
+.starter-toast::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, 0.2) 50%, transparent 62%);
+  transform: translateX(-100%);
+  animation: toast-sweep 0.9s 0.3s ease-out;
+}
+@keyframes toast-in {
+  from { transform: translateY(-140%) scale(0.92); opacity: 0; }
+}
+@keyframes toast-out {
+  to { transform: translateY(-40%); opacity: 0; }
+}
+@keyframes toast-sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+.starter-toast-medals {
+  display: flex;
+  flex: none;
+}
+.starter-toast-medals .badge-tile {
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: none;
+  animation: medal-pop 0.6s 0.14s cubic-bezier(0.2, 1.6, 0.4, 1) backwards;
+}
+.starter-toast-medals .badge-tile + .badge-tile {
+  margin-left: -16px;
+  animation-delay: 0.26s;
+}
+.starter-toast-medals .badge-medal {
+  width: 48px;
+  height: 48px;
+  margin: 0;
+}
+/* Light turning slowly behind the medal. */
+.starter-toast-medals .badge-tile::before {
+  content: "";
+  position: absolute;
+  inset: -11px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(rgba(var(--badge-glow), 0.34) 0 16deg, transparent 16deg 45deg);
+  -webkit-mask: radial-gradient(circle, #000 42%, transparent 72%);
+  mask: radial-gradient(circle, #000 42%, transparent 72%);
+  animation: toast-rays 7s linear infinite;
+}
+.starter-toast-medals svg {
+  position: relative;
+}
+@keyframes medal-pop {
+  from { transform: scale(0) rotate(-24deg); }
+}
+@keyframes toast-rays {
+  to { rotate: 360deg; }
+}
+.starter-toast-link {
+  color: var(--mantine-color-yellow-4);
+  text-decoration: none;
+}
+.starter-toast-time {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 3px;
+  background: #ffd43b;
+  transform-origin: left;
+  animation: toast-time 6s linear forwards;
+}
+@keyframes toast-time {
+  to { transform: scaleX(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .starter-toast { animation-duration: 1ms; }
+  .starter-toast[data-leaving] { animation-duration: 1ms; }
+  .starter-toast::after,
+  .starter-toast-medals .badge-tile,
+  .starter-toast-medals .badge-tile::before,
+  .starter-toast-time {
+    animation: none;
+  }
+  .starter-toast::after { display: none; }
 }

@@ -316,7 +316,7 @@ def card_sql(card: dict[str, Any], bouts: list[Bout], from_wikipedia: bool = Tru
         # Mid-card: points so far, so the standings move fight by fight. Scoring proper (the
         # podium, the results emails) waits for the last result.
         statements.append(f"select public.tally_event({sql_text(eid)});")
-    return statements
+    return statements + same_day_sql(card, eid)
 
 
 def _first_listing_sql(card: dict[str, Any], eid: str, bouts: list[Bout]) -> list[str]:
@@ -346,6 +346,28 @@ def _first_listing_sql(card: dict[str, Any], eid: str, bouts: list[Bout]) -> lis
     ]
 
 
+def same_day_sql(card: dict[str, Any], eid: str) -> list[str]:
+    """UFC never runs two cards on one day, so another event on this card's date is this card
+    under an older name (Wikipedia's schedule says "UFC Fight Night 295", the bookmakers "UFC
+    Fight Night: Adesanya vs. Magomedov"). Picks on it move to the same fight here, unless the
+    player already picked that fight here, and then it goes. Scored cards are left alone."""
+    day = sql_text(card["date"])
+    here = sql_text(eid)
+    return [
+        "insert into public.picks (user_id, bout_id, winner, method)"
+        " select p.user_id, nb.id, p.winner, p.method from public.picks p"
+        " join public.bouts ob on ob.id = p.bout_id"
+        " join public.events old on old.id = ob.event_id"
+        f" join public.bouts nb on nb.event_id = {here}"
+        " and ((nb.fighter_a = ob.fighter_a and nb.fighter_b = ob.fighter_b)"
+        " or (nb.fighter_a = ob.fighter_b and nb.fighter_b = ob.fighter_a))"
+        f" where old.starts_on = {day} and old.id <> {here} and old.scored_at is null"
+        " on conflict (user_id, bout_id) do nothing;",
+        f"delete from public.events where starts_on = {day} and id <> {here}"
+        " and scored_at is null;",
+    ]
+
+
 def model_pick_sql(bid: str, winner: str, method: str) -> str:
     """The model's pick on a bout, made (or updated) only while the bout is open, and only if
     its account exists (see MODEL_PLAYER)."""
@@ -357,6 +379,36 @@ def model_pick_sql(bid: str, winner: str, method: str) -> str:
         "  on conflict (user_id, bout_id) do update set winner = excluded.winner,"
         " method = excluded.method where public.bout_is_open(excluded.bout_id);"
     )
+
+
+def card_rarity(fighter: dict[str, Any]) -> str:
+    """How rare a fighter's card is in packs: champions, the top 5 (rank 0 is the champion),
+    anyone else ranked, everyone else."""
+    if fighter.get("champion"):
+        return "legendary"
+    rank = fighter.get("rank")
+    if rank is None:
+        return "common"
+    return "epic" if rank <= 5 else "rare"
+
+
+def card_pool_sql(fighters: list[dict[str, Any]]) -> list[str]:
+    """Statements that make the pool packs draw from match the predictor's fighters. Only rows
+    that changed are written, as this runs with every sync."""
+    if not fighters:
+        return []
+    rows = ", ".join(
+        f"({sql_text(f['id'])}, {sql_text(f['name'])}, {sql_text(card_rarity(f))})"
+        for f in fighters
+    )
+    ids = ", ".join(sql_text(f["id"]) for f in fighters)
+    return [
+        f"insert into public.card_pool (fighter_id, name, rarity) values {rows} "
+        "on conflict (fighter_id) do update set name = excluded.name, rarity = excluded.rarity "
+        "where (public.card_pool.name, public.card_pool.rarity) "
+        "is distinct from (excluded.name, excluded.rarity);",
+        f"delete from public.card_pool where fighter_id not in ({ids});",
+    ]
 
 
 def sync_sql(
@@ -378,6 +430,8 @@ def sync_sql(
                     body.append(
                         model_pick_sql(bout_id(event_id(card), bout["a"], bout["b"]), *pick[:2])
                     )
+    if model:
+        body.extend(card_pool_sql(model.get("fighters", [])))
     n_bouts = sum(len(bouts) for _, bouts, _ in cards)
     n_results = sum(1 for _, bouts, _ in cards for b in bouts if b["outcome"])
     summary = f"{len(cards)} cards, {n_bouts} bouts, {n_results} results"
@@ -391,11 +445,11 @@ def events_to_sync(
     upcoming: list[dict[str, Any]], synced: list[dict[str, Any]], today: date
 ) -> list[dict[str, Any]]:
     """The upcoming cards, plus recently synced ones that have left the upcoming list."""
-    current = {event_id(c) for c in upcoming}
+    current = {c["date"] for c in upcoming}
     recent = [
         c
         for c in synced
-        if event_id(c) not in current
+        if c["date"] not in current
         and date.fromisoformat(c["date"]) >= today - timedelta(days=KEEP_DAYS)
     ]
     return recent + upcoming
@@ -410,12 +464,12 @@ def with_scheduled(
     """Add UFC events Wikipedia lists as scheduled within ``horizon_days`` that the upcoming
     list doesn't have yet (no bookmakers' listing, or the site's data not refreshed since):
     their cards come from their Wikipedia pages; the odds follow once predictor.json has them."""
-    have = {event_id(c) for c in cards}
+    have = {c["date"] for c in cards}
     extra = [
         {"date": e["date"], "name": e["name"], "city": e.get("city"), "fights": []}
         for e in scheduled
         if today <= date.fromisoformat(e["date"]) <= today + timedelta(days=horizon_days)
-        and event_id(e) not in have
+        and e["date"] not in have
     ]
     return cards + extra
 
@@ -423,11 +477,11 @@ def with_scheduled(
 def with_recent(cards: list[dict[str, Any]], recent: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Add events the database knows but the upcoming list doesn't (fought, not scored yet):
     ``recent`` is ``[{"date", "name"}]``, e.g. straight from the events table."""
-    have = {event_id(c) for c in cards}
+    have = {c["date"] for c in cards}
     extra = [
         {"date": r["date"], "name": r["name"], "fights": [], "existing": True}
         for r in recent
-        if event_id(r) not in have
+        if r["date"] not in have
     ]
     return extra + cards
 

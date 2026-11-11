@@ -166,3 +166,45 @@
   white-space: nowrap;
   overflow: visible !important;
 }
+
+/* ---- Shiny cards (earned with an underdog call): a rainbow frame, and foil over the face that
+   drifts by itself and follows the mouse. ---- */
+.foil-frame {
+  animation: foil-drift 5s ease-in-out infinite alternate;
+}
+/* Narrow bands with clear gaps between them, so the photo and the text stay readable. */
+.foil {
+  z-index: 1;
+  mix-blend-mode: overlay;
+  background: linear-gradient(
+    115deg,
+    transparent 10%,
+    rgba(255, 78, 205, 0.55) 20%,
+    rgba(255, 210, 63, 0.55) 26%,
+    transparent 34%,
+    transparent 44%,
+    rgba(60, 240, 190, 0.55) 52%,
+    rgba(70, 150, 255, 0.55) 58%,
+    rgba(180, 77, 255, 0.55) 64%,
+    transparent 72%,
+    transparent 80%,
+    rgba(255, 78, 205, 0.45) 86%,
+    transparent 94%
+  );
+  background-size: 300% 300%;
+  animation: foil-drift 7s ease-in-out infinite alternate;
+}
+.flip-card[data-still] {
+  cursor: inherit;
+}
+/* Back and forth within the gradient: looping past its edge would show a seam. */
+@keyframes foil-drift {
+  from { background-position: 0% 0%; }
+  to { background-position: 100% 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .foil,
+  .foil-frame {
+    animation: none;
+  }
+}

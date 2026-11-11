@@ -19,6 +19,8 @@ USER_AGENT = "ufc-embedded/0.1 (https://github.com/abbasly/ufc_embedded)"
 PAUSE_S = 1.0
 PHOTO_CACHE = PROCESSED_DIR / "fighter_photos.json"
 SEARCH_CACHE = PROCESSED_DIR / "fighter_photos_search.json"
+# Added by hand (name -> Photo), for fighters whose free photo isn't their Wikipedia lead image.
+MANUAL_PHOTOS = PROCESSED_DIR.parent / "fighter_photos_manual.json"
 BATCH = 50  # max titles per API request
 
 # Accept a page only if its short description says it's a fighter, so a namesake's
@@ -154,7 +156,14 @@ def fighter_photos(
         if todo:
             _write(SEARCH_CACHE, searched)
 
-    return {n: photo for n in names if (photo := cache.get(n) or searched.get(n)) is not None}
+    manual: dict[str, Photo] = {}
+    if MANUAL_PHOTOS.exists():
+        manual = json.loads(MANUAL_PHOTOS.read_text())
+    return {
+        n: photo
+        for n in names
+        if (photo := manual.get(n) or cache.get(n) or searched.get(n)) is not None
+    }
 
 
 def _write(path: Path, cache: dict[str, Photo | None]) -> None:

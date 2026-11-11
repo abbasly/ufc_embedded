@@ -63,6 +63,7 @@ const ROUTES = [
   },
   {
     path: "pickem",
+    forwardsHome: true, // the app sends /pickem to the home page: kept for old links, not for search
     title: "Pick'em: pick the winners of the next UFC card | UFC Embedded",
     description: "Pick the winner and the method of every fight on the next UFC card, then compete with friends in your own league. Free.",
     image: "og-predictor.png",
@@ -76,7 +77,8 @@ const html = readFileSync("dist/index.html", "utf8");
 const siteUrl = html.match(/<meta property="og:url" content="([^"]*)"/)[1]; // ends with "/"
 // GitHub Pages serves each page as a folder and redirects /predictor to /predictor/, so the
 // addresses given to search engines end with "/" (no redirect on the way).
-const pageUrl = (r) => (r.path ? `${siteUrl}${r.path}/` : siteUrl);
+const pageUrl = (r) => (r.path && !r.forwardsHome ? `${siteUrl}${r.path}/` : siteUrl);
+const listed = ROUTES.filter((r) => !r.forwardsHome);
 const meta = (attr, key, value) => (page) =>
   page.replace(new RegExp(`(<meta ${attr}="${key}" content=")[^"]*(")`), `$1${escape(value)}$2`);
 
@@ -104,7 +106,7 @@ const structuredData = () =>
 /** What crawlers without JavaScript read: the page's summary and links to every page. */
 const noscript = (route) =>
   `<noscript><h1>${escape(route.title)}</h1><p>${escape(route.text)}</p><ul>` +
-  ROUTES.map((r) => `<li><a href="${pageUrl(r)}">${escape(r.title)}</a></li>`).join("") +
+  listed.map((r) => `<li><a href="${pageUrl(r)}">${escape(r.title)}</a></li>`).join("") +
   `<li><a href="${siteUrl}fighters/">All UFC fighters</a></li><li><a href="${siteUrl}cards/">Upcoming UFC cards and predictions</a></li></ul></noscript>`;
 
 /** This page's own copy of the app's HTML: its title, description, preview and canonical URL. */
@@ -167,7 +169,7 @@ const today = new Date().toISOString().slice(0, 10);
 writeFileSync(
   "dist/sitemap.xml",
   `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-    [...ROUTES.map(pageUrl), ...pages.map((p) => `${siteUrl}${p.meta.path}/`)].map((url) => `  <url><loc>${url}</loc><lastmod>${today}</lastmod></url>`).join("\n") +
+    [...listed.map(pageUrl), ...pages.map((p) => `${siteUrl}${p.meta.path}/`)].map((url) => `  <url><loc>${url}</loc><lastmod>${today}</lastmod></url>`).join("\n") +
     `\n</urlset>\n`,
 );
 writeFileSync("dist/robots.txt", `User-agent: *\nAllow: /\n\nSitemap: ${siteUrl}sitemap.xml\n`);

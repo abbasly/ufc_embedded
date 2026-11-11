@@ -1,0 +1,515 @@
+/* The card collection on profiles, and opening new cards. */
+
+.shiny-text {
+  font-weight: 800;
+  background: linear-gradient(90deg, #ff6ad5, #ffd23f, #3cf0be, #58a6ff, #c77dff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.collection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+  gap: 12px;
+}
+.collection-slot {
+  position: relative;
+  display: block;
+  border-radius: 10px;
+  transition: transform 0.18s ease-out;
+}
+.collection-slot:hover {
+  transform: translateY(-4px) scale(1.02);
+}
+.collection-slot:focus-visible {
+  outline: 2px solid #ffd43b;
+  outline-offset: 2px;
+}
+.collection-times {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  z-index: 3;
+  min-width: 26px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #1a1b1e;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #e9ecef;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+.collection-empty {
+  display: flex;
+  flex: none;
+  width: 104px;
+}
+.collection-empty .card-back {
+  width: 52px;
+  flex: none;
+  margin-right: -26px;
+  opacity: 0.75;
+}
+.collection-empty .card-back:nth-child(1) { transform: rotate(-8deg); }
+.collection-empty .card-back:nth-child(3) { transform: rotate(8deg); }
+
+/* ---- The back of a card ---------------------------------------------------------------- */
+.card-back {
+  container-type: inline-size;
+  aspect-ratio: 63 / 88;
+  width: 100%;
+  padding: 3.2%;
+  border-radius: 5.6cqw;
+  border-radius: 7%/5%;
+  background: linear-gradient(145deg, #5c0f12, #c92a2a 30%, #ffa8a8 50%, #c92a2a 70%, #5c0f12);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+.card-back-inner {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  border-radius: 5%/3.6%;
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.05) 0 2cqw, transparent 2cqw 5cqw),
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.05) 0 2cqw, transparent 2cqw 5cqw),
+    radial-gradient(circle at 50% 45%, #33363d, #141518 75%);
+}
+.card-back-inner img {
+  width: 42%;
+  filter: drop-shadow(0 2px 8px rgba(250, 82, 82, 0.6));
+}
+.card-back[data-shiny] {
+  background: linear-gradient(115deg, #ff4ecd, #ffd23f, #3cf0be, #4696ff, #b44dff, #ff4ecd) 0 0 / 300% 300%;
+  animation: foil-drift 5s ease-in-out infinite alternate;
+}
+
+/* A fighter on their debut has no stats yet: a plain card of the same shape. */
+.debut-card {
+  aspect-ratio: 63 / 88;
+  width: 100%;
+  max-width: 320px;
+  margin-inline: auto;
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3cqw;
+  border-radius: 6%/4.3%;
+  border: 3cqw solid #868e96;
+  background: linear-gradient(160deg, #f8f9fa, #adb5bd 80%);
+  color: #1a1b1e;
+  text-align: center;
+}
+.debut-card[data-shiny] {
+  border-color: transparent;
+  background:
+    linear-gradient(160deg, #f8f9fa, #adb5bd 80%) padding-box,
+    linear-gradient(115deg, #ff4ecd, #ffd23f, #3cf0be, #4696ff, #b44dff) border-box;
+}
+.debut-card-initials { font-size: 26cqw; font-weight: 800; line-height: 1; opacity: 0.55; }
+.debut-card-name { font-size: 9cqw; font-weight: 800; line-height: 1.1; padding-inline: 6cqw; }
+.debut-card-note { font-size: 6cqw; font-weight: 600; opacity: 0.7; }
+
+/* ---- "You earned a new card" ------------------------------------------------------------ */
+.new-cards-banner {
+  border-color: rgba(255, 212, 59, 0.4);
+  background: linear-gradient(100deg, rgba(255, 212, 59, 0.13), rgba(20, 21, 25, 0.62) 60%);
+}
+.new-cards-fan {
+  position: relative;
+  flex: none;
+  width: 54px;
+  height: 52px;
+}
+.new-cards-fan .card-back {
+  position: absolute;
+  top: 2px;
+  width: 34px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.new-cards-fan .card-back:nth-child(1) { left: 2px; transform: rotate(-9deg); }
+.new-cards-fan .card-back:nth-child(2) { left: 16px; transform: rotate(8deg); }
+
+/* ---- Opening a card --------------------------------------------------------------------- */
+.reveal-modal {
+  background: #17181c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.reveal-stage {
+  position: relative;
+  width: min(270px, 72vw);
+  aspect-ratio: 63 / 88;
+  perspective: 1200px;
+}
+.reveal-turn {
+  position: relative;
+  z-index: 1;
+  animation: reveal-in 0.26s ease-out;
+}
+.reveal-turn[data-turning] {
+  animation: reveal-out 0.26s ease-in forwards;
+}
+@keyframes reveal-out {
+  to { transform: rotateY(90deg); }
+}
+@keyframes reveal-in {
+  from { transform: rotateY(-90deg); }
+}
+.reveal-back {
+  all: unset;
+  display: block;
+  position: relative;
+  width: 100%;
+  cursor: pointer;
+  border-radius: 12px;
+  -webkit-tap-highlight-color: transparent;
+  animation: reveal-breathe 1.8s ease-in-out infinite;
+}
+.reveal-back:focus-visible {
+  outline: 2px solid #ffd43b;
+  outline-offset: 3px;
+}
+@keyframes reveal-breathe {
+  50% { transform: translateY(-5px) scale(1.015); }
+}
+.reveal-tap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 9%;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.8);
+}
+/* Behind a shiny card: a burst of colour that settles into a glow. */
+.reveal-burst {
+  position: absolute;
+  inset: -22%;
+  border-radius: 50%;
+  background: conic-gradient(#ff4ecd, #ffd23f, #3cf0be, #4696ff, #b44dff, #ff4ecd);
+  filter: blur(36px);
+  opacity: 0.45;
+  animation: reveal-burst 0.9s ease-out, reveal-spin 7s linear infinite;
+}
+@keyframes reveal-burst {
+  from { transform: scale(0.35); opacity: 1; }
+}
+@keyframes reveal-spin {
+  to { rotate: 360deg; }
+}
+.reveal-caption {
+  min-height: 62px;
+  width: 100%;
+}
+.reveal-caption[data-up] {
+  animation: reveal-rise 0.35s ease-out;
+}
+@keyframes reveal-rise {
+  from { opacity: 0; transform: translateY(8px); }
+}
+.reveal-shiny {
+  text-align: center;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+/* ---- League champions and titles -------------------------------------------------------- */
+.champion-strip {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(244, 196, 48, 0.35);
+  background: linear-gradient(100deg, rgba(244, 196, 48, 0.14), rgba(244, 196, 48, 0.02) 70%);
+}
+.champion-crown {
+  width: 20px;
+  height: 15px;
+  flex: none;
+  fill: #f4c430;
+}
+.titles-trophy {
+  width: 46px;
+  height: 46px;
+  flex: none;
+  fill: #f4c430;
+  filter: drop-shadow(0 2px 8px rgba(244, 196, 48, 0.45));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-back,
+  .reveal-burst,
+  .card-back[data-shiny],
+  .reveal-caption[data-up] {
+    animation: none;
+  }
+  .reveal-turn,
+  .reveal-turn[data-turning] {
+    animation-duration: 1ms;
+  }
+  .collection-slot { transition: none; }
+}
+
+/* ---- Card packs ------------------------------------------------------------------------- */
+[data-rarity="common"] { --rarity: #adb5bd; --rarity-glow: 173, 181, 189; }
+[data-rarity="rare"] { --rarity: #4dabf7; --rarity-glow: 77, 171, 247; }
+[data-rarity="epic"] { --rarity: #c77dff; --rarity-glow: 199, 125, 255; }
+[data-rarity="legendary"] { --rarity: #ffd43b; --rarity-glow: 255, 212, 59; }
+
+.packs-banner {
+  border-color: rgba(250, 82, 82, 0.45);
+  background: linear-gradient(100deg, rgba(250, 82, 82, 0.15), rgba(20, 21, 25, 0.62) 60%);
+}
+.packs-banner-art {
+  flex: none;
+  width: 36px;
+}
+.packs-banner-art .pack { width: 36px; filter: none; }
+.packs-banner-art .pack-name,
+.packs-banner-art .pack-note { display: none; }
+.packs-banner-art .pack-body img { width: 62%; }
+
+.pack-button {
+  all: unset;
+  display: block;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  animation: reveal-breathe 1.8s ease-in-out infinite;
+}
+.pack-button:disabled { animation: none; cursor: default; }
+.pack-button:focus-visible { outline: 2px solid #ffd43b; outline-offset: 4px; border-radius: 8px; }
+.pack {
+  position: relative;
+  width: min(220px, 60vw);
+  aspect-ratio: 63 / 92;
+  filter: drop-shadow(0 14px 26px rgba(0, 0, 0, 0.55));
+}
+/* The foil wrapper: crimped strip on top, the sealed body under it. */
+.pack-top,
+.pack-body {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: linear-gradient(115deg, #5c0f12, #c92a2a 28%, #ff8787 44%, #e03131 58%, #7a1416 82%, #5c0f12) 0 0 / 300% 300%;
+  animation: foil-drift 5s ease-in-out infinite alternate;
+}
+.pack-top {
+  top: 0;
+  height: 12%;
+  border-radius: 4px 4px 0 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.4);
+  box-shadow: inset 0 0 0 100px rgba(0, 0, 0, 0.12);
+}
+.pack-body {
+  top: 12%;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  overflow: hidden;
+  border-radius: 0 0 4px 4px;
+}
+.pack-body::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.09) 0 3px, transparent 3px 9px);
+}
+.pack-body > * { position: relative; }
+.pack-body img {
+  width: 44%;
+  filter: drop-shadow(0 3px 10px rgba(0, 0, 0, 0.5)) brightness(1.12);
+}
+.pack-name {
+  color: #fff;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.pack-note {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+  font-weight: 700;
+}
+.pack[data-tearing] .pack-body { animation: pack-shake 0.32s linear, pack-drop 0.4s 0.34s ease-in forwards; }
+.pack[data-tearing] .pack-top { animation: pack-rip 0.42s 0.24s cubic-bezier(0.3, 0.7, 0.4, 1) forwards; }
+@keyframes pack-shake {
+  20% { transform: translateX(-4px) rotate(-1deg); }
+  40% { transform: translateX(4px) rotate(1deg); }
+  60% { transform: translateX(-3px) rotate(-1deg); }
+  80% { transform: translateX(3px) rotate(1deg); }
+}
+@keyframes pack-rip {
+  to { transform: translate(55%, -190%) rotate(24deg); opacity: 0; }
+}
+@keyframes pack-drop {
+  to { transform: translateY(45%) scale(0.92); opacity: 0; }
+}
+
+/* The colour behind a card as it's turned over; the rarer, the bigger. */
+.pull-burst {
+  position: absolute;
+  inset: -16%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(var(--rarity-glow), 0.75), transparent 68%);
+  filter: blur(18px);
+  animation: reveal-burst 0.8s ease-out;
+}
+.pull-burst[data-rarity="epic"] { inset: -24%; }
+.pull-burst[data-rarity="legendary"] { inset: -34%; filter: blur(8px); }
+.pull-burst[data-rarity="legendary"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: repeating-conic-gradient(rgba(255, 212, 59, 0.5) 0 12deg, transparent 12deg 30deg);
+  -webkit-mask: radial-gradient(circle, #000 35%, transparent 70%);
+  mask: radial-gradient(circle, #000 35%, transparent 70%);
+  animation: reveal-spin 9s linear infinite;
+}
+.pull-slot[data-rarity]:not([data-rarity="common"]) {
+  filter: drop-shadow(0 0 9px rgba(var(--rarity-glow), 0.55));
+}
+.pull-rarity {
+  min-height: 28px;
+  text-align: center;
+  font-size: 22px;
+  line-height: 1.25;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  color: var(--rarity);
+}
+.pull-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+.pull-summary .pull-slot { position: relative; }
+.rarity-pill {
+  position: absolute;
+  z-index: 3;
+  top: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--rarity);
+  background: #17181c;
+  color: var(--rarity);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.rarity-count {
+  color: var(--rarity);
+  font-size: 13px;
+  font-weight: 800;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pack-button,
+  .pack-top,
+  .pack-body,
+  .pull-burst,
+  .pull-burst[data-rarity="legendary"]::after {
+    animation: none;
+  }
+  .pack[data-tearing] .pack-body,
+  .pack[data-tearing] .pack-top {
+    animation: none;
+    opacity: 0.4;
+  }
+}
+
+/* Small cards on the summary: the rarity goes under the card, clear of the name. */
+.pull-summary .rarity-pill {
+  position: static;
+  display: block;
+  width: fit-content;
+  margin: 8px auto 0;
+  transform: none;
+}
+
+/* ---- Piles of Rares and Commons ---------------------------------------------------------- */
+.card-pile {
+  position: relative;
+  display: block;
+  border-radius: 10px;
+  transition: transform 0.18s ease-out;
+}
+.card-pile:hover { transform: translateY(-3px); }
+.card-pile:focus-visible { outline: 2px solid #ffd43b; outline-offset: 2px; }
+.card-pile-top {
+  position: relative;
+  z-index: 2;
+  transition: opacity 0.26s ease-out, transform 0.26s ease-out;
+}
+/* The cards underneath: only their edges show. */
+.card-pile-under {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  border-radius: 7%/5%;
+  border: 1px solid rgba(var(--rarity-glow), 0.5);
+  background: linear-gradient(150deg, #33363d, #17181c);
+  transform: rotate(4deg) translate(5px, 2px);
+}
+.card-pile-under + .card-pile-under {
+  z-index: 0;
+  opacity: 0.7;
+  transform: rotate(8deg) translate(10px, 5px);
+}
+.card-pile-count {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  bottom: 12%;
+  transform: translateX(-50%);
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(23, 24, 28, 0.92);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.card-pile { scroll-margin-top: 80px; }
+.card-pile-under { transition: opacity 0.26s ease-out, transform 0.3s ease-out; }
+.card-pile-count { transition: bottom 0.26s ease-out; }
+/* Open: the pile is empty, and marks where the cards go back to. */
+.card-pile[data-open] {
+  outline: 1px dashed rgba(var(--rarity-glow), 0.45);
+  outline-offset: -1px;
+}
+.card-pile[data-open] .card-pile-top {
+  opacity: 0;
+  transform: scale(0.95);
+}
+.card-pile[data-open] .card-pile-under {
+  opacity: 0;
+  transform: none;
+}
+.card-pile[data-open] .card-pile-count { bottom: 45%; }
+.card-pile-open { margin-top: 14px; }
+.card-pile-open-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.collection-grid .collection-slot { margin-top: 4px; }
+@media (prefers-reduced-motion: reduce) {
+  .card-pile,
+  .card-pile-top,
+  .card-pile-under,
+  .card-pile-count { transition: none; }
+}

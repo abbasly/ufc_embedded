@@ -4,7 +4,7 @@
 
 import { type SupabaseClient, type User as SupabaseUser, createClient } from "@supabase/supabase-js";
 
-import { type Backend, BackendError, type LeaderboardRow, type Method, type PickemBout, type EventScore, type Friend, type PickemEvent, type PickSplit, type Segment, type User, type VisitStats } from "./types";
+import { type Backend, BackendError, type LeaderboardRow, type Method, type PickemBout, type EventScore, type Friend, type PickemEvent, type PickSplit, type Segment, type User, type VisitStats, type PackReason, type Rarity } from "./types";
 
 const toRow = (r: Record<string, unknown>): LeaderboardRow => ({
   displayName: r.display_name as string,
@@ -183,12 +183,14 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
         const { data: auth } = await db.auth.getUser();
         if (!auth.user) throw new BackendError("Sign in first.");
         const id = auth.user.id;
-        const [profile, picks, scores, leagues, friends] = await Promise.all([
+        const [profile, picks, scores, leagues, friends, cards, seen] = await Promise.all([
           db.from("profiles").select("*").eq("id", id).maybeSingle(),
           db.from("picks").select("bout_id, winner, method, updated_at, bouts(a_name, b_name, events(name, starts_on))").eq("user_id", id),
           db.from("scores").select("event_id, points, correct, picked, events(name, starts_on)").eq("user_id", id),
           db.from("leagues").select("name, invite_code, owner_id, created_at"),
           db.rpc("my_friends"),
+          db.rpc("pack_cards_of", { player: id }),
+          db.from("seen").select("item, seen_at"),
         ]);
         return {
           exported_at: new Date().toISOString(),
@@ -204,6 +206,8 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
           scores: scores.data ?? [],
           leagues: (leagues.data ?? []).map((l) => ({ name: l.name, invite_code: l.invite_code, yours: l.owner_id === id, created_at: l.created_at })),
           friends: friends.data ?? [],
+          pack_cards: cards.data ?? [],
+          seen: seen.data ?? [],
         };
       },
       async byName(displayName) {
@@ -283,6 +287,41 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
         const id = await userId();
         const { error } = await db.from("picks").delete().eq("user_id", id).eq("bout_id", boutId);
         if (error) throw friendly(error);
+      },
+      async claimPacks() {
+        const { data, error } = await db.rpc("claim_packs");
+        if (error) throw friendly(error);
+        return (data as { id: string; event_id: string; event_name: string; reason: PackReason }[]).map((p) => ({
+          id: p.id,
+          eventId: p.event_id,
+          eventName: p.event_name,
+          reason: p.reason,
+        }));
+      },
+      async openPack(packId) {
+        const { data, error } = await db.rpc("open_pack", { pack: packId });
+        if (error) throw friendly(error);
+        return (data as { slot: number; fighter_id: string; name: string; rarity: Rarity }[]).map((c) => ({
+          slot: c.slot,
+          fighterId: c.fighter_id,
+          name: c.name,
+          rarity: c.rarity,
+        }));
+      },
+      async packCards(userId) {
+        const { data, error } = await db.rpc("pack_cards_of", { player: userId });
+        if (error) throw friendly(error);
+        return (data as { fighter_id: string; name: string; rarity: Rarity; copies: number }[]).map((c) => ({
+          fighterId: c.fighter_id,
+          name: c.name,
+          rarity: c.rarity,
+          copies: c.copies,
+        }));
+      },
+      async starterBadges(userId) {
+        const { data, error } = await db.rpc("starter_badges", { player: userId });
+        if (error) throw friendly(error);
+        return (data as { badge: string }[]).map((r) => r.badge);
       },
       async leaderboard(limit = 50) {
         const { data, error } = await db.from("leaderboard").select("*").order("points", { ascending: false }).limit(limit);
@@ -414,6 +453,21 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
       },
     },
 
+    seen: {
+      async list() {
+        const { data, error } = await db.from("seen").select("item");
+        if (error) throw friendly(error);
+        return data.map((r) => r.item as string);
+      },
+      async add(items) {
+        const id = await userId();
+        const { error } = await db.from("seen").upsert(
+          items.map((item) => ({ user_id: id, item })),
+          { onConflict: "user_id,item", ignoreDuplicates: true },
+        );
+        if (error) throw friendly(error);
+      },
+    },
     friends: {
       async list() {
         const id = await userId().catch(() => null);
@@ -480,6 +534,29 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
         const { data, error } = await db.rpc("league_standings", { league: leagueId });
         if (error) throw friendly(error);
         return (data as Record<string, unknown>[]).map(toRow);
+      },
+      async champions(leagueId) {
+        const { data, error } = await db.rpc("league_champions", { league: leagueId });
+        if (error) throw friendly(error);
+        return (data as { event_id: string; event_name: string; starts_on: string; display_name: string; avatar: string | null; points: number }[]).map((r) => ({
+          eventId: r.event_id,
+          eventName: r.event_name,
+          startsOn: r.starts_on,
+          displayName: r.display_name,
+          avatar: r.avatar,
+          points: r.points,
+        }));
+      },
+      async titlesOf(userId) {
+        const { data, error } = await db.rpc("league_titles", { player: userId });
+        if (error) throw friendly(error);
+        return (data as { event_id: string; event_name: string; starts_on: string; points: number; league_name: string | null }[]).map((r) => ({
+          eventId: r.event_id,
+          eventName: r.event_name,
+          startsOn: r.starts_on,
+          points: r.points,
+          leagueName: r.league_name,
+        }));
       },
     },
   };
