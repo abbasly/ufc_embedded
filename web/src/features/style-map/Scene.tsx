@@ -49,7 +49,8 @@ export function Scene(props: Props) {
   const { data, layout, dims, colorOf, label, isShown, highlightChampions, selectedId, onSelect } = props;
   const { neighbours, focusId, onFocus, math } = props;
   // Fighter math lights up its terms and answers; everyone else steps back.
-  const mathIds = useMemo(() => new Set([...(math?.terms.map((t) => t.ref) ?? []), ...(math?.matches.map((m) => m.fighter.id) ?? [])]), [math]);
+  // Only the fighters in the sum and the answer: not the runners-up, and styles have no point.
+  const mathIds = useMemo(() => new Set([...(math?.terms.filter((t) => !t.style).map((t) => t.ref) ?? []), ...(math?.matches.slice(0, 1).map((m) => m.fighter.id) ?? [])]), [math]);
   const [hovered, setHovered] = useState<Fighter | null>(null);
   const spin = useIdleSpin();
   const geometry = useMemo(() => new SphereGeometry(RADIUS, 12, 12), []);
@@ -78,7 +79,7 @@ export function Scene(props: Props) {
   // The similar-fighters view: just the selection and its neighbours, up close.
   const similarView = selected !== undefined && neighbours.length > 0;
   // Fighter math: frame the arrows and the answer.
-  const mathPoints = math ? [...math.points, ...math.terms.map((t) => t.at), ...math.matches.slice(0, 1).map((m) => m.at)] : [];
+  const mathPoints = math ? [...math.points, ...math.terms.filter((t) => !t.style).map((t) => t.at), ...math.matches.slice(0, 1).map((m) => m.at)] : [];
   const mathCentre = mathPoints.length ? ([0, 1, 2].map((a) => mathPoints.reduce((s, p) => s + p[a]!, 0) / mathPoints.length) as Vec3) : null;
   const flyTarget = mathCentre ?? (similarView ? position(selected) : null);
   // How far out the neighbours are: the median one, so a single outlier doesn't zoom out the view.
