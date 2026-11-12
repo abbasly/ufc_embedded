@@ -17,7 +17,7 @@ evaluated, how Pick'em runs, and where the data comes from.
 
 ## Features
 
-- **[Style Map](https://ufc.anarli.com/style-map)**: ~700 active fighters placed in 3D by how
+- **[Fighter Lab](https://ufc.anarli.com/fighter-lab)**: ~700 active fighters placed in 3D by how
   they fight. Click anyone and the camera flies to them, with lines and photo labels out to
   their 5 most similar fighters (across the map or in their own division), ranked with a
   similarity score out of 100 and what they share ("Leg kicks · Top control"). Readable style

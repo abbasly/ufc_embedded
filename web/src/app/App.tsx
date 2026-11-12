@@ -30,20 +30,17 @@ const PlayerPage = lazyPage(() => import("../features/profile/PlayerPage"));
 const AdminPage = lazyPage(() => import("../features/admin/AdminPage"));
 const SeoPage = lazyPage(() => import("../features/seo/SeoPage"));
 
-// The landing page: Pick'em where accounts are on, else About (also at /about either way).
-const HOME = accountsEnabled ? "pickem" : "about";
-
 // The tabs: across the header on wider screens, a bottom tab bar on phones (with the `short`
-// labels). `fresh` tabs get a tag ("NEW", or `tag`). Pick'em (first: it's the landing page)
-// only where accounts are on.
+// labels). `fresh` tabs get a tag ("NEW", or `tag`). Fighter Lab first: it's the landing page.
+// Pick'em only where accounts are on.
 const NAV: NavItem[] = [
-  ...(accountsEnabled ? [{ to: "/", label: "Pick'em", short: "Picks", icon: ICONS.picks }] : []),
+  { to: "/fighter-lab", label: "Fighter Lab", short: "Lab", icon: ICONS.map },
+  ...(accountsEnabled ? [{ to: "/pickem", label: "Pick'em", short: "Picks", icon: ICONS.picks }] : []),
   { to: "/predictor", label: "Predictor", short: "Predict", icon: ICONS.predictor },
   { to: "/mma-math", label: "MMA Math", short: "Math", icon: ICONS.math, fresh: !accountsEnabled },
-  { to: "/style-map", label: "Style Map", short: "Map", icon: ICONS.map },
   { to: "/ladder", label: "Ladder", icon: ICONS.ladder },
   { to: "/fighters", label: "Fighters", icon: ICONS.ladder, topOnly: true },
-  { to: HOME === "about" ? "/" : "/about", label: "About", icon: ICONS.about },
+  { to: "/about", label: "About", icon: ICONS.about },
 ];
 
 const GLASS = {
@@ -55,7 +52,7 @@ const GLASS = {
 // Browser tab titles (also what search results show); keep in sync with scripts/route-previews.mjs.
 const TITLES: Record<string, string> = {
   "/": "UFC Embedded by Anar Abbasli: UFC fight predictor, style map and Elo rankings",
-  "/style-map": "UFC fighter style map: who fights like who | UFC Embedded",
+  "/fighter-lab": "Fighter Lab: fighter math and the UFC style map | UFC Embedded",
   "/predictor": "UFC fight predictor: who wins and how | UFC Embedded",
   "/ladder": "UFC Elo rankings: every fighter rated since 1994 | UFC Embedded",
   "/mma-math": "MMA math calculator: prove any UFC fighter beats any other | UFC Embedded",
@@ -66,17 +63,18 @@ const TITLES: Record<string, string> = {
   "/me": "Your profile | UFC Embedded",
 };
 
-/** The landing page (Pick'em, or About without accounts). Style-map links from when the map
- * was the home page (/?fighter=islam-makhachev) still open the map on that fighter. */
+/** The landing page: Fighter Lab. Pick'em was the landing page before, so its old links
+ * (results emails: /?event=..., invites: /?join=...) still go to Pick'em. */
 function Home() {
   const [params] = useSearchParams();
-  if (params.has("fighter")) return <Navigate to={`/style-map?${params}`} replace />;
-  return HOME === "pickem" ? <PickemPage /> : <AboutPage />;
+  const search = params.size ? `?${params}` : "";
+  const pickem = accountsEnabled && (params.has("event") || params.has("join") || params.has("league"));
+  return <Navigate to={`${pickem ? "/pickem" : "/fighter-lab"}${search}`} replace />;
 }
 
-/** /pickem (invite links: /pickem?join=CODE) is the home page now; keep the query. */
-function ToHome() {
-  return <Navigate to={{ pathname: "/", search: useLocation().search }} replace />;
+/** The old address of Fighter Lab, from before it was renamed: kept for old links. */
+function ToFighterLab() {
+  return <Navigate to={{ pathname: "/fighter-lab", search: useLocation().search }} replace />;
 }
 
 export function App() {
@@ -134,18 +132,19 @@ export function App() {
         <Suspense fallback={<Center h="60vh"><Loader /></Center>}>
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/style-map" element={<StyleMapPage />} />
+            <Route path="/fighter-lab" element={<StyleMapPage />} />
+            <Route path="/style-map" element={<ToFighterLab />} />
             <Route path="/mma-math" element={<MmaMathPage />} />
             <Route path="/predictor" element={<PredictorPage />} />
             <Route path="/ladder" element={<LadderPage />} />
-            {accountsEnabled && <Route path="/pickem" element={<ToHome />} />}
+            {accountsEnabled && <Route path="/pickem" element={<PickemPage />} />}
             {accountsEnabled && <Route path="/me" element={<ProfilePage />} />}
             {accountsEnabled && <Route path="/u/:name" element={<PlayerPage />} />}
             {accountsEnabled && <Route path="/admin" element={<AdminPage />} />}
             <Route path="/fighters/*" element={<SeoPage />} />
             <Route path="/cards/*" element={<SeoPage />} />
             <Route path="/fights/*" element={<SeoPage />} />
-            <Route path="/about" element={HOME === "about" ? <Navigate to="/" replace /> : <AboutPage />} />
+            <Route path="/about" element={<AboutPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/impressum" element={<ImpressumPage />} />
             <Route path="*" element={<NotFoundPage />} />

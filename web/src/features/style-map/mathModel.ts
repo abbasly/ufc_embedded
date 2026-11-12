@@ -131,21 +131,20 @@ export function formatTerms(terms: Term[]): string {
 
 export function parseTerms(text: string | null): Term[] {
   if (!text) return [];
+  const seen = new Set<string>();
   return text
     .split(",")
-    .filter(Boolean)
+    .map((part) => ({ sign: (part.startsWith("-") ? -1 : 1) as 1 | -1, ref: part.replace(/^[+-]/, "") }))
+    .filter((t) => t.ref && !seen.has(t.ref) && seen.add(t.ref)) // each fighter or style once
     .slice(0, MAX_TERMS)
-    .map((part, i) => {
-      const sign = part.startsWith("-") ? -1 : 1;
-      const ref = part.replace(/^[+-]/, "");
-      return { sign: i === 0 ? 1 : sign, ref };
-    });
+    .map((t, i) => (i === 0 ? { ...t, sign: 1 as const } : t));
 }
 
 /** Ready-made sums to start from; ones whose fighters have left the map are skipped. */
+// The first one that resolves is what Fighter Lab opens with.
 export const PRESETS: { label: string; terms: [string, -1 | 1, string, -1 | 1, string] }[] = [
-  { label: "Pereira as a wrestler", terms: ["alex-pereira", -1, "Kickboxers", 1, "Dominant wrestlers"] },
   { label: "Topuria as a wrestler", terms: ["ilia-topuria", -1, "Volume boxers", 1, "Dominant wrestlers"] },
+  { label: "Pereira as a wrestler", terms: ["alex-pereira", -1, "Kickboxers", 1, "Dominant wrestlers"] },
   { label: "Makhachev as a kickboxer", terms: ["islam-makhachev", -1, "Dominant wrestlers", 1, "Kickboxers"] },
   { label: "Harrison as a kickboxer", terms: ["kayla-harrison", -1, "Dominant wrestlers", 1, "Kickboxers"] },
 ];

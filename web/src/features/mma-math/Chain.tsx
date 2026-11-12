@@ -102,13 +102,13 @@ export function FighterChip({ fighter, lookup, faded }: { fighter: MmaFighter; l
                   {t}
                 </Text>
               ))}
-              <Anchor component={Link} to={`/style-map?fighter=${fighter.id}`} size="xs">
-                Show on the style map →
+              <Anchor component={Link} to={`/fighter-lab?fighter=${fighter.id}`} size="xs">
+                Show in Fighter Lab →
               </Anchor>
             </>
           ) : (
             <Text size="xs" c="dimmed">
-              Not on the style map (not active recently or not enough stats).
+              Not in Fighter Lab (not active recently or not enough stats).
             </Text>
           )}
         </Stack>
@@ -137,8 +137,8 @@ export function FighterChip({ fighter, lookup, faded }: { fighter: MmaFighter; l
         <FighterTradingCard id={fighter.id} fallback={details} />
         <Group justify="space-between" mt={6} px={4}>
           {style && (
-            <Anchor component={Link} to={`/style-map?fighter=${fighter.id}`} size="xs">
-              Style map →
+            <Anchor component={Link} to={`/fighter-lab?fighter=${fighter.id}`} size="xs">
+              Fighter Lab →
             </Anchor>
           )}
           <FighterPageLink id={fighter.id} size="xs">

@@ -7,8 +7,8 @@ Three decades of UFC fights, turned into machine learning models you can play wi
 <table>
   <tr>
     <td width="50%" valign="top">
-      <a href="https://ufc.anarli.com/style-map"><img src="docs/screenshots/style-map.png" alt="Style map"></a><br>
-      <sub><b>Style Map</b>: every active fighter in 3D, by how they fight</sub>
+      <a href="https://ufc.anarli.com/fighter-lab"><img src="docs/screenshots/style-map.png" alt="Style map"></a><br>
+      <sub><b>Fighter Lab</b>: fighter math, and every active fighter in 3D by how they fight</sub>
     </td>
     <td width="50%" valign="top">
       <a href="https://ufc.anarli.com/predictor"><img src="docs/screenshots/predictor.png" alt="Fight predictor"></a><br>
@@ -55,7 +55,7 @@ end-to-end attempt to turn that data into something useful and honest:
 
 | Page | What it does | Under the hood |
 |---|---|---|
-| [Style Map](https://ufc.anarli.com/style-map) | ~700 active fighters in 3D, 5 most similar for each | 14 stability-weighted style stats, t-SNE, k-means |
+| [Fighter Lab](https://ufc.anarli.com/fighter-lab) | ~700 active fighters in 3D, 5 most similar for each | 14 stability-weighted style stats, t-SNE, k-means |
 | [Fight Predictor](https://ufc.anarli.com/predictor) | Win chance, method, what drives the call | Logistic regression on point-in-time features, Glicko ratings |
 | [Pick'em](https://ufc.anarli.com) | Picks, leagues, live scoring, the model as a player | Supabase (Postgres, row level security), live sync from Wikipedia |
 | [Elo Ladder](https://ufc.anarli.com/ladder) | Ratings next to official ranks | Elo from every UFC fight since 1994 |

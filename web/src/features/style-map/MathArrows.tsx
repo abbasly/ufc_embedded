@@ -102,7 +102,9 @@ export function MathArrows({ view, portal }: { view: MathView; portal: React.Ref
 
 function TermChip({ term, first, delay }: { term: MathTermView; first: boolean; delay: number }) {
   return (
-    <div style={{ ...chip, borderColor: term.color, animationDelay: `${delay}s` }}>
+    // Fighters' labels sit above their point, styles' below, so a fighter and a style that are
+    // close together (Topuria and the volume boxers' average) don't cover each other.
+    <div style={{ ...chip, borderColor: term.color, animationDelay: `${delay}s`, transform: term.style ? "translate(-50%, 45%)" : chip.transform }}>
       {!first && <span style={{ color: term.sign > 0 ? PLUS : MINUS, fontWeight: 800 }}>{term.sign > 0 ? "+" : "−"}</span>}
       {term.image && <img src={term.image} alt="" style={chipPhoto} />}
       <span>{term.name}</span>

@@ -76,7 +76,7 @@ export function UserMenu() {
               </Text>
             )}
           </Menu.Item>
-          <Menu.Item component={Link} to="/">
+          <Menu.Item component={Link} to="/pickem">
             Pick'em
           </Menu.Item>
           {app.can && <Menu.Item onClick={app.install}>Install app</Menu.Item>}
