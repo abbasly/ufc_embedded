@@ -260,13 +260,16 @@ function StyleOverview({ data }: { data: StyleMapData }) {
         Every fighter is a point in a {data.features.length}-stat style space: output, accuracy and
         power, where their strikes land (head, body, legs) and where they throw them (at range, in
         the clinch, on the ground), takedowns, control and submissions. Stats from only a few fights
-        are pulled toward the average, and each stat counts by how steady it is over a career.
+        are pulled toward the average. How the stats combine is learned from the fights themselves:
+        what tells one fighter from another counts, what changes from fight to fight doesn't, and
+        stats that say the same thing aren't counted twice.
       </Text>
       {before && now && (
         <Text size="xs" c="dimmed">
           The test: split a fighter's fights in two and look for the other half among {now.n}{" "}
-          fighters. It's in the top 10 {Math.round(now.top10 * 100)}% of the time, up from{" "}
-          {Math.round(before.top10 * 100)}% with UFCStats' 8 career averages alone.
+          fighters, with the embedding learned without that fighter. It's in the top 10{" "}
+          {Math.round(now.top10 * 100)}% of the time, up from {Math.round(before.top10 * 100)}% with
+          UFCStats' 8 career averages alone.
         </Text>
       )}
       <Text size="xs" c="dimmed">

@@ -34,7 +34,7 @@ const FLOW: { label: string; hint?: string; core?: boolean; items: FlowItem[] }[
     core: true,
     items: [
       { title: "Point-in-time features", text: "Only fights before the one in question" },
-      { title: "Style embedding", text: "14 stats, shrunk and stability-weighted" },
+      { title: "Style embedding", text: "14 stats and a learned metric" },
       { title: "Ratings", text: "Elo and Glicko, fight by fight" },
       { title: "Fight models", text: "Who wins, and how" },
       { title: "Win graph", text: "Who beat whom" },
