@@ -147,6 +147,8 @@ export function parseTerms(text: string | null): Term[] {
   const seen = new Set<string>();
   return text
     .split(",")
+    // A "+" typed into a link arrives as a space (form encoding): it still means add.
+    .map((part) => part.trim())
     .map((part) => ({ sign: (part.startsWith("-") ? -1 : 1) as 1 | -1, ref: part.replace(/^[+-]/, "") }))
     .filter((t) => t.ref && !seen.has(t.ref) && seen.add(t.ref)) // each fighter or style once
     .slice(0, MAX_TERMS)
