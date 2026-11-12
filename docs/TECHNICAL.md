@@ -197,9 +197,10 @@ has learned nothing about size beyond that.
 ## Pick'em
 
 **Playing.** Every fight on the next cards, from Wikipedia: main card, prelims and title
-fights. Picks lock at noon local time on fight day (7 am for East Asia and Oceania). Only the
-main card scores: **10** for the winner, **+5** for the method (KO/TKO, submission,
-decision), **+5** for calling an underdog by the bookmakers' odds. Prelims are for fun.
+fights. Picks lock at noon local time on fight day (7 am for East Asia and Oceania). The main
+card scores **10** for the winner, **+5** for the method (KO/TKO, submission, decision),
+**+5** for calling an underdog by the bookmakers' odds. Prelims score **1** for the winner,
+with no bonuses (since November 2026, applied to past cards too).
 
 **The model plays too.** An account called `the_model` picks every bout with the deployed win
 and method models, like a player: only while the bout is open, never changed after the lock,

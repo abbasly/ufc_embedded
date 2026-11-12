@@ -42,10 +42,11 @@ const surname = (name: string) => name.split(" ").at(-1)!;
 /** The bookies' chance for the fighter picked. */
 const chance = (b: Bout, fighter: string) => (b.market_p_a === null ? null : fighter === b.fighter_a ? b.market_p_a : 1 - b.market_p_a);
 
-/** Points for one pick (main card, decided bouts only; null otherwise). */
+/** Points for one pick (decided bouts only; null otherwise). A prelim is 1, no bonuses. */
 export function pickPoints(b: Bout, p: Pick): number | null {
-  if (b.segment !== "main" || b.outcome !== "win") return null;
+  if (b.outcome !== "win") return null;
   if (p.winner !== b.winner) return 0;
+  if (b.segment !== "main") return 1;
   return 10 + (p.method && p.method === b.method ? 5 : 0) + ((chance(b, p.winner) ?? 1) < 0.5 ? 5 : 0);
 }
 

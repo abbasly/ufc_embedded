@@ -72,6 +72,12 @@ describe("fighter math", () => {
     expect(parseTerms("alex-pereira,-s:0,+s:2")).toEqual(terms);
     expect(parseTerms("-x")[0]!.sign).toBe(1); // the first term is always added
     expect(parseTerms("a,+s:2,+s:2,-a").map((t) => t.ref)).toEqual(["a", "s:2"]); // each once
+    // A typed "+" reaches the page as a space.
+    expect(parseTerms(new URLSearchParams("math=a,-s:3,+b").get("math"))).toEqual([
+      { sign: 1, ref: "a" },
+      { sign: -1, ref: "s:3" },
+      { sign: 1, ref: "b" },
+    ]);
   });
 });
 
