@@ -6,7 +6,7 @@ evaluated, how Pick'em runs, and where the data comes from.
 **Contents**
 
 1. [Features](#features)
-2. [Style map](#style-map)
+2. [Style map and fighter math](#style-map-and-fighter-math)
 3. [MMA math](#mma-math)
 4. [Fight predictor](#fight-predictor)
 5. [Pick'em](#pickem)
@@ -17,8 +17,10 @@ evaluated, how Pick'em runs, and where the data comes from.
 
 ## Features
 
-- **[Fighter Lab](https://ufc.anarli.com/fighter-lab)**: ~700 active fighters placed in 3D by how
-  they fight. Click anyone and the camera flies to them, with lines and photo labels out to
+- **[Fighter Lab](https://ufc.anarli.com/fighter-lab)**: the landing page. **Fighter math** adds
+  and takes away fighting styles the way word embeddings do with meanings ("Topuria − Volume
+  boxers + Dominant wrestlers = ?"), answered with the closest real fighter and drawn as arrows
+  on the map. Around it, ~700 active fighters placed in 3D by how they fight. Click anyone and the camera flies to them, with lines and photo labels out to
   their 5 most similar fighters (across the map or in their own division), ranked with a
   similarity score out of 100 and what they share ("Leg kicks · Top control"). Readable style
   axes or a t-SNE similarity view; filter by style, weight class, champions or ranked fighters.
@@ -45,7 +47,7 @@ evaluated, how Pick'em runs, and where the data comes from.
   pipeline and the pages.
 - **Installable**: a web app manifest, so phones can add it to the home screen.
 
-## Style map
+## Style map and fighter math
 
 1. Take fighters active in the last 3 years with at least 3 UFC fights (~700).
 2. Rebuild 14 style stats from every fight's totals: output, accuracy, knockdowns, strikes
@@ -54,19 +56,35 @@ evaluated, how Pick'em runs, and where the data comes from.
 3. **Shrink** noisy stats toward the average using real counts (minutes, attempts), so a 100%
    takedown accuracy from 1 attempt doesn't count, then log-transform the skewed rates and
    standardise.
-4. **Weight** each stat by how steady it is over a career: the correlation between a fighter's
-   first and second half of fights (body strikes 0.64, takedowns 0.59 ... takedown accuracy
-   0.04, which is mostly noise).
+4. **Learn the metric** (`learn_metric`): how the 14 standardised stats combine into the
+   embedding is learned from the fights, with linear discriminant analysis and every fighter as
+   a class. Each fighter's fights are split into two halves five ways (alternate fights, and
+   four random splits); the differences between halves are the noise, the spread of whole
+   careers the signal, and the embedding `x @ W` maximises signal over noise. Stats that
+   wobble from fight to fight count less, and stats that say the same thing (output and
+   knockdowns, takedowns and control) stop being counted twice. It learns from every fighter's
+   fights since 1994, not only the active ones. Takedowns and control time count the most;
+   takedown defence and clinch work the least.
 5. **Test** the embedding: split each fighter's fights alternately into two halves and look for
-   one half's profile among everyone's other halves (517 fighters with 6+ fights).
+   one half's profile among everyone's other halves (the 517 active fighters with 6+ fights).
+   The learned embedding is scored fairly: the fighters are split into 5 groups, and each
+   group is scored with a metric learned without their fights. A second test predicts forward:
+   a profile from all but a fighter's last 3 fights looks for those 3 (393 fighters with 8+).
 
-   | Embedding | Own other half in top 10 | Top 1 | Median rank |
-   |---|---|---|---|
-   | 8 UFCStats career averages | 17.8% | 3.9% | 70 |
-   | 14 stats | 28.2% | 10.1% | 38 |
-   | 14 stats, stability-weighted (deployed) | **32.9%** | **10.8%** | **27** |
+   | Embedding | Own other half: top 10 | Top 1 | Median rank | Last 3 fights: top 10 | Median rank |
+   |---|---|---|---|---|---|
+   | 8 UFCStats career averages | 17.8% | 3.9% | 70 | | |
+   | 14 stats | 28.2% | 10.1% | 38 | | |
+   | 14 stats, stability-weighted (before) | 32.9% | 10.8% | 27 | 23.7% | 41 |
+   | **14 stats, learned metric (deployed)** | **36.8%** | **15.1%** | **22** | **25.7%** | **34** |
 
-   `uv run python -m ufc_embedded.style_map` reproduces this.
+   `uv run python -m ufc_embedded.style_map` reproduces this. Tried and left out:
+   - **Opponent-adjusted stats** (each stat against what that fight's opponent usually
+     allows): worse on both tests, likely because good fighters mostly face good opponents,
+     so adjusting strips out real signal along with the opponent's.
+   - **Weighting recent fights more** (half-life 6 years): slightly better at finding the
+     last 3 fights (27.0%) but worse at finding the other half (35.4%), with fewer top-1 hits
+     on both, so not worth it.
 6. Two layouts:
    - **Style axes:** hand-defined Grappling, Striking and Defence scores (weighted stat
      averages), readable by construction. PCA/varimax axes were tried first, but the data's
@@ -79,7 +97,17 @@ evaluated, how Pick'em runs, and where the data comes from.
 7. k-means for five styles (kickboxers, volume boxers, dominant wrestlers, clinch fighters,
    low-volume all-rounders), nearest neighbours in the embedding for "most similar". The match
    score runs 0-100: 100 is the same style, 0 is as far apart as a typical pair of fighters.
-8. Current champions and rankings come from the official rankings; fighter photos (free
+8. **Fighter math** (`web/src/features/style-map/mathModel.ts`): a fighter is their
+   standardised stats, a style the average of its fighters, and a sum such as "Topuria −
+   Volume boxers + Dominant wrestlers" is added up in those 14 numbers. The answer is the real
+   fighter closest to the sum in the learned embedding (the terms themselves don't count), the
+   same distance the "most similar" lists use, so the two always agree. Everything involved is
+   linear, so the sum means something: the embedding is `x @ W`, and the Style axes layout is a
+   fixed linear map of the stats too (`axes_projection`), which is why the arrows drawn on it
+   add up exactly. They show 3 of the 14 dimensions, so the answer can sit a little off the
+   last arrow's tip. Each fighter or style can be in a sum once: adding the same style twice
+   only pushes the sum off the map.
+9. Current champions and rankings come from the official rankings; fighter photos (free
    licences only, about a third of fighters) from Wikipedia.
 
 ## MMA math

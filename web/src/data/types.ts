@@ -97,7 +97,10 @@ export interface Champion {
 /** What fighter arithmetic needs (see ufc_embedded.export: "math"). Added without a schema bump. */
 export interface StyleMath {
   keys: string[]; // the stat behind each number of vec and weights (not the features order)
-  weights: number[]; // per stat: vec times these is the similarity embedding
+  weights: number[]; // per stat: how much it counts in the similarity embedding (0..1)
+  // The similarity embedding is vec @ metric (rows follow keys). Exports before it existed
+  // measured similarity with vec times weights instead.
+  metric?: number[][];
   typical_distance: number; // a distance this big scores 0 out of 100
   // Style axes position of any vector v: (v @ matrix - mean) / std * scale3 (3D), or the
   // first two of those with scale2 (2D).

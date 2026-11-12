@@ -98,16 +98,29 @@ export interface Match {
   similarity: number; // 0-100, as in the "most similar" lists
 }
 
-/** The real fighters closest to a vector in the full embedding (stats times their weights). */
+/** How far apart two vectors are in the embedding similarity is measured in: through the
+ * learned metric (vec @ metric), or, in older exports, the stats times their weights. */
+export function embeddingDistance(math: StyleMath, a: number[], b: number[]): number {
+  const diff = a.map((x, i) => x - b[i]!);
+  let d = 0;
+  if (math.metric) {
+    const dims = math.metric[0]!.length;
+    for (let j = 0; j < dims; j++) {
+      let z = 0;
+      diff.forEach((x, i) => (z += x * math.metric![i]![j]!));
+      d += z * z;
+    }
+  } else {
+    diff.forEach((x, i) => (d += (x * math.weights[i]!) ** 2));
+  }
+  return Math.sqrt(d);
+}
+
+/** The real fighters closest to a vector in the full embedding. */
 export function closest(data: StyleMapData & { math: StyleMath }, v: number[], exclude: Set<string>, k = 3, division?: string): Match[] {
-  const w = data.math.weights;
   return data.fighters
     .filter((f) => f.vec && !exclude.has(f.id) && (!division || f.weight_class === division))
-    .map((f) => {
-      let d = 0;
-      f.vec!.forEach((x, i) => (d += ((x - v[i]!) * w[i]!) ** 2));
-      return { fighter: f, distance: Math.sqrt(d) };
-    })
+    .map((f) => ({ fighter: f, distance: embeddingDistance(data.math, f.vec!, v) }))
     .sort((a, b) => a.distance - b.distance)
     .slice(0, k)
     .map((m) => ({ ...m, similarity: Math.round(Math.min(100, Math.max(0, 100 * (1 - m.distance / data.math.typical_distance)))) }));
@@ -143,10 +156,13 @@ export function parseTerms(text: string | null): Term[] {
 /** Ready-made sums to start from; ones whose fighters have left the map are skipped. */
 // The first one that resolves is what Fighter Lab opens with.
 export const PRESETS: { label: string; terms: [string, -1 | 1, string, -1 | 1, string] }[] = [
-  { label: "Topuria as a wrestler", terms: ["ilia-topuria", -1, "Volume boxers", 1, "Dominant wrestlers"] },
+  // Famous on both ends: each answer is a champion or ranked fighter too (on the learned
+  // embedding of November 2026; a data refresh can change the answers).
+  { label: "Khamzat without the wrestling", terms: ["khamzat-chimaev", -1, "Dominant wrestlers", 1, "Low-volume all-rounders"] },
   { label: "Pereira as a wrestler", terms: ["alex-pereira", -1, "Kickboxers", 1, "Dominant wrestlers"] },
-  { label: "Makhachev as a kickboxer", terms: ["islam-makhachev", -1, "Dominant wrestlers", 1, "Kickboxers"] },
-  { label: "Harrison as a kickboxer", terms: ["kayla-harrison", -1, "Dominant wrestlers", 1, "Kickboxers"] },
+  { label: "Ulberg as a wrestler", terms: ["carlos-ulberg", -1, "Kickboxers", 1, "Dominant wrestlers"] },
+  { label: "Tsarukyan as a kickboxer", terms: ["arman-tsarukyan", -1, "Dominant wrestlers", 1, "Kickboxers"] },
+  { label: "Kape − Van + Holloway", terms: ["manel-kape", -1, "joshua-van", 1, "max-holloway"] },
 ];
 
 /** A preset as terms, or null if one of its fighters or styles isn't on the map. */

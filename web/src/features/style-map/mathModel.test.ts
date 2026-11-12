@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import type { StyleMapData } from "../../data/types";
-import { changes, chain, closest, combine, formatTerms, hasMath, parseTerms, place, PRESETS, presetTerms, styleRef, type Term, termVector } from "./mathModel";
+import { changes, chain, closest, combine, embeddingDistance, formatTerms, hasMath, parseTerms, place, PRESETS, presetTerms, styleRef, type Term, termVector } from "./mathModel";
 
 // A tiny made-up map: two stats, an identity-like projection, three fighters in two styles.
 function tiny(): StyleMapData {
@@ -55,6 +55,15 @@ describe("fighter math", () => {
     if (!hasMath(data)) throw new Error("no math");
     // The first number is "b" (Takedowns) here, though Strikes comes first in features.
     expect(changes(data, [0, 0], [1, 0])).toEqual([{ label: "Takedowns", up: true }]);
+  });
+
+  it("measures distance through the learned metric when there is one", () => {
+    const data = tiny();
+    if (!hasMath(data)) throw new Error("no math");
+    // A metric that only looks at the second number: the first stops mattering.
+    data.math.metric = [[0], [2]];
+    expect(embeddingDistance(data.math, [5, 1], [0, 0])).toBeCloseTo(2);
+    expect(closest(data, [9, 2], new Set())[0]!.fighter.id).toBe("r");
   });
 
   it("round-trips terms through the address", () => {

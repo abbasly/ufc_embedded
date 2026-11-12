@@ -55,7 +55,7 @@ end-to-end attempt to turn that data into something useful and honest:
 
 | Page | What it does | Under the hood |
 |---|---|---|
-| [Fighter Lab](https://ufc.anarli.com/fighter-lab) | ~700 active fighters in 3D, 5 most similar for each | 14 stability-weighted style stats, t-SNE, k-means |
+| [Fighter Lab](https://ufc.anarli.com/fighter-lab) | Fighter math (A − B + C = ?), ~700 active fighters in 3D, 5 most similar for each | 14 style stats, a learned metric (LDA), t-SNE, k-means |
 | [Fight Predictor](https://ufc.anarli.com/predictor) | Win chance, method, what drives the call | Logistic regression on point-in-time features, Glicko ratings |
 | [Pick'em](https://ufc.anarli.com) | Picks, leagues, live scoring, the model as a player | Supabase (Postgres, row level security), live sync from Wikipedia |
 | [Elo Ladder](https://ufc.anarli.com/ladder) | Ratings next to official ranks | Elo from every UFC fight since 1994 |
@@ -89,11 +89,14 @@ years (2,457 fights):
 The model stays behind the market: bookmakers know about injuries, short notice and
 debutants' careers before the UFC, which the stats don't.
 
-**Style map.** Each fighter becomes a vector of 14 style stats (output, accuracy, where strikes
+**Fighter Lab.** Each fighter becomes a vector of 14 style stats (output, accuracy, where strikes
 land, takedowns, control, submissions...), shrunk toward the average when based on little
-data and weighted by how stable each stat is over a career. Tested by splitting every career
-in two and finding the other half: the deployed embedding finds it in the top 10 for 32.9% of
-fighters, against 17.8% for UFCStats' own career averages.
+data. How the stats combine is learned with linear discriminant analysis, every fighter a class:
+stats that wobble from fight to fight count less, and overlapping ones aren't counted twice. It's
+all linear, so fighters and styles can be added and subtracted (**fighter math**: "Topuria −
+Volume boxers + Dominant wrestlers = ?"). Tested by splitting every career in two and finding the
+other half: the learned embedding finds it in the top 10 for 36.8% of fighters (scored on
+fighters it didn't learn from), against 32.9% before and 17.8% for UFCStats' own career averages.
 
 All the details (features, evaluation, the style map pipeline, MMA math and Pick'em) are in
 [docs/TECHNICAL.md](docs/TECHNICAL.md).
