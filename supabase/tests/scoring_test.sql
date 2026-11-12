@@ -2,7 +2,8 @@
 --
 -- Sam and Pia pick three main-card bouts: a favourite's KO win, an underdog's submission win
 -- and a draw. Sam gets both winners (one method right, one underdog), Pia neither. Sam's right
--- pick on a prelim doesn't count: only the main card scores.
+-- pick on a prelim is worth 1 (no bonuses there), Pia's wrong one 0, and Kim, who picked only a
+-- prelim, is on the card too.
 
 \set ON_ERROR_STOP 1
 \set QUIET 1
@@ -11,11 +12,13 @@
 insert into auth.users (id) values
   ('00000000-0000-0000-0000-0000000000f1'),
   ('00000000-0000-0000-0000-0000000000f2'),
-  ('00000000-0000-0000-0000-0000000000f3');
+  ('00000000-0000-0000-0000-0000000000f3'),
+  ('00000000-0000-0000-0000-0000000000f4');
 insert into public.profiles (id, display_name, avatar) values
   ('00000000-0000-0000-0000-0000000000f1', 'sam', 'ciryl-gane'),
   ('00000000-0000-0000-0000-0000000000f2', 'pia', null),
-  ('00000000-0000-0000-0000-0000000000f3', 'lou', null);
+  ('00000000-0000-0000-0000-0000000000f3', 'lou', null),
+  ('00000000-0000-0000-0000-0000000000f4', 'kim', null);
 insert into public.events (id, name, starts_on, locks_at) values
   ('sc', 'Scored card', current_date - 1, now() - interval '1 day');
 insert into public.bouts (id, event_id, position, fighter_a, fighter_b, a_name, b_name, market_p_a, segment) values
@@ -28,10 +31,12 @@ insert into public.picks (user_id, bout_id, winner, method) values
   ('00000000-0000-0000-0000-0000000000f1', 'sc:fav:dog', 'fav', 'KO/TKO'),     -- 10 + 5 method
   ('00000000-0000-0000-0000-0000000000f1', 'sc:big:small', 'small', 'DEC'),    -- 10 + 5 underdog
   ('00000000-0000-0000-0000-0000000000f1', 'sc:even:steven', 'even', null),    -- a draw: not counted
-  ('00000000-0000-0000-0000-0000000000f1', 'sc:pre:lim', 'pre', null),         -- a prelim: not counted
+  ('00000000-0000-0000-0000-0000000000f1', 'sc:pre:lim', 'pre', 'KO/TKO'),     -- a prelim: 1, no method bonus
   ('00000000-0000-0000-0000-0000000000f2', 'sc:fav:dog', 'dog', 'SUB'),
   ('00000000-0000-0000-0000-0000000000f2', 'sc:big:small', 'big', null),
-  ('00000000-0000-0000-0000-0000000000f3', 'sc:next:up', 'next', null);       -- not fought yet
+  ('00000000-0000-0000-0000-0000000000f2', 'sc:pre:lim', 'lim', null),
+  ('00000000-0000-0000-0000-0000000000f3', 'sc:next:up', 'next', null),       -- not fought yet
+  ('00000000-0000-0000-0000-0000000000f4', 'sc:pre:lim', 'pre', null);        -- only a prelim
 
 \ir helpers.sql
 
@@ -45,7 +50,7 @@ select pg_temp.refused($$update public.bouts set outcome = 'win', winner = 'nobo
 update public.bouts set outcome = 'win', winner = 'fav', method = 'KO/TKO' where id = 'sc:fav:dog';
 update public.bouts set outcome = 'win', winner = 'small', method = 'SUB' where id = 'sc:big:small';
 update public.bouts set outcome = 'draw' where id = 'sc:even:steven';
-update public.bouts set outcome = 'win', winner = 'pre' where id = 'sc:pre:lim';
+update public.bouts set outcome = 'win', winner = 'pre', method = 'KO/TKO' where id = 'sc:pre:lim';
 
 -- ---- Only the pipeline (service role or the owner) scores ----------------------------------------
 set role authenticated;
@@ -61,7 +66,7 @@ reset role;
 set role service_role;
 select public.tally_event('sc');
 reset role;
-select pg_temp.expect_count($$select 1 from public.scores where event_id = 'sc'$$, 3, 'live points for each player');
+select pg_temp.expect_count($$select 1 from public.scores where event_id = 'sc'$$, 4, 'live points for each player');
 select pg_temp.expect_count($$select 1 from public.scores where event_id = 'sc' and user_id = '00000000-0000-0000-0000-0000000000f3'
   and points = 0 and picked = 0$$, 1, 'a player whose fight is still to come: on the card with 0');
 select pg_temp.expect_count($$select 1 from public.events where id = 'sc' and scored_at is null$$, 1,
@@ -72,13 +77,15 @@ select public.score_event('sc');
 select public.score_event('sc'); -- twice: same result
 reset role;
 
-select pg_temp.expect_count($$select 1 from public.scores where event_id = 'sc'$$, 3, 'one score per player on the card');
+select pg_temp.expect_count($$select 1 from public.scores where event_id = 'sc'$$, 4, 'one score per player on the card');
 select pg_temp.expect_count($$select 1 from public.scores where event_id = 'sc' and user_id = '00000000-0000-0000-0000-0000000000f1'
-  and correct = 2 and picked = 2 and points = 30$$, 1, 'Sam: both winners, the method bonus and the underdog bonus');
+  and correct = 2 and picked = 2 and points = 31$$, 1, 'Sam: both winners, the method bonus, the underdog bonus and a prelim');
 select pg_temp.expect_count($$select 1 from public.scores where event_id = 'sc' and user_id = '00000000-0000-0000-0000-0000000000f2'
   and correct = 0 and picked = 2 and points = 0$$, 1, 'Pia: no winners, no points');
+select pg_temp.expect_count($$select 1 from public.scores where event_id = 'sc' and user_id = '00000000-0000-0000-0000-0000000000f4'
+  and correct = 0 and picked = 0 and points = 1$$, 1, 'Kim: a prelim winner, 1 point');
 select pg_temp.expect_count($$select 1 from public.events where id = 'sc' and scored_at is not null$$, 1, 'the event marked as scored');
-select pg_temp.expect_count($$select 1 from public.leaderboard where display_name = 'sam' and points = 30 and avatar = 'ciryl-gane'$$, 1,
+select pg_temp.expect_count($$select 1 from public.leaderboard where display_name = 'sam' and points = 31 and avatar = 'ciryl-gane'$$, 1,
   'the leaderboard with avatars');
 select pg_temp.expect_count($$select 1 from public.leaderboard where display_name = 'pia' and avatar = 'josh-hokit'$$, 1,
   'a user changing their own avatar');

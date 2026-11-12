@@ -175,7 +175,7 @@ export default function PickemPage() {
   const mainBouts = bouts.filter(scores);
   const prelims = bouts.filter((b) => !scores(b));
   const picked = mainBouts.filter((b) => mine.has(b.id)).length;
-  const earned = mainBouts.reduce((n, b) => n + (boutPoints(b, mine.get(b.id)) ?? 0), 0);
+  const earned = bouts.reduce((n, b) => n + (boutPoints(b, mine.get(b.id)) ?? 0), 0);
   // This card's page of predictions, when it's one of the upcoming cards that have one.
   const upcomingCard = predictor?.upcoming?.find((c) => c.name === card.name);
   const cardPage = upcomingCard ? cardPath(upcomingCard) : null;
@@ -312,11 +312,11 @@ export default function PickemPage() {
               {mainBouts.map(renderBout)}
             </Stack>
             {prelims.length > 0 && (
-              // The prelims fold away: they don't score, and a full card is a long scroll.
+              // The prelims fold away: they're worth little, and a full card is a long scroll.
               <Stack gap="sm">
                 <UnstyledButton className="pickem-prelims-toggle" onClick={() => setPrelimsOpen((o) => !o)} aria-expanded={prelimsOpen}>
                   <span>
-                    <b>Prelims</b> · {prelims.length} {prelims.length === 1 ? "fight" : "fights"} · for fun, no points
+                    <b>Prelims</b> · {prelims.length} {prelims.length === 1 ? "fight" : "fights"} · {POINTS.prelim} point each
                   </span>
                   <span className="pickem-chevron" data-open={prelimsOpen || undefined} aria-hidden>
                     ▾
@@ -443,7 +443,7 @@ function Rules() {
         <b>Win packs:</b> finish in the top 3 on a card, or win a league of 3 or more, for a free pack of 3 random fighters. One per card.
       </Text>
       <Text size="xs" c="dimmed" mt={6}>
-        Main card only: prelims are for fun. Picks save as you tap; change them until the card locks.
+        Prelims: {POINTS.prelim} point for the right winner, no bonuses. Picks save as you tap; change them until the card locks.
       </Text>
     </Paper>
   );
@@ -492,6 +492,7 @@ function Bout({ bout, label, choice, byId, chance, canPick, mates, pickedBy, spl
             fighter={byId.get(id)}
             chance={chance === null ? null : i === 0 ? chance : 1 - chance}
             underdog={isUnderdog(bout, id) ? marketChance(bout, id) : null}
+            bonus={scores(bout)}
             chosen={choice?.winner === id}
             winner={bout.outcome === "win" ? bout.winner : null}
             disabled={!canPick}
@@ -502,7 +503,7 @@ function Bout({ bout, label, choice, byId, chance, canPick, mates, pickedBy, spl
       </Group>
       <Crowd bout={bout} mates={mates} split={split} surname={surname} />
 
-      {choice && canPick && (
+      {choice && canPick && scores(bout) && (
         <Group gap={6} px={4} mb={6} wrap="wrap">
           <Text size="xs" c="dimmed">
             How does {surname(choice.winner)} win? <span className="pickem-bonus">+{POINTS.method}</span>
@@ -552,6 +553,7 @@ interface SideProps {
   fighter: PredictorFighter | undefined;
   chance: number | null; // the model's win chance for this fighter
   underdog: number | null; // the bookies' chance, when they have this fighter as the underdog
+  bonus: boolean; // a win as the underdog earns the bonus (main card only)
   chosen: boolean;
   winner: string | null; // the result, once in
   disabled: boolean;
@@ -560,7 +562,7 @@ interface SideProps {
 }
 
 /** One fighter in a bout: tap to pick them. After the event: a tick or a cross on your pick. */
-function Side({ id, name, fighter, chance, underdog, chosen, winner, disabled, onPick, vs }: SideProps) {
+function Side({ id, name, fighter, chance, underdog, bonus, chosen, winner, disabled, onPick, vs }: SideProps) {
   const result = winner === null ? null : winner === id;
   const initials = name.split(" ").map((w) => w[0]).slice(0, 2).join("");
   return (
@@ -590,7 +592,7 @@ function Side({ id, name, fighter, chance, underdog, chosen, winner, disabled, o
                 <>
                   {" · "}
                   {/* The model's number and the bookies' can disagree: say whose underdog this is. */}
-                  <Tooltip label={`Bookies give them ${Math.round(underdog * 100)}%: a win is worth +${POINTS.underdog}`} withArrow events={{ hover: true, focus: false, touch: true }}>
+                  <Tooltip label={`Bookies give them ${Math.round(underdog * 100)}%${bonus ? `: a win is worth +${POINTS.underdog}` : ""}`} withArrow events={{ hover: true, focus: false, touch: true }}>
                     <span className="pickem-bonus">underdog</span>
                   </Tooltip>
                 </>

@@ -4,7 +4,7 @@
 
 import type { Method, Pick, PickemBout } from "../../backend";
 
-export const POINTS = { winner: 10, method: 5, underdog: 5 };
+export const POINTS = { winner: 10, method: 5, underdog: 5, prelim: 1 };
 
 /** The model's own Pick'em account: it picks the predictor's favourite, and its most likely
  * method, on every bout it knows both fighters of (src/ufc_embedded/pickem_model.py). */
@@ -33,14 +33,15 @@ export function marketChance(bout: PickemBout, fighter: string): number | null {
 
 export const isUnderdog = (bout: PickemBout, fighter: string) => (marketChance(bout, fighter) ?? 1) < 0.5;
 
-/** Whether a bout counts for points (the main card; prelims are for fun). */
+/** Whether a bout is on the main card, where the full points (and the earned cards) are. */
 export const scores = (bout: PickemBout) => bout.segment === "main";
 
-/** Points for one pick once the bout has a result; null before, for a draw or no contest, or
- * for a prelim. */
+/** Points for one pick once the bout has a result; null before, or for a draw or no contest.
+ * A prelim is worth 1 for the right winner, with no bonuses. */
 export function boutPoints(bout: PickemBout, pick: Pick | undefined): number | null {
-  if (bout.outcome !== "win" || !pick || !scores(bout)) return null;
+  if (bout.outcome !== "win" || !pick) return null;
   if (pick.winner !== bout.winner) return 0;
+  if (!scores(bout)) return POINTS.prelim;
   return (
     POINTS.winner +
     (pick.method && pick.method === bout.method ? POINTS.method : 0) +

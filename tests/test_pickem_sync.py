@@ -161,7 +161,7 @@ def _no_result(bout: Bout) -> Bout:
     return pending
 
 
-def test_points_are_tallied_after_each_main_card_result_before_the_card_is_scored() -> None:
+def test_points_are_tallied_after_each_result_before_the_card_is_scored() -> None:
     bouts = card_bouts(CARD, parse_fight_card(AFTER), KNOWN.get)
     # Half-way: one main-card result in, the rest still to come.
     halfway = [b if i == 0 else _no_result(b) for i, b in enumerate(bouts)]
@@ -169,9 +169,11 @@ def test_points_are_tallied_after_each_main_card_result_before_the_card_is_score
     sql = sync_sql([(CARD, halfway, True)])
     assert "select public.tally_event('2026-11-14-ufc-334');" in sql
     assert "score_event" not in sql
-    # Only prelim results so far: nothing to tally (prelims score no points).
+    # Only prelim results so far: tallied too (a prelim is worth a point).
     prelims_only = [b if b["segment"] != "main" else _no_result(b) for b in bouts]
-    assert "tally_event" not in sync_sql([(CARD, prelims_only, True)])
+    assert "tally_event" in sync_sql([(CARD, prelims_only, True)])
+    # No results at all: nothing to tally.
+    assert "tally_event" not in sync_sql([(CARD, [_no_result(b) for b in bouts], True)])
     # Every result in: scored, not just tallied.
     full = sync_sql([(CARD, bouts, True)])
     assert "score_event" in full and "tally_event" not in full
