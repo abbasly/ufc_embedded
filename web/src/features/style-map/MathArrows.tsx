@@ -6,7 +6,7 @@ import { useMediaQuery, useReducedMotion } from "@mantine/hooks";
 import { Billboard, Html, Line } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
-import { type Mesh, Quaternion, Vector3 } from "three";
+import { BufferAttribute, BufferGeometry, DoubleSide, type Mesh, Vector3 } from "three";
 import type { Line2, LineSegmentsGeometry } from "three-stdlib";
 
 import type { Fighter } from "../../data/types";
@@ -56,20 +56,10 @@ export function MathArrows({ view, portal }: { view: MathView; portal: React.Ref
         return <Arrow key={`${view.key}-${i}`} from={view.points[i]!} to={to} color={term.sign > 0 ? PLUS : MINUS} delay={time(START + i * STEP)} />;
       })}
 
-      {/* Each style's average point: a small diamond, as a style isn't one fighter. */}
-      {view.terms
-        .filter((t) => t.style)
-        .map((t) => (
-          <mesh key={`${view.key}-style-${t.ref}`} position={t.at} raycast={() => null}>
-            <octahedronGeometry args={[0.16]} />
-            <meshBasicMaterial color={t.color} transparent opacity={0.9} />
-          </mesh>
-        ))}
-
       <SumRing key={`${view.key}-ring`} position={sum} delay={done} />
       {best && <ToMatch key={`${view.key}-match`} from={sum} to={best.at} delay={done + 0.35} />}
 
-      {view.terms.map((t, i) => (narrow && t.style ? null :
+      {view.terms.map((t, i) => (t.style ? null :
         <Html key={`${view.key}-term-${i}`} portal={portal} position={t.at} zIndexRange={LABEL_Z} style={{ pointerEvents: "none" }}>
           <TermChip term={t} first={i === 0} delay={i === 0 ? 0 : time(START + (i - 1) * STEP)} />
         </Html>
@@ -115,51 +105,66 @@ function TermChip({ term, first, delay }: { term: MathTermView; first: boolean; 
 
 const easeInOut = (t: number) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
 const UP = new Vector3(0, 1, 0);
-const HEAD = 0.34; // arrowhead length
+const HEAD = 0.4; // arrowhead length
+const WIDTH = 0.17; // half the arrowhead's width
 
-/** One term's arrow, growing from where the sum so far is to where it goes next. */
+/** One term's arrow, growing from where the sum so far is to where it goes next. Its head is a
+ * flat triangle turned to face the camera, so it reads like an arrow drawn on paper from any
+ * angle. */
 function Arrow({ from, to, color, delay }: { from: Vec3; to: Vec3; color: string; delay: number }) {
   const line = useRef<Line2>(null);
+  const glow = useRef<Line2>(null);
   const head = useRef<Mesh>(null);
   const t = useRef(delay > 0 ? -delay / GROW : 1);
-  const { dir, length, turn } = useMemo(() => {
+  const { dir, length } = useMemo(() => {
     const d = new Vector3(to[0] - from[0], to[1] - from[1], to[2] - from[2]);
     const len = d.length();
-    return { dir: len > 0 ? d.clone().normalize() : UP.clone(), length: len, turn: new Quaternion().setFromUnitVectors(UP, len > 0 ? d.clone().normalize() : UP) };
+    return { dir: len > 0 ? d.normalize() : UP.clone(), length: len };
   }, [from, to]);
   const size = Math.min(1, length / (HEAD * 2.5)); // short arrows get a smaller head
+  const triangle = useMemo(() => {
+    const g = new BufferGeometry();
+    g.setAttribute("position", new BufferAttribute(new Float32Array(9), 3));
+    return g;
+  }, []);
+  const tip = useMemo(() => new Vector3(), []);
+  const side = useMemo(() => new Vector3(), []);
 
-  const draw = (k: number) => {
-    const tip = new Vector3(...from).addScaledVector(dir, length * k);
-    // The line stops at the arrowhead's base, so the head makes the point.
-    const base = tip.clone().addScaledVector(dir, -HEAD * size * Math.min(1, k * 4));
-    (line.current?.geometry as LineSegmentsGeometry | undefined)?.setPositions([...from, base.x, base.y, base.z]);
-    if (head.current) {
-      head.current.position.copy(tip).addScaledVector(dir, (-HEAD * size) / 2);
-      head.current.visible = k > 0.03;
+  useFrame(({ camera }, dt) => {
+    if (t.current < 1) t.current = Math.min(1, t.current + dt / GROW);
+    const k = easeInOut(Math.max(0, t.current));
+    tip.set(...from).addScaledVector(dir, length * k);
+    const len = HEAD * size * Math.min(1, k * 4);
+    const base = tip.clone().addScaledVector(dir, -len);
+    if (t.current < 1 || k === 1) {
+      // The line stops at the head's base, so the head makes the point.
+      for (const l of [line.current, glow.current]) (l?.geometry as LineSegmentsGeometry | undefined)?.setPositions([...from, base.x, base.y, base.z]);
     }
-  };
-  useFrame((_, dt) => {
-    if (t.current >= 1) return;
-    t.current = Math.min(1, t.current + dt / GROW);
-    draw(easeInOut(Math.max(0, t.current)));
+    // Across the arrow and facing the camera: the head turns as the map does.
+    side.copy(camera.position).sub(tip).cross(dir);
+    if (side.lengthSq() < 1e-9) side.set(1, 0, 0);
+    side.normalize().multiplyScalar(WIDTH * size);
+    const pos = triangle.getAttribute("position") as BufferAttribute;
+    pos.setXYZ(0, tip.x, tip.y, tip.z);
+    pos.setXYZ(1, base.x + side.x, base.y + side.y, base.z + side.z);
+    pos.setXYZ(2, base.x - side.x, base.y - side.y, base.z - side.z);
+    pos.needsUpdate = true;
+    triangle.computeBoundingSphere();
+    if (head.current) head.current.visible = k > 0.03;
   });
   const grown = t.current >= 1;
   const end = grown ? new Vector3(...to).addScaledVector(dir, -HEAD * size) : new Vector3(...from);
   return (
     <>
-      <Line ref={line} points={[from, [end.x, end.y, end.z]]} color={color} lineWidth={4} depthTest={false} renderOrder={2} />
-      <mesh
-        ref={head}
-        quaternion={turn}
-        scale={size}
-        visible={grown}
-        position={grown ? new Vector3(...to).addScaledVector(dir, (-HEAD * size) / 2) : new Vector3(...from)}
-        renderOrder={3}
-        raycast={() => null}
-      >
-        <coneGeometry args={[0.13, HEAD, 20]} />
+      {/* A soft glow under the line, a dot where it starts, then the line and its head. */}
+      <Line ref={glow} points={[from, [end.x, end.y, end.z]]} color={color} lineWidth={14} transparent opacity={0.18} depthTest={false} renderOrder={1} />
+      <mesh position={from} renderOrder={3} raycast={() => null}>
+        <sphereGeometry args={[0.075, 16, 16]} />
         <meshBasicMaterial color={color} depthTest={false} transparent />
+      </mesh>
+      <Line ref={line} points={[from, [end.x, end.y, end.z]]} color={color} lineWidth={5} depthTest={false} renderOrder={2} />
+      <mesh ref={head} geometry={triangle} visible={grown} renderOrder={3} raycast={() => null} frustumCulled={false}>
+        <meshBasicMaterial color={color} side={DoubleSide} depthTest={false} transparent />
       </mesh>
     </>
   );
