@@ -67,7 +67,7 @@ export function History({ scores, loading, own, history }: { scores: EventScore[
           {own && (
             <>
               {" "}
-              <Anchor component={Link} to="/">
+              <Anchor component={Link} to="/pickem">
                 Make your picks →
               </Anchor>
             </>

@@ -62,6 +62,7 @@ describe("fighter math", () => {
     expect(formatTerms(terms)).toBe("alex-pereira,-s:0,+s:2");
     expect(parseTerms("alex-pereira,-s:0,+s:2")).toEqual(terms);
     expect(parseTerms("-x")[0]!.sign).toBe(1); // the first term is always added
+    expect(parseTerms("a,+s:2,+s:2,-a").map((t) => t.ref)).toEqual(["a", "s:2"]); // each once
   });
 });
 

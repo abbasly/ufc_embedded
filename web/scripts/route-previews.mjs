@@ -23,8 +23,8 @@ const ROUTES = [
     text: "A personal machine learning project by Anar Abbasli, built on every UFC fight since 1994: a 3D map of fighting styles, a fight predictor, an Elo ladder and MMA math.",
   },
   {
-    path: "style-map",
-    title: "UFC fighter style map: who fights like who | UFC Embedded",
+    path: "fighter-lab",
+    title: "Fighter Lab: fighter math and the UFC style map | UFC Embedded",
     description:
       "Every active UFC fighter mapped by how they fight: striking, leg kicks, clinch, takedowns and control. See each fighter's 5 most similar fighters.",
     image: "og.png",
@@ -63,7 +63,6 @@ const ROUTES = [
   },
   {
     path: "pickem",
-    forwardsHome: true, // the app sends /pickem to the home page: kept for old links, not for search
     title: "Pick'em: pick the winners of the next UFC card | UFC Embedded",
     description: "Pick the winner and the method of every fight on the next UFC card, then compete with friends in your own league. Free.",
     image: "og-predictor.png",

@@ -57,3 +57,65 @@
   .math-chip { transition: none; }
   .math-answer { animation: none; }
 }
+
+/* Fighter math's bar across the top of Fighter Lab. */
+.math-bar {
+  border: 1px solid rgba(255, 212, 59, 0.28);
+  background:
+    radial-gradient(80% 140% at 0% 0%, rgba(255, 212, 59, 0.09), transparent 60%),
+    rgba(20, 21, 25, 0.7);
+}
+.math-equation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.math-term-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 240px;
+  min-width: 0;
+}
+.math-term {
+  flex: 1;
+  min-width: 0;
+}
+.math-sign {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1;
+  transition: transform 0.15s, background 0.15s;
+}
+.math-sign[data-sign="plus"] { color: #69db7c; background: rgba(105, 219, 124, 0.14); border: 1px solid rgba(105, 219, 124, 0.5); }
+.math-sign[data-sign="minus"] { color: #ff8787; background: rgba(255, 135, 135, 0.14); border: 1px solid rgba(255, 135, 135, 0.5); }
+.math-sign:hover { transform: scale(1.08); }
+.math-eq {
+  flex: none;
+  color: #ffd43b;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+}
+.math-result {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 200px;
+  min-width: 0;
+  padding: 4px 14px 4px 4px;
+  border-radius: 999px;
+  border: 1px solid #ffd43b;
+  background: rgba(255, 212, 59, 0.12);
+  box-shadow: 0 0 18px rgba(255, 212, 59, 0.18);
+}
+@media (prefers-reduced-motion: reduce) {
+  .math-sign { transition: none; }
+}
