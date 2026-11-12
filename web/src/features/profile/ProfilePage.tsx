@@ -193,7 +193,7 @@ function MyLeagues() {
       ) : !leagues.data?.length ? (
         <Text size="sm" c="dimmed">
           No leagues yet.{" "}
-          <Anchor component={Link} to="/">
+          <Anchor component={Link} to="/pickem">
             Start one or join with a code on Pick'em →
           </Anchor>
         </Text>

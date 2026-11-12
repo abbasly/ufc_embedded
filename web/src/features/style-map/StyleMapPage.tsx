@@ -1,16 +1,19 @@
-import { Alert, Box, Center, CloseButton, Grid, Group, Loader, MultiSelect, Paper, SegmentedControl, Select, Stack, Switch, Text, UnstyledButton } from "@mantine/core";
+import { Alert, Box, Button, Center, CloseButton, Grid, Group, Loader, MultiSelect, Paper, SegmentedControl, Select, Stack, Switch, Text, UnstyledButton } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import "./StyleMap.css";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { useSearchParams } from "react-router-dom";
 
 import { useStyleMap } from "../../data/client";
 import type { Fighter, LayoutId, StyleMapData } from "../../data/types";
 import { ChampionsStrip } from "./ChampionsStrip";
+import { MathBar, MathDetails } from "./FighterMath";
+import { chain, closest, combine, formatTerms, hasMath, isStyleRef, parseTerms, place, PRESETS, presetTerms, styleRef, type Term, termName, termVector } from "./mathModel";
+import type { MathView } from "./MathArrows";
 import { FighterPanel } from "./FighterPanel";
-import { type ColorBy, type Dims, SHOW_OPTIONS, type Scope, type Show, WEIGHT_CLASSES, colorOfGroup, groupOf, legend, similarTo } from "./model";
+import { type ColorBy, type Dims, SHOW_OPTIONS, type Scope, type Show, WEIGHT_CLASSES, colorOfGroup, groupOf, legend, positionOf, similarTo } from "./model";
 import { Scene } from "./Scene";
 
 // What the current layout is, shown next to the plot.
@@ -33,11 +36,28 @@ export default function StyleMapPage() {
   const [focusId, setFocusId] = useState<string | null>(null); // a similar fighter being hovered
   const [similarView, setSimilarView] = useState(true); // map shows only the selection's top 5
   const narrow = useMediaQuery("(max-width: 480px)");
+  // Fighter math lives in the address too (?math=alex-pereira,-s:0,+s:2), so a sum can be shared.
+  // It's what the page opens with ("default": the first preset, once the data is in), unless
+  // the address asks for a fighter.
+  const [mathTerms, setMathTerms] = useState<Term[] | null | "default">(() =>
+    params.has("math") ? parseTerms(params.get("math")) : params.has("fighter") ? null : "default",
+  );
+  const [sameDivision, setSameDivision] = useState(false);
+  const [replays, setReplays] = useState(0);
+  const changeTerms = useCallback(
+    (terms: Term[] | null) => {
+      setMathTerms(terms);
+      if (!terms) return setParams({}, { replace: true });
+      if (terms.every((t) => t.ref)) setParams({ math: formatTerms(terms) }, { replace: true });
+    },
+    [setParams],
+  );
 
   // Selected fighter lives in the URL (?fighter=islam-makhachev) so it can be shared.
   const selectedId = params.get("fighter");
   const select = useCallback(
     (id: string | null) => {
+      if (id) setMathTerms(null); // a fighter takes over from the sum
       setFocusId(null);
       setSimilarView(true); // picking a fighter always opens their top 5; × closes it
       setParams(id ? { fighter: id } : {}, { replace: true });
@@ -45,8 +65,57 @@ export default function StyleMapPage() {
     [setParams],
   );
 
+  const math = useMemo(() => {
+    if (!data || !hasMath(data) || !mathTerms) return null;
+    const terms = mathTerms === "default" ? PRESETS.map((p) => presetTerms(data, p)).find((t) => t) : mathTerms;
+    if (!terms) return null;
+    if (terms.length < 2 || terms.some((t) => !t.ref)) return { terms, result: null, matches: [], view: null };
+    const result = combine(data, terms);
+    const points = chain(data, terms, dims);
+    if (!result || !points) return { terms, result: null, matches: [], view: null };
+    const first = data.fighters.find((f) => f.id === terms[0]!.ref);
+    const exclude = new Set(terms.map((t) => t.ref));
+    const matches = closest(data, result, exclude, 3, sameDivision ? first?.weight_class : undefined);
+    const view: MathView = {
+      key: `${formatTerms(terms)}|${dims}|${sameDivision}|${replays}`,
+      points,
+      terms: terms.map((t) => {
+        const f = isStyleRef(t.ref) ? undefined : data.fighters.find((x) => x.id === t.ref);
+        const name = termName(data, t.ref);
+        return {
+          ref: t.ref,
+          name,
+          sign: t.sign,
+          style: !f,
+          color: f ? colorOfGroup(groupOf(f, data, "style"), "style") : colorOfGroup(name, "style"),
+          image: f?.image?.url ?? null,
+          at: f ? positionOf(f, "axes", dims) : place(data.math, termVector(data, t.ref)!, dims),
+        };
+      }),
+      matches: matches.map((m) => ({ ...m, at: positionOf(m.fighter, "axes", dims) })),
+    };
+    return { terms, result, matches, view };
+  }, [data, mathTerms, dims, sameDivision, replays]);
+
   if (isPending) return <Center h="60vh"><Loader /></Center>;
-  if (error) return <Alert color="red" title="Could not load the style map">{error.message}</Alert>;
+  if (error) return <Alert color="red" title="Could not load Fighter Lab">{error.message}</Alert>;
+
+  const mathReady = hasMath(data);
+  const mathOpen = mathReady && math !== null;
+  // Start a sum from the fighter being looked at (their style swapped for another), or a preset.
+  const openMath = () => {
+    const f = data.fighters.find((x) => x.id === selectedId);
+    if (f) {
+      const other = data.clusters.find((c) => c.id !== f.cluster)!;
+      return changeTerms([
+        { sign: 1, ref: f.id },
+        { sign: -1, ref: styleRef(f.cluster) },
+        { sign: 1, ref: styleRef(other.id) },
+      ]);
+    }
+    changeTerms(PRESETS.map((p) => presetTerms(data, p)).find((t) => t) ?? [{ sign: 1, ref: "" }, { sign: 1, ref: "" }]);
+  };
+  const shownLayout: LayoutId = mathOpen ? "axes" : layout; // the arrows only add up on Style axes
 
   const selected = data.fighters.find((f) => f.id === selectedId) ?? null;
   const neighbours = similarTo(selected, scope);
@@ -62,7 +131,7 @@ export default function StyleMapPage() {
 
   return (
     <Grid gap="md">
-      <Grid.Col span={{ base: 12, md: 3 }} order={{ base: 2, md: 1 }}>
+      <Grid.Col span={{ base: 12, md: 3 }} order={{ base: mathOpen ? 3 : 2, md: 1 }}>
         <Stack gap="md">
           <ChampionsStrip data={data} selectedId={selectedId} onSelect={select} />
           <Switch
@@ -105,10 +174,19 @@ export default function StyleMapPage() {
       <Grid.Col span={{ base: 12, md: 6 }} order={{ base: 1, md: 2 }}>
         <Group justify="space-between" align="center" gap="xs" mb={6} wrap="wrap">
           <Group gap="xs" wrap="wrap">
+            {mathReady && (
+              <Button size="compact-sm" variant={mathOpen ? "filled" : "default"} onClick={() => (mathOpen ? changeTerms(null) : openMath())}>
+                Fighter math
+              </Button>
+            )}
             <SegmentedControl
               size="xs"
-              value={layout}
-              onChange={(v) => setLayout(v as LayoutId)}
+              value={shownLayout}
+              onChange={(v) => {
+                // Fighter math is drawn on Style axes, where the arrows add up: another layout leaves it.
+                if (v !== "axes" && mathOpen) changeTerms(null);
+                setLayout(v as LayoutId);
+              }}
               data={data.layouts.map((l) => ({ value: l.id, label: l.label }))}
             />
             <SegmentedControl
@@ -128,7 +206,7 @@ export default function StyleMapPage() {
             />
           </Group>
           <Text size="xs" c="dimmed">
-            {METHOD_NOTE[layout]}
+            {mathOpen ? "Fighter math: each arrow adds or takes away one term, on Style axes" : METHOD_NOTE[layout]}
           </Text>
         </Group>
         {/* The plot lit like the page around it: warm light from the top, a red haze below. */}
@@ -149,17 +227,18 @@ export default function StyleMapPage() {
           >
           <Scene
             data={data}
-            layout={layout}
+            layout={shownLayout}
             dims={dims}
             colorOf={(f) => colorOfGroup(groupOf(f, data, colorBy), colorBy)}
             label={(f) => groupOf(f, data, colorBy)}
             isShown={isShown}
             highlightChampions={highlightChampions}
-            selectedId={selectedId}
+            selectedId={mathOpen ? null : selectedId}
             onSelect={select}
-            neighbours={showSimilar ? neighbours : []}
+            neighbours={showSimilar && !mathOpen ? neighbours : []}
             focusId={focusId}
             onFocus={setFocusId}
+            math={mathOpen ? math?.view : null}
           />
           </ErrorBoundary>
           <Stack pos="absolute" top={8} left={10} right={10} gap={6} style={{ pointerEvents: "none" }}>
@@ -176,7 +255,7 @@ export default function StyleMapPage() {
               );
             })}
           </Group>
-          {selected && showSimilar && (
+          {selected && showSimilar && !mathOpen && (
             <Group gap={6} wrap="nowrap" align="flex-start" style={{ alignSelf: "flex-end", pointerEvents: "auto" }}>
               <Box ta="right">
                 <Text size="xs" fw={600}>
@@ -197,7 +276,30 @@ export default function StyleMapPage() {
         </Paper>
       </Grid.Col>
 
-      <Grid.Col span={{ base: 12, md: 3 }} order={3}>
+      <Grid.Col span={{ base: 12, md: 3 }} order={{ base: mathOpen ? 2 : 3, md: 3 }}>
+        {mathOpen && math ? (
+          <Stack gap="md">
+          <MathBar
+            data={data}
+            terms={math.terms}
+            onTerms={changeTerms}
+            best={math.matches[0]}
+            onOpenFighter={(id) => select(id)}
+            onClose={() => changeTerms(null)}
+            answer={false}
+          />
+          <MathDetails
+            data={data}
+            terms={math.terms}
+            result={math.result}
+            matches={math.matches}
+            sameDivision={sameDivision}
+            onSameDivision={setSameDivision}
+            onReplay={() => setReplays((r) => r + 1)}
+            onOpenFighter={(id) => select(id)}
+          />
+          </Stack>
+        ) : (
         <FighterPanel
           data={data}
           fighter={selected}
@@ -209,6 +311,7 @@ export default function StyleMapPage() {
           onFocus={setFocusId}
           onShowOnMap={showSimilar ? undefined : () => setSimilarView(true)}
         />
+        )}
       </Grid.Col>
     </Grid>
   );

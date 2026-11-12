@@ -82,6 +82,7 @@ export interface Fighter {
   coords_2d: Record<LayoutId, number[]>;
   stats: Record<string, number>;
   percentiles: Record<string, number>; // 0..1 within the map population
+  vec?: number[]; // standardised stats the map is fitted on (fighter math); missing in older exports
   neighbours: Neighbour[];
   division_neighbours: Neighbour[]; // most similar in the same weight class
 }
@@ -91,6 +92,19 @@ export interface Champion {
   name: string;
   image: Photo | null;
   fighter_id: string | null; // null if not on the map (not enough data)
+}
+
+/** What fighter arithmetic needs (see ufc_embedded.export: "math"). Added without a schema bump. */
+export interface StyleMath {
+  keys: string[]; // the stat behind each number of vec and weights (not the features order)
+  weights: number[]; // per stat: how much it counts in the similarity embedding (0..1)
+  // The similarity embedding is vec @ metric (rows follow keys). Exports before it existed
+  // measured similarity with vec times weights instead.
+  metric?: number[][];
+  typical_distance: number; // a distance this big scores 0 out of 100
+  // Style axes position of any vector v: (v @ matrix - mean) / std * scale3 (3D), or the
+  // first two of those with scale2 (2D).
+  projection: { matrix: number[][]; mean: number[]; std: number[]; scale3: number; scale2: number };
 }
 
 export interface StyleMapData {
@@ -109,6 +123,7 @@ export interface StyleMapData {
   axes: Axis[];
   layouts: Layout[];
   clusters: Cluster[];
+  math?: StyleMath;
   fighters: Fighter[];
 }
 

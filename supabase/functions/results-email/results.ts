@@ -80,7 +80,7 @@ export function cardLines(bouts: Bout[], picks: Pick[]): { lines: CardResult["li
 /** The email for one player. */
 export function resultsEmail(r: CardResult, eventId: string): { subject: string; html: string; text: string } {
   const card = escape(r.name.split(":")[0]!);
-  const results = `${SITE}/?event=${encodeURIComponent(eventId)}`;
+  const results = `${SITE}/pickem?event=${encodeURIComponent(eventId)}`;
   const vsModel =
     r.model === null
       ? ""

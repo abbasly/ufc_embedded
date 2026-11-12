@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+from sklearn.preprocessing import StandardScaler
 
 from ufc_embedded.champions import Champion, current_champions, current_ranks
 from ufc_embedded.data import (
@@ -33,12 +34,16 @@ from ufc_embedded.style_map import (
     CAREER_FEATURES,
     STYLE_FEATURES,
     StyleMap,
+    axes_projection,
     build_feature_table,
     career_stats,
     fit_style_map,
-    reliability,
+    held_out_match,
+    learn_metric,
     self_match,
+    stat_importance,
     style_appearances,
+    transform,
 )
 from ufc_embedded.wikipedia import Photo, fighter_photos
 
@@ -140,16 +145,16 @@ def style_map_payload(
     ranks: dict[str, int] | None = None,
     rankings_date: str | None = None,
     photos: dict[str, Photo] | None = None,
-    weights: pd.Series | None = None,
     check: dict[str, dict[str, float]] | None = None,
 ) -> dict[str, Any]:
     """Build the JSON payload.
 
     ``table`` is indexed by UFCStats fighter id; ``ids`` maps those to public URL ids.
-    ``ranks`` and ``photos`` are keyed by fighter id too. ``weights`` are the embedding's
-    stat weights, and ``check`` the self-match test of each embedding version.
+    ``ranks`` and ``photos`` are keyed by fighter id too, and ``check`` is the self-match
+    test of each embedding version.
     """
     champions, ranks, photos = champions or [], ranks or {}, photos or {}
+    importance = pd.Series(stat_importance(sm.projection), index=STYLE_FEATURES)
     belt = {c["fighter"]: c["division"] for c in champions if c["fighter"]}
     cluster_names = name_clusters(table, sm.labels)
 
@@ -189,6 +194,8 @@ def style_map_payload(
                 "similarity": [round(float(v), 3) for v in sm.similarity.coords2[i]],
             },
             "stats": {f: round(float(row[f]), 2) for f in STYLE_FEATURES},
+            # The standardised stats the map is fitted on, for fighter arithmetic ("math").
+            "vec": [round(float(v), 4) for v in sm.xs[i]],
             "percentiles": {f: round(float(pct[fid][f]), 3) for f in STYLE_FEATURES},
             "neighbours": similar(neighbours[fid]),
             "division_neighbours": similar(division[fid]),
@@ -252,18 +259,41 @@ def style_map_payload(
                 "label": label,
                 "unit": unit,
                 "group": group,
-                "weight": round(float(weights[f]), 3) if weights is not None else 1.0,
+                "weight": round(float(importance[f]), 3),
             }
             for f, (label, unit, group) in FEATURE_INFO.items()
         ],
         # How well the embedding recognises a fighter from half their fights (see
-        # style_map.self_match), for the old 8-stat embedding and the one on the map.
+        # style_map.self_match), for the old 8-stat embedding and the learned one on the map
+        # (style_map.held_out_match: scored on fighters the embedding wasn't learned from).
         "embedding_check": check or {},
         "axes": axes,
         "layouts": layouts,
         "clusters": clusters,
+        # Fighter arithmetic (A - B + C) in the browser: the fighters' "vec" times "metric"
+        # (a matrix, vec @ metric) is the embedding similarity is measured in, "weights" is how
+        # much each stat counts in it, "typical_distance" turns a distance into the 0-100
+        # score, and "projection" places any vector on Style axes. Added after schema 6
+        # without a bump: the page only offers the feature when present. "keys" is the order
+        # of the numbers in "vec", "weights" and the metric's rows (not the "features" order).
+        "math": {
+            "keys": STYLE_FEATURES,
+            "weights": _rounded(list(importance[STYLE_FEATURES])),
+            "metric": _rounded(sm.projection.tolist(), 5),
+            "typical_distance": round(sm.typical_distance, 4),
+            "projection": _rounded(axes_projection(sm.xs), 6),
+        },
         "fighters": fighters,
     }
+
+
+def _rounded(value: Any, digits: int = 4) -> Any:
+    """Numbers rounded for the JSON, however deep in lists and dicts."""
+    if isinstance(value, dict):
+        return {k: _rounded(v, digits) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_rounded(v, digits) for v in value]
+    return round(float(value), digits)
 
 
 def write_json(payload: dict[str, Any], path: Path) -> None:
@@ -292,21 +322,23 @@ def main() -> None:
     ranks = current_ranks(rankings, profiles)
 
     active = active_fighters(fights, ACTIVE_YEARS)
-    app = style_appearances(raw)
-    app = app[app["id"].isin(active.index)]
+    history = style_appearances(raw)  # everyone's fights: the embedding learns from them all
+    app = history[history["id"].isin(active.index)]
     table = build_feature_table(app, active, MIN_FIGHTS).join(profiles[["name", *RECORD_COLS]])
-    weights = reliability(app)
-    sm = fit_style_map(career_stats(app).loc[table.index], N_CLUSTERS, weights=weights)
+    ref = history["date"].max()
+    stats = career_stats(app, history).loc[table.index]
+    metric = learn_metric(history, StandardScaler().fit(transform(stats)), ref=ref)
+    sm = fit_style_map(stats, N_CLUSTERS, metric=metric)
     check = {
         "career_stats": self_match(app, CAREER_FEATURES),
-        "style_stats": self_match(app, STYLE_FEATURES, weights),
+        "style_stats": held_out_match(app, history),
     }
     print(f"embedding self-match: {check}")
     champ_ids = [c["fighter"] for c in champions if c["fighter"]]
     photos = photos_by_id(profiles, sorted(set(table.index) | set(champ_ids)), search=True)
     payload = style_map_payload(
         table, sm, ids, fights["date"].max(), champions, ranks, rankings_date, photos,
-        weights, check,
+        check,
     )  # fmt: skip
     out = WEB_DATA_DIR / "style_map.json"
     write_json(payload, out)

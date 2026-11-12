@@ -71,7 +71,7 @@ export const usePredictor = (enabled = true) => useQuery({ ...predictorQuery, en
  */
 export function prefetchFor(client: QueryClient, path: string, search: string) {
   const query =
-    path.startsWith("/style-map") || new URLSearchParams(search).has("fighter")
+    path.startsWith("/fighter-lab") || path.startsWith("/style-map") || new URLSearchParams(search).has("fighter")
       ? styleMapQuery
       : path.startsWith("/predictor") || path.startsWith("/ladder") || (accountsEnabled && (path === "/" || path.startsWith("/pickem")))
         ? predictorQuery

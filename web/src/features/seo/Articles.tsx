@@ -100,7 +100,7 @@ function Fighter({ page, card }: { page: FighterPage; card?: ReactNode }) {
         </section>
       )}
       <p className="seo-links">
-        <a href={`${base}style-map?fighter=${page.id}`}>See on the style map</a>
+        <a href={`${base}fighter-lab?fighter=${page.id}`}>See in Fighter Lab</a>
         <a href={`${base}predictor?a=${page.id}`}>Predict a fight</a>
       </p>
     </>

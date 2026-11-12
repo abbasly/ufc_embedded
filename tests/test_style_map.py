@@ -1,15 +1,20 @@
 import numpy as np
 import pandas as pd
+from sklearn.preprocessing import StandardScaler
 
 from ufc_embedded.style_map import (
     STATS,
     STYLE_FEATURES,
+    axes_projection,
     build_feature_table,
     career_stats,
     fit_style_map,
+    learn_metric,
     reliability,
     self_match,
+    stat_importance,
     style_axes,
+    transform,
 )
 
 COUNTS = sorted({c for s in STATS for c in (s.num, s.den)})
@@ -123,3 +128,35 @@ def test_style_axes_follow_their_stats() -> None:
     absorbed = xs[:, STYLE_FEATURES.index("significant_strikes_absorbed_per_minute")]
     assert np.corrcoef(scores[:, 0], takedowns)[0, 1] > 0.5  # grappling
     assert np.corrcoef(scores[:, 2], absorbed)[0, 1] < -0.3  # defence
+
+
+def test_axes_projection_places_vectors_where_the_map_does() -> None:
+    sm = fit_style_map(career_stats(make_app(40, 4)), n_clusters=3)
+    p = axes_projection(sm.xs)
+    z = (sm.xs @ np.array(p["matrix"]) - p["mean"]) / p["std"]
+    np.testing.assert_allclose(z * p["scale3"], sm.axes.coords3, atol=1e-9)
+    np.testing.assert_allclose(z[:, :2] * p["scale2"], sm.axes.coords2, atol=1e-9)
+    # Linear: the sum of two fighters' arrows from the centre is the arrow of their sum.
+    a, b = sm.xs[0], sm.xs[1]
+
+    def place(v: np.ndarray) -> np.ndarray:
+        out: np.ndarray = (v @ np.array(p["matrix"]) - p["mean"]) / p["std"] * p["scale3"]
+        return out
+
+    centre = place(np.zeros_like(a))
+    np.testing.assert_allclose(place(a + b) - centre, (place(a) - centre) + (place(b) - centre))
+
+
+def test_learned_metric_ignores_a_stat_that_is_only_noise() -> None:
+    app = make_app(60, 8, seed=3)
+    # Knockdowns made random, fight by fight: they say nothing about who's fighting.
+    app["kd"] = np.random.default_rng(4).poisson(2.0, len(app)).astype(float)
+    stats = career_stats(app)
+    metric = learn_metric(app, StandardScaler().fit(transform(stats)), min_fights=6)
+    importance = pd.Series(stat_importance(metric), index=STYLE_FEATURES)
+    assert importance["knockdowns_per_15_minutes"] < 0.5 * importance.median()
+    # The map is that linear map of the standardised stats, so sums of fighters still mean
+    # something.
+    sm = fit_style_map(stats, n_clusters=3, metric=metric)
+    np.testing.assert_allclose(sm.embedding, sm.xs @ metric)
+    np.testing.assert_allclose(sm.embedding[0] + sm.embedding[1], (sm.xs[0] + sm.xs[1]) @ metric)

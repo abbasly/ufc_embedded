@@ -50,7 +50,7 @@ export default function PlayerPage() {
   if (!player.data) {
     return (
       <Alert title="No player by that name" maw={560} mx="auto">
-        Maybe they changed their name. <Anchor component={Link} to="/">Back to Pick'em</Anchor>
+        Maybe they changed their name. <Anchor component={Link} to="/pickem">Back to Pick'em</Anchor>
       </Alert>
     );
   }

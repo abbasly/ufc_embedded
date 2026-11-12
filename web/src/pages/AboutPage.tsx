@@ -34,7 +34,7 @@ const FLOW: { label: string; hint?: string; core?: boolean; items: FlowItem[] }[
     core: true,
     items: [
       { title: "Point-in-time features", text: "Only fights before the one in question" },
-      { title: "Style embedding", text: "14 stats, shrunk and stability-weighted" },
+      { title: "Style embedding", text: "14 stats and a learned metric" },
       { title: "Ratings", text: "Elo and Glicko, fight by fight" },
       { title: "Fight models", text: "Who wins, and how" },
       { title: "Win graph", text: "Who beat whom" },
@@ -45,10 +45,10 @@ const FLOW: { label: string; hint?: string; core?: boolean; items: FlowItem[] }[
     hint: "open one",
     // Same order as the navigation bar.
     items: [
-      ...(accountsEnabled ? [{ title: "Pick'em", text: "Pick every fight, beat your friends", to: "/" }] : []),
+      ...(accountsEnabled ? [{ title: "Pick'em", text: "Pick every fight, beat your friends", to: "/pickem" }] : []),
       { title: "Fight Predictor", text: "Win chance and how it ends", to: "/predictor" },
       { title: "MMA Math", text: "Anyone beats anyone, in circles", to: "/mma-math" },
-      { title: "Style Map", text: "Fighters in 3D by how they fight", to: "/style-map" },
+      { title: "Fighter Lab", text: "Fighter math, and every fighter in 3D by how they fight", to: "/fighter-lab" },
       { title: "Elo Ladder", text: "Chess-style ratings vs official ranks", to: "/ladder" },
     ],
   },

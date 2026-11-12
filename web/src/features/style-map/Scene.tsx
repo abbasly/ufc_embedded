@@ -12,6 +12,7 @@ import type { Line2, LineSegmentsGeometry } from "three-stdlib";
 
 import type { Fighter, LayoutId, Neighbour, StyleMapData } from "../../data/types";
 import { type Box, nearestEdge, placeLabels } from "./labelLayout";
+import { MathArrows, type MathView } from "./MathArrows";
 import { type Dims, GOLD, positionOf } from "./model";
 
 type Vec3 = [number, number, number];
@@ -29,6 +30,7 @@ interface Props {
   neighbours: Neighbour[]; // the selected fighter's most similar fighters; empty: view closed
   focusId: string | null; // a neighbour being looked at (hovered here or in the panel)
   onFocus: (id: string | null) => void;
+  math?: MathView | null; // fighter math: its arrows, and only its fighters lit
 }
 
 const RADIUS = 0.06;
@@ -45,7 +47,10 @@ const GHOST = 0.05; // opacity of everyone else in the similar-fighters view
 
 export function Scene(props: Props) {
   const { data, layout, dims, colorOf, label, isShown, highlightChampions, selectedId, onSelect } = props;
-  const { neighbours, focusId, onFocus } = props;
+  const { neighbours, focusId, onFocus, math } = props;
+  // Fighter math lights up its terms and answers; everyone else steps back.
+  // Only the fighters in the sum and the answer: not the runners-up, and styles have no point.
+  const mathIds = useMemo(() => new Set([...(math?.terms.filter((t) => !t.style).map((t) => t.ref) ?? []), ...(math?.matches.slice(0, 1).map((m) => m.fighter.id) ?? [])]), [math]);
   const [hovered, setHovered] = useState<Fighter | null>(null);
   const spin = useIdleSpin();
   const geometry = useMemo(() => new SphereGeometry(RADIUS, 12, 12), []);
@@ -73,7 +78,10 @@ export function Scene(props: Props) {
   // Where the camera should look: the selection and its neighbours, or the whole map.
   // The similar-fighters view: just the selection and its neighbours, up close.
   const similarView = selected !== undefined && neighbours.length > 0;
-  const flyTarget = similarView ? position(selected) : null;
+  // Fighter math: frame the arrows and the answer.
+  const mathPoints = math ? [...math.points, ...math.terms.filter((t) => !t.style).map((t) => t.at), ...math.matches.slice(0, 1).map((m) => m.at)] : [];
+  const mathCentre = mathPoints.length ? ([0, 1, 2].map((a) => mathPoints.reduce((s, p) => s + p[a]!, 0) / mathPoints.length) as Vec3) : null;
+  const flyTarget = mathCentre ?? (similarView ? position(selected) : null);
   // How far out the neighbours are: the median one, so a single outlier doesn't zoom out the view.
   const spread = selected
     ? neighbours
@@ -82,7 +90,10 @@ export function Scene(props: Props) {
         .map((f) => distance(position(f), position(selected)))
         .sort((a, b) => a - b)
     : [];
-  const reach = Math.max(0.8, spread[Math.floor(spread.length / 2)] ?? 0);
+  // FlyTo frames a reach of neighbours generously; the math view wants its arrows big.
+  const reach = mathCentre
+    ? Math.max(1, 0.75 * Math.max(...mathPoints.map((p) => distance(p, mathCentre))))
+    : Math.max(0.8, spread[Math.floor(spread.length / 2)] ?? 0);
 
   return (
     // Labels render into `labels`, a React-owned layer over the canvas. drei's default target
@@ -97,12 +108,12 @@ export function Scene(props: Props) {
       onPointerMissed={() => onFocus(null)}
     >
       <CameraReset resetKey={`${layout}-${dims}`} dims={dims} />
-      <FlyTo flyKey={`${similarView ? selectedId : ""}-${layout}-${dims}`} target={flyTarget} reach={reach} dims={dims} />
+      <FlyTo flyKey={`${math ? `math:${math.key}` : similarView ? selectedId : ""}-${layout}-${dims}`} target={flyTarget} reach={reach} dims={dims} />
       <OrbitControls
         makeDefault
         enableDamping
         enableRotate={dims === 3}
-        autoRotate={dims === 3 && spin.on && !similarView} // hold still in the similar view, so labels stay put
+        autoRotate={dims === 3 && spin.on && !similarView && !math} // hold still in the similar and math views, so labels stay put
         autoRotateSpeed={SPIN_SPEED}
         // Spelled out for 3D too: left unset, the controls kept 2D's panning after switching back.
         mouseButtons={dims === 3 ? { LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.PAN } : { LEFT: MOUSE.PAN, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.PAN }}
@@ -116,8 +127,8 @@ export function Scene(props: Props) {
         const isNeighbour = matchOf.has(f.id);
         const isFocused = f.id === focusId;
         const shown = isShown(f) || isSelected || isNeighbour;
-        const scale = isSelected ? 2.6 : isFocused ? 2.4 : isNeighbour ? 1.8 : f.champion && highlightChampions ? 1.7 : 1;
-        const ghost = similarView && !isSelected && !isNeighbour;
+        const scale = math && mathIds.has(f.id) ? 2.2 : isSelected ? 2.6 : isFocused ? 2.4 : isNeighbour ? 1.8 : f.champion && highlightChampions ? 1.7 : 1;
+        const ghost = math ? !mathIds.has(f.id) : similarView && !isSelected && !isNeighbour;
         const opacity = ghost ? GHOST : !shown ? 0.1 : 0.9;
         return (
           <Dot
@@ -136,6 +147,7 @@ export function Scene(props: Props) {
       })}
 
       {selected && <Pulse key={`pulse-${selected.id}`} position={position(selected)} color={colorOf(selected)} />}
+      {math && <MathArrows key={math.key} view={math} portal={labels} />}
 
       {selected &&
         neighbours.map((n, i) => {
@@ -159,7 +171,7 @@ export function Scene(props: Props) {
       {data.fighters
         .filter((f) => f.champion)
         .map((f) => {
-          const visible = highlightChampions && !similarView && f.id !== selectedId && isShown(f);
+          const visible = highlightChampions && !similarView && !math && f.id !== selectedId && isShown(f);
           return (
             <Html portal={labels} key={f.id} position={position(f)} zIndexRange={LABEL_Z} style={{ display: visible ? "block" : "none", pointerEvents: "auto" }}>
               <ChampionLabel fighter={f} onClick={() => onSelect(f.id)} compact />
