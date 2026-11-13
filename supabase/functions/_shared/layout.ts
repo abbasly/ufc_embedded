@@ -7,7 +7,7 @@ export const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt
 
 const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
-export function layout(o: { preheader: string; heading: string; body: string; button: { label: string; href: string }; small: string }): string {
+export function layout(o: { preheader: string; heading: string; body: string; button: { label: string; href: string }; small: string; image?: { src: string; alt: string; href: string } }): string {
   return `<!doctype html>
 <html lang="en">
 <body style="margin:0;padding:0;background:#f2f2f4;">
@@ -17,7 +17,10 @@ export function layout(o: { preheader: string; heading: string; body: string; bu
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:12px;font-family:${FONT};color:#1b1c20;">
       <tr><td style="padding:28px 32px 0;">
         <div style="font-size:13px;font-weight:800;letter-spacing:0.12em;text-transform:uppercase;color:#e03131;">UFC Embedded</div>
-      </td></tr>
+      </td></tr>${o.image ? `
+      <tr><td style="padding:16px 32px 0;">
+        <a href="${o.image.href}"><img src="${o.image.src}" alt="${o.image.alt}" width="416" style="display:block;width:100%;max-width:416px;height:auto;border:0;border-radius:8px;"></a>
+      </td></tr>` : ""}
       <tr><td style="padding:14px 32px 0;">
         <h1 style="margin:0;font-size:22px;line-height:1.3;">${o.heading}</h1>
       </td></tr>
