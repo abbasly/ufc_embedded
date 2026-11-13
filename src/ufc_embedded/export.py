@@ -47,15 +47,13 @@ from ufc_embedded.style_map import (
 )
 from ufc_embedded.wikipedia import Photo, fighter_photos
 
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 WEB_DATA_DIR = PROJECT_ROOT / "web" / "public" / "data"
 
 ACTIVE_YEARS = 3
 RECORD_COLS = ["wins", "losses", "draws"]
 MIN_FIGHTS = 3
 N_CLUSTERS = 5
-N_NEIGHBOURS = 5
-N_DIVISION_NEIGHBOURS = 5
 
 # Label, unit and group of each style stat, in the order the fighter panel shows them.
 FEATURE_INFO: dict[str, tuple[str, str, str]] = {
@@ -159,16 +157,6 @@ def style_map_payload(
     cluster_names = name_clusters(table, sm.labels)
 
     rows = records(table)
-    pct = records(table[STYLE_FEATURES].rank(pct=True))
-    neighbours = sm.all_neighbours(N_NEIGHBOURS)
-    division = sm.all_neighbours(N_DIVISION_NEIGHBOURS, among=table["weight_class"])
-
-    def similar(nb: pd.Series) -> list[dict[str, Any]]:
-        score = sm.similarity_score(nb.to_numpy())
-        return [
-            {"id": ids[str(n)], "distance": round(float(d), 3), "similarity": round(float(s))}
-            for (n, d), s in zip(nb.items(), score, strict=True)
-        ]
 
     labels = pd.Series(sm.labels, index=table.index)
     cluster_of = {str(k): int(v) for k, v in labels.items()}
@@ -185,20 +173,15 @@ def style_map_payload(
             "rank": ranks.get(fid),
             "champion": belt.get(fid),
             "image": photos.get(fid),
-            "coords": {
-                "axes": [round(float(v), 3) for v in sm.axes.coords3[i]],
-                "similarity": [round(float(v), 3) for v in sm.similarity.coords3[i]],
-            },
-            "coords_2d": {
-                "axes": [round(float(v), 3) for v in sm.axes.coords2[i]],
-                "similarity": [round(float(v), 3) for v in sm.similarity.coords2[i]],
-            },
-            "stats": {f: round(float(row[f]), 2) for f in STYLE_FEATURES},
-            # The standardised stats the map is fitted on, for fighter arithmetic ("math").
+            # Only what the browser can't work out itself (schema 7, to keep the download
+            # small; web/src/data/styleMap.ts rebuilds the rest): the t-SNE position, and the
+            # stats raw and standardised ("vec"), both in the order of math.keys. From vec the
+            # browser places the fighter on Style axes (a linear map), and gets the "most
+            # similar" lists (nearest in vec @ metric) and the percentiles.
+            "similarity3": [round(float(v), 2) for v in sm.similarity.coords3[i]],
+            "similarity2": [round(float(v), 2) for v in sm.similarity.coords2[i]],
+            "stats": [round(float(row[f]), 2) for f in STYLE_FEATURES],
             "vec": [round(float(v), 4) for v in sm.xs[i]],
-            "percentiles": {f: round(float(pct[fid][f]), 3) for f in STYLE_FEATURES},
-            "neighbours": similar(neighbours[fid]),
-            "division_neighbours": similar(division[fid]),
         }
         for i, (fid, row) in enumerate(rows.items())
     ]
@@ -273,9 +256,9 @@ def style_map_payload(
         # Fighter arithmetic (A - B + C) in the browser: the fighters' "vec" times "metric"
         # (a matrix, vec @ metric) is the embedding similarity is measured in, "weights" is how
         # much each stat counts in it, "typical_distance" turns a distance into the 0-100
-        # score, and "projection" places any vector on Style axes. Added after schema 6
-        # without a bump: the page only offers the feature when present. "keys" is the order
-        # of the numbers in "vec", "weights" and the metric's rows (not the "features" order).
+        # score, and "projection" places any vector on Style axes. "keys" is the order of the
+        # numbers in each fighter's "stats" and "vec", in "weights" and in the metric's rows
+        # (not the "features" order).
         "math": {
             "keys": STYLE_FEATURES,
             "weights": _rounded(list(importance[STYLE_FEATURES])),

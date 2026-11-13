@@ -1,7 +1,7 @@
 // TypeScript mirror of the JSON written by `ufc_embedded.export` (Python).
 // Keep in sync with SCHEMA_VERSION there.
 
-export const STYLE_MAP_SCHEMA_VERSION = 6;
+export const STYLE_MAP_SCHEMA_VERSION = 7;
 
 export interface Feature {
   key: string;
@@ -43,7 +43,7 @@ export interface Cluster {
 
 export interface Neighbour {
   id: string;
-  distance: number;
+  distance: number; // in the similarity embedding (vec @ metric)
   similarity: number; // 0-100: 100 the same style, 0 as different as a typical pair
 }
 
@@ -67,6 +67,25 @@ export interface FightRecord {
   draws: number;
 }
 
+/** A fighter as style_map.json sends it (schema 7): only what the browser can't work out. */
+export interface FighterWire {
+  id: string;
+  name: string;
+  weight_class: string;
+  last_fight: string; // ISO date
+  n_fights: number; // UFC fights
+  record: FightRecord;
+  cluster: number;
+  rank: number | null; // current official divisional rank (0 = champion)
+  champion: string | null; // division name if current champion
+  image: Photo | null;
+  similarity3: number[]; // t-SNE position, 3D
+  similarity2: number[]; // and 2D
+  stats: number[]; // in math.keys order
+  vec: number[]; // the stats standardised, in math.keys order
+}
+
+/** A fighter as the app uses it: the wire fields plus what data/styleMap.ts works out on load. */
 export interface Fighter {
   id: string;
   name: string;
@@ -82,9 +101,8 @@ export interface Fighter {
   coords_2d: Record<LayoutId, number[]>;
   stats: Record<string, number>;
   percentiles: Record<string, number>; // 0..1 within the map population
-  vec?: number[]; // standardised stats the map is fitted on (fighter math); missing in older exports
-  neighbours: Neighbour[];
-  division_neighbours: Neighbour[]; // most similar in the same weight class
+  vec: number[]; // standardised stats the map is fitted on, in math.keys order
+  emb: number[]; // vec @ metric: the similarity embedding
 }
 
 export interface Champion {
@@ -94,13 +112,12 @@ export interface Champion {
   fighter_id: string | null; // null if not on the map (not enough data)
 }
 
-/** What fighter arithmetic needs (see ufc_embedded.export: "math"). Added without a schema bump. */
+/** The embedding and Style axes as numbers (see ufc_embedded.export: "math"): fighter math,
+ * the "most similar" lists and the Style axes positions are all worked out from these. */
 export interface StyleMath {
-  keys: string[]; // the stat behind each number of vec and weights (not the features order)
+  keys: string[]; // the stat behind each number of stats, vec and weights (not the features order)
   weights: number[]; // per stat: how much it counts in the similarity embedding (0..1)
-  // The similarity embedding is vec @ metric (rows follow keys). Exports before it existed
-  // measured similarity with vec times weights instead.
-  metric?: number[][];
+  metric: number[][]; // the similarity embedding is vec @ metric (rows follow keys)
   typical_distance: number; // a distance this big scores 0 out of 100
   // Style axes position of any vector v: (v @ matrix - mean) / std * scale3 (3D), or the
   // first two of those with scale2 (2D).
@@ -123,8 +140,13 @@ export interface StyleMapData {
   axes: Axis[];
   layouts: Layout[];
   clusters: Cluster[];
-  math?: StyleMath;
+  math: StyleMath;
   fighters: Fighter[];
+}
+
+/** style_map.json itself, before data/styleMap.ts fills in the rest. */
+export interface StyleMapWire extends Omit<StyleMapData, "fighters"> {
+  fighters: FighterWire[];
 }
 
 // ---- MMA math (written by ufc_embedded.mma_math) ----

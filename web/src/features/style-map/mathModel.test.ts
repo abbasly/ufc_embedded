@@ -2,12 +2,13 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import type { StyleMapData } from "../../data/types";
+import { hydrateStyleMap } from "../../data/styleMap";
+import type { StyleMapData, StyleMapWire } from "../../data/types";
 import { changes, chain, closest, combine, embeddingDistance, formatTerms, hasMath, parseTerms, place, PRESETS, presetTerms, styleRef, type Term, termVector } from "./mathModel";
 
 // A tiny made-up map: two stats, an identity-like projection, three fighters in two styles.
 function tiny(): StyleMapData {
-  const fighter = (id: string, cluster: number, vec: number[]) => ({ id, name: id.toUpperCase(), weight_class: "Lightweight", cluster, vec }) as unknown as StyleMapData["fighters"][number];
+  const fighter = (id: string, cluster: number, vec: number[]) => ({ id, name: id.toUpperCase(), weight_class: "Lightweight", cluster, vec, emb: vec }) as unknown as StyleMapData["fighters"][number];
   return {
     features: [{ key: "a", label: "Strikes" }, { key: "b", label: "Takedowns" }],
     clusters: [{ id: 0, name: "Strikers" }, { id: 1, name: "Wrestlers" }],
@@ -15,6 +16,7 @@ function tiny(): StyleMapData {
     math: {
       keys: ["b", "a"], // not the features order, on purpose
       weights: [1, 1],
+      metric: [[1, 0], [0, 1]], // the embedding is vec itself
       typical_distance: 2,
       projection: { matrix: [[1, 0, 0], [0, 1, 0]], mean: [0.5, 0.5, 0], std: [1, 1, 1], scale3: 2, scale2: 3 },
     },
@@ -62,6 +64,7 @@ describe("fighter math", () => {
     if (!hasMath(data)) throw new Error("no math");
     // A metric that only looks at the second number: the first stops mattering.
     data.math.metric = [[0], [2]];
+    for (const f of data.fighters) f.emb = [2 * f.vec[1]!]; // as hydrateStyleMap would
     expect(embeddingDistance(data.math, [5, 1], [0, 0])).toBeCloseTo(2);
     expect(closest(data, [9, 2], new Set())[0]!.fighter.id).toBe("r");
   });
@@ -82,26 +85,15 @@ describe("fighter math", () => {
 });
 
 describe("fighter math on the real map", () => {
-  const data = JSON.parse(readFileSync("public/data/style_map.json", "utf8")) as StyleMapData;
-
-  it.runIf(hasMath(data))("places every fighter where the map does", () => {
-    if (!hasMath(data)) return;
-    let worst = 0;
-    for (const f of data.fighters) {
-      for (const dims of [2, 3] as const) {
-        const p = place(data.math, f.vec!, dims);
-        const want = dims === 3 ? f.coords.axes : f.coords_2d.axes;
-        for (let a = 0; a < dims; a++) worst = Math.max(worst, Math.abs(p[a]! - want[a]!));
-      }
+  // The site's data, when it's here (web/scripts/fetch-data.mjs; it isn't kept in git).
+  const raw = (() => {
+    try {
+      return JSON.parse(readFileSync("public/data/style_map.json", "utf8")) as StyleMapWire;
+    } catch {
+      return null;
     }
-    expect(worst).toBeLessThan(0.01);
-  });
-
-  it.runIf(hasMath(data))("finds each fighter's most similar fighter, like the map's own lists", () => {
-    if (!hasMath(data)) return;
-    const agree = data.fighters.filter((f) => closest(data, f.vec!, new Set([f.id]), 1)[0]!.fighter.id === f.neighbours[0]!.id);
-    expect(agree.length / data.fighters.length).toBeGreaterThan(0.99);
-  });
+  })();
+  const data = raw && raw.schema_version === 7 ? hydrateStyleMap(raw) : tiny();
 
   it.runIf(hasMath(data))("has presets that resolve on today's map", () => {
     expect(PRESETS.filter((p) => presetTerms(data, p)).length).toBeGreaterThan(0);

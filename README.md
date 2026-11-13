@@ -103,15 +103,16 @@ All the details (features, evaluation, the style map pipeline, MMA math and Pick
 
 ## Architecture
 
-The Python pipeline runs on its own twice a week and writes JSON; the website is a static app
-that reads it, hosted free on GitHub Pages. Pick'em is the one live part: Supabase for accounts, picks and
-scores, kept up to date from Wikipedia by a scheduled sync.
+The Python pipeline runs on its own twice a week and publishes JSON to a GitHub Release; the
+website is a static app that downloads it at build time and serves it from its own domain,
+hosted free on GitHub Pages (beta on Cloudflare). Pick'em is the one live part: Supabase for
+accounts, picks, scores and cards, kept up to date from Wikipedia by a scheduled sync.
 
 ```mermaid
 flowchart LR
     subgraph py["Python pipeline (src/ufc_embedded)"]
         raw[("Kaggle CSVs (UFCStats)<br/>data/raw")] --> data["data.py<br/>fights, profiles, rankings"]
-        data --> sm["style_map.py<br/>14 stats, shrink, stability weights, style axes, t-SNE, k-means, kNN"]
+        data --> sm["style_map.py<br/>14 stats, learned metric (LDA),<br/>Style axes, t-SNE, k-means"]
         data --> champs["champions.py<br/>champions + ranks"]
         wiki(["Wikipedia API"]) --> photos["wikipedia.py<br/>fighter photos"]
         data --> mma["mma_math.py<br/>win graph + cycles"]
@@ -123,32 +124,40 @@ flowchart LR
         mma --> export
     end
 
-    refresh(["Data refresh (GitHub Action)<br/>Mon + Thu: download, rebuild, deploy"]) --> raw
+    refresh(["Data refresh (GitHub Action)<br/>Mon + Thu; by hand for beta"]) --> raw
     train --> check["check_data.py + tests<br/>refuse a bad refresh"]
     export --> check
-    check --> json[/"web/public/data/*.json<br/>(versioned data contracts)"/]
+    check --> release[("GitHub Release<br/>data · data-beta<br/>(versioned JSON contracts)")]
 
     subgraph web["Web app (web/)"]
-        client["data/client.ts<br/>only place that fetches"] --> feat["features/style-map<br/>React + three.js"]
+        client["data/client.ts + styleMap.ts<br/>fetch; work out neighbours,<br/>percentiles, Style axes"] --> lab["features/style-map<br/>Fighter Lab + fighter math, three.js"]
         client --> mmaui["features/mma-math<br/>chains + loops"]
         client --> predui["features/predictor<br/>cards + predictions"]
-        backend["backend/<br/>Supabase or demo"] --> pickui["features/pickem<br/>picks, leagues, profiles"]
+        backend["backend/<br/>Supabase or demo"] --> pickui["features/pickem, collection, profile<br/>picks, leagues, cards, packs"]
     end
 
-    json --> client
-    web -->|"GitHub Actions"| pages(["GitHub Pages<br/>ufc.anarli.com"])
-    cron(["cron-job.org<br/>every 5 min"]) --> sync["pickem_sync.py (GitHub Action)<br/>fight cards, results, live points"]
+    release -->|"fetch-data.mjs at build"| client
+    subgraph hosting["Hosting (static files)"]
+        pages(["GitHub Pages<br/>ufc.anarli.com<br/>from master"])
+        beta(["Cloudflare Workers<br/>beta.anarli.com<br/>from beta"])
+    end
+    web --> hosting
+    cron(["cron-job.org + schedule<br/>every 5 min on fight weekends"]) --> sync["pickem_sync.py (GitHub Action)<br/>cards, results, live points,<br/>the model's picks, card rarities"]
     wiki --> sync
-    sync --> supa[("Supabase<br/>accounts, picks, scores, leagues")]
-    supa --> mail["Edge Functions + Resend<br/>results + friend emails"]
+    release -->|"predictor.json"| sync
+    sync --> supa[("Supabase Postgres<br/>accounts, picks, scores,<br/>leagues, cards, packs")]
+    supa --> mail["Edge Functions + Resend<br/>results, friend requests, reminders"]
     supa <-->|"row level security"| backend
+    supa --> backup(["Weekly encrypted backup<br/>(GitHub Action)"])
+    visits(["ufc-visits Worker<br/>Cloudflare Web Analytics"]) -->|"admin panel"| backend
 ```
 
 ## Running it
 
 ```bash
 uv sync                                  # Python dependencies
-scripts/download-data.sh                 # latest public datasets into data/raw
+node web/scripts/fetch-data.mjs          # the live site's data into web/public/data (not in git)
+scripts/download-data.sh                 # or build your own: latest public datasets into data/raw
 uv run python -m ufc_embedded.export     # style map + MMA math JSON
 uv run python -m ufc_embedded.train      # train, evaluate (logged to W&B), write predictor.json
 uv run pytest                            # Python tests

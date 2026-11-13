@@ -146,8 +146,9 @@ const vite = await createServer({
   optimizeDeps: { noDiscovery: true, include: [] },
 });
 const { buildPages } = await vite.ssrLoadModule("/src/features/seo/content.ts");
+const { hydrateStyleMap } = await vite.ssrLoadModule("/src/data/styleMap.ts");
 const { SeoArticle } = await vite.ssrLoadModule("/src/features/seo/Articles.tsx");
-const pages = [...buildPages({ predictor: json("predictor.json"), mma: json("mma_math.json"), styles: json("style_map.json") }, siteUrl).values()];
+const pages = [...buildPages({ predictor: json("predictor.json"), mma: json("mma_math.json"), styles: hydrateStyleMap(json("style_map.json")) }, siteUrl).values()];
 await vite.close();
 
 /** Safe inside a <script>: nothing in the data can close the tag. */

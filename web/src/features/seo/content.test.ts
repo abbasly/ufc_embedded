@@ -2,10 +2,11 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
+import { hydrateStyleMap } from "../../data/styleMap";
 import { buildPages, nameMatches, type SeoData, slug } from "./content";
 
 const json = (file: string) => JSON.parse(readFileSync(`public/data/${file}`, "utf8"));
-const data: SeoData = { predictor: json("predictor.json"), mma: json("mma_math.json"), styles: json("style_map.json") };
+const data: SeoData = { predictor: json("predictor.json"), mma: json("mma_math.json"), styles: hydrateStyleMap(json("style_map.json")) };
 const pages = buildPages(data, "https://example.com/");
 
 describe("search pages", () => {
