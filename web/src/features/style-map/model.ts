@@ -1,5 +1,6 @@
 // Pure, UI-framework-free helpers: colours, groups and the "Show" filter.
 
+import { neighboursOf } from "../../data/styleMap";
 import type { Feature, Fighter, LayoutId, Neighbour, StyleMapData } from "../../data/types";
 
 export const GOLD = "#f5c518";
@@ -79,9 +80,8 @@ export function legend(data: StyleMapData, colorBy: ColorBy): { name: string; co
 export type Scope = "all" | "division";
 
 /** The selected fighter's most similar fighters: across the map, or in their own division. */
-export function similarTo(f: Fighter | null | undefined, scope: Scope): Neighbour[] {
-  if (!f) return [];
-  return scope === "all" ? f.neighbours : f.division_neighbours;
+export function similarTo(data: StyleMapData, f: Fighter | null | undefined, scope: Scope): Neighbour[] {
+  return f ? neighboursOf(data, f, scope) : [];
 }
 
 

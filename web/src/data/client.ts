@@ -12,7 +12,9 @@ import {
   type PredictorData,
   STYLE_MAP_SCHEMA_VERSION,
   type StyleMapData,
+  type StyleMapWire,
 } from "./types";
+import { hydrateStyleMap } from "./styleMap";
 
 const DATA_URL = `${import.meta.env.BASE_URL}data`;
 
@@ -46,7 +48,7 @@ function reloadOnce(file: string): boolean {
 
 const styleMapQuery = {
   queryKey: ["style-map"],
-  queryFn: () => fetchJson<StyleMapData>("style_map.json", STYLE_MAP_SCHEMA_VERSION),
+  queryFn: async (): Promise<StyleMapData> => hydrateStyleMap(await fetchJson<StyleMapWire>("style_map.json", STYLE_MAP_SCHEMA_VERSION)),
   staleTime: Infinity,
 };
 const mmaMathQuery = {
@@ -67,13 +69,16 @@ export const usePredictor = (enabled = true) => useQuery({ ...predictorQuery, en
 /**
  * Start downloading the data the first page needs as soon as the app starts, alongside that
  * page's code, instead of after the code has loaded. ``path`` is relative to the site root.
- * (Pick'em, the home page where accounts are on, shows the predictor's photos and odds.)
+ * The home page is Fighter Lab, unless the link is a Pick'em invite (App's Home); Pick'em shows
+ * the predictor's photos and odds.
  */
 export function prefetchFor(client: QueryClient, path: string, search: string) {
+  const params = new URLSearchParams(search);
+  const pickemLink = accountsEnabled && (params.has("event") || params.has("join") || params.has("league"));
   const query =
-    path.startsWith("/fighter-lab") || path.startsWith("/style-map") || new URLSearchParams(search).has("fighter")
+    path.startsWith("/fighter-lab") || path.startsWith("/style-map") || params.has("fighter") || (path === "/" && !pickemLink)
       ? styleMapQuery
-      : path.startsWith("/predictor") || path.startsWith("/ladder") || (accountsEnabled && (path === "/" || path.startsWith("/pickem")))
+      : path.startsWith("/predictor") || path.startsWith("/ladder") || path === "/" || (accountsEnabled && path.startsWith("/pickem"))
         ? predictorQuery
         : path.startsWith("/mma-math")
           ? mmaMathQuery

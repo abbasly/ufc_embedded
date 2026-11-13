@@ -1,16 +1,18 @@
 // Fighter arithmetic, like word vectors: "Alex Pereira − Kickboxers + Dominant wrestlers = ?".
 // Every fighter is a vector of 14 standardised style stats (the map is fitted on them), and a
 // style is the average of its fighters. The sum is taken in all 14 stats; the answer is the
-// real fighter closest to it, by the same distance the "most similar" lists use.
+// real fighter closest to it in the similarity embedding (vec @ metric, data/styleMap.ts), the
+// same one the "most similar" lists use.
 //
 // The Style axes layout is a linear function of those vectors (style_map.axes_projection), so
 // the sum can be drawn exactly: start at the first term, add one arrow per term, and the last
 // arrow ends where the sum belongs on the map.
 
+import { axesLinear, axesPlace, embDistance, embed, similarityScore, type Vec3 } from "../../data/styleMap";
 import type { Fighter, StyleMapData, StyleMath } from "../../data/types";
 import type { Dims } from "./model";
 
-export type Vec3 = [number, number, number];
+export type { Vec3 };
 
 /** One term of the sum: a fighter (their id) or a style ("s:<cluster id>"). */
 export interface Term {
@@ -24,19 +26,19 @@ const STYLE = "s:";
 export const isStyleRef = (ref: string) => ref.startsWith(STYLE);
 export const styleRef = (clusterId: number) => `${STYLE}${clusterId}`;
 
-/** The data has what the arithmetic needs (exports from before it lack the vectors). */
+/** The data has what the arithmetic needs (every export since schema 7 does). */
 export function hasMath(data: StyleMapData): data is StyleMapData & { math: StyleMath } {
-  return !!data.math?.keys && data.fighters.every((f) => f.vec?.length === data.math!.weights.length);
+  return !!data.math?.keys && data.fighters.every((f) => f.vec?.length === data.math.weights.length);
 }
 
 /** A term's vector: a fighter's own, or a style's average. Null for an unknown ref. */
 export function termVector(data: StyleMapData, ref: string): number[] | null {
   if (isStyleRef(ref)) {
     const id = Number(ref.slice(STYLE.length));
-    const members = data.fighters.filter((f) => f.cluster === id && f.vec);
+    const members = data.fighters.filter((f) => f.cluster === id);
     if (!members.length) return null;
-    const sum = new Array<number>(members[0]!.vec!.length).fill(0);
-    for (const f of members) f.vec!.forEach((v, i) => (sum[i]! += v));
+    const sum = new Array<number>(members[0]!.vec.length).fill(0);
+    for (const f of members) f.vec.forEach((v, i) => (sum[i]! += v));
     return sum.map((v) => v / members.length);
   }
   return data.fighters.find((f) => f.id === ref)?.vec ?? null;
@@ -56,27 +58,10 @@ export function combine(data: StyleMapData, terms: Term[]): number[] | null {
   return out;
 }
 
-/** The linear part of placing a vector on Style axes (no centring): an arrow's direction. */
-function linear(math: StyleMath, v: number[], dims: Dims): Vec3 {
-  const p = math.projection;
-  const scale = dims === 3 ? p.scale3 : p.scale2;
-  const out: Vec3 = [0, 0, 0];
-  for (let a = 0; a < dims; a++) {
-    let s = 0;
-    v.forEach((x, i) => (s += x * p.matrix[i]![a]!));
-    out[a] = (s / p.std[a]!) * scale;
-  }
-  return out;
-}
+const linear = (math: StyleMath, v: number[], dims: Dims): Vec3 => axesLinear(math, v, dims);
 
 /** Where a vector sits on the Style axes layout, exactly as the map places fighters. */
-export function place(math: StyleMath, v: number[], dims: Dims): Vec3 {
-  const p = math.projection;
-  const scale = dims === 3 ? p.scale3 : p.scale2;
-  const out = linear(math, v, dims);
-  for (let a = 0; a < dims; a++) out[a] = out[a]! - (p.mean[a]! / p.std[a]!) * scale;
-  return out;
-}
+export const place = (math: StyleMath, v: number[], dims: Dims): Vec3 => axesPlace(math, v, dims);
 
 /** The arrows of the sum: the first term's point, then one more point per term. The last
  * point is where the whole sum sits (placing is linear, so the arrows add up exactly). */
@@ -98,32 +83,18 @@ export interface Match {
   similarity: number; // 0-100, as in the "most similar" lists
 }
 
-/** How far apart two vectors are in the embedding similarity is measured in: through the
- * learned metric (vec @ metric), or, in older exports, the stats times their weights. */
-export function embeddingDistance(math: StyleMath, a: number[], b: number[]): number {
-  const diff = a.map((x, i) => x - b[i]!);
-  let d = 0;
-  if (math.metric) {
-    const dims = math.metric[0]!.length;
-    for (let j = 0; j < dims; j++) {
-      let z = 0;
-      diff.forEach((x, i) => (z += x * math.metric![i]![j]!));
-      d += z * z;
-    }
-  } else {
-    diff.forEach((x, i) => (d += (x * math.weights[i]!) ** 2));
-  }
-  return Math.sqrt(d);
-}
+/** How far apart two vectors are in the embedding similarity is measured in (vec @ metric). */
+export const embeddingDistance = (math: StyleMath, a: number[], b: number[]): number => embDistance(embed(math, a), embed(math, b));
 
 /** The real fighters closest to a vector in the full embedding. */
 export function closest(data: StyleMapData & { math: StyleMath }, v: number[], exclude: Set<string>, k = 3, division?: string): Match[] {
+  const target = embed(data.math, v);
   return data.fighters
-    .filter((f) => f.vec && !exclude.has(f.id) && (!division || f.weight_class === division))
-    .map((f) => ({ fighter: f, distance: embeddingDistance(data.math, f.vec!, v) }))
+    .filter((f) => !exclude.has(f.id) && (!division || f.weight_class === division))
+    .map((f) => ({ fighter: f, distance: embDistance(f.emb, target) }))
     .sort((a, b) => a.distance - b.distance)
     .slice(0, k)
-    .map((m) => ({ ...m, similarity: Math.round(Math.min(100, Math.max(0, 100 * (1 - m.distance / data.math.typical_distance)))) }));
+    .map((m) => ({ ...m, similarity: similarityScore(data.math, m.distance) }));
 }
 
 /** What the sum changed against where it started, the biggest (weighted) changes first. */

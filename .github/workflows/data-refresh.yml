@@ -7,19 +7,35 @@ name: Data refresh
 #
 # Mondays, once the weekend's card is in the datasets, and Thursdays, for fresh odds before the
 # next one. Nothing goes live unless the new data passes check_data.py and the tests.
+#
+# The data isn't committed: it goes to a GitHub Release ("data" for the live site, "data-beta"
+# for beta), which every build downloads (web/scripts/fetch-data.mjs). The site still serves it
+# from its own domain. Each run's data is also kept as a workflow artifact for 90 days, to go
+# back to if a refresh turns out wrong.
 
 on:
   schedule:
     - cron: "23 8 * * 1,4"
   workflow_dispatch: # "Run workflow" button, e.g. straight after a card
+    inputs:
+      target:
+        description: "Whose data: the live site (master) or beta.anarli.com (beta)"
+        type: choice
+        options: [master, beta]
+        default: master
 
 concurrency:
   group: data-refresh
   cancel-in-progress: false
 
 permissions:
-  contents: write # commit the new data
+  contents: write # the data release, and the photo cache
   actions: write # start the deploy
+
+env:
+  TARGET: ${{ inputs.target || 'master' }}
+  TAG: ${{ inputs.target == 'beta' && 'data-beta' || 'data' }}
+  GH_TOKEN: ${{ github.token }}
 
 jobs:
   refresh:
@@ -28,12 +44,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: master
+          ref: ${{ env.TARGET }}
+          fetch-depth: 0 # the data's last copy in git, for the very first refresh
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --locked
       - run: scripts/download-data.sh
-      - name: Keep the current data to compare against
-        run: cp -R web/public/data "$RUNNER_TEMP/current-data"
+      - name: Get the current data to compare against
+        run: |
+          current="$RUNNER_TEMP/current-data"
+          mkdir -p "$current"
+          gh release download "$TAG" --dir "$current" --pattern '*.json' \
+            || gh release download data --dir "$current" --pattern '*.json' \
+            || {
+              # No release yet: the data's last version in git, from before it moved out.
+              gone="$(git log -1 --format=%H -- web/public/data/style_map.json)"
+              for f in style_map.json predictor.json mma_math.json; do
+                git show "$gone^:web/public/data/$f" > "$current/$f"
+              done
+            }
       - name: Rebuild
         run: |
           uv run python -m ufc_embedded.export
@@ -42,28 +70,40 @@ jobs:
         id: check
         run: |
           line="$(uv run python -m ufc_embedded.check_data "$RUNNER_TEMP/current-data" web/public/data)"
+          [ "$TARGET" = beta ] && line="[beta] $line"
           echo "line=$line" >> "$GITHUB_OUTPUT"
           echo "$line" >> "$GITHUB_STEP_SUMMARY"
       - run: uv run pytest
-      - name: Commit and deploy
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Keep a copy of this run's data
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-data-${{ env.TARGET }}-${{ github.run_number }}
+          path: web/public/data/*.json
+          retention-days: 90
+      - name: Publish the data
         run: |
-          git add web/public/data data/processed/fighter_photos.json data/processed/fighter_photos_search.json
-          if git diff --cached --quiet; then
-            echo "nothing new"
-            exit 0
-          fi
+          gh release view "$TAG" > /dev/null 2>&1 || gh release create "$TAG" --prerelease \
+            --target "$TARGET" --title "Site data ($TARGET)" \
+            --notes "The site's data, rebuilt by the Data refresh workflow. Builds download it (web/scripts/fetch-data.mjs); not for editing by hand."
+          gh release upload "$TAG" web/public/data/style_map.json web/public/data/predictor.json web/public/data/mma_math.json --clobber
+      - name: Save the photo cache and deploy
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "chore(data): refresh fighters, ratings and predictions"
+          git add data/processed/fighter_photos.json data/processed/fighter_photos_search.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(data): new fighter photos"
+          elif [ "$TARGET" = beta ]; then
+            # Cloudflare builds beta on a push: give it one, so it picks up the new data.
+            git commit --allow-empty -m "chore(data): rebuild beta with the new data"
+          fi
           # Training also redraws docs/model-comparison.png; only the data is published.
           git restore .
-          git pull --rebase origin master
-          git push origin master
+          git pull --rebase origin "$TARGET"
+          git push origin "HEAD:$TARGET"
           # A push made with this workflow's token doesn't start other workflows: ask for the
-          # deploy explicitly.
-          gh workflow run ci.yml --ref master
+          # live site's deploy explicitly.
+          if [ "$TARGET" = master ]; then gh workflow run ci.yml --ref master; fi
       # What happened goes in the change log too (the admin panel, or supabase/queries/log.sql).
       # A logging hiccup never fails the refresh.
       - name: Log the refresh

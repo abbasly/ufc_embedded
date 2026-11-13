@@ -118,7 +118,8 @@ export default function StyleMapPage() {
   const shownLayout: LayoutId = mathOpen ? "axes" : layout; // the arrows only add up on Style axes
 
   const selected = data.fighters.find((f) => f.id === selectedId) ?? null;
-  const neighbours = similarTo(selected, scope);
+  // Worked out from the embedding (data/styleMap.ts); kept stable so the camera doesn't refly.
+  const neighbours = useMemo(() => similarTo(data, selected, scope), [data, selected, scope]);
   const showSimilar = similarView && selected !== null;
   const present = new Set(data.fighters.map((f) => f.weight_class));
   const isShown = (f: Fighter) =>

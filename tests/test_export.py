@@ -56,16 +56,14 @@ def test_payload_matches_contract() -> None:
     )
     public = {f["id"] for f in payload["fighters"]}
     fighter = payload["fighters"][0]
-    assert {k: len(v) for k, v in fighter["coords"].items()} == {"axes": 3, "similarity": 3}
-    assert {k: len(v) for k, v in fighter["coords_2d"].items()} == {"axes": 2, "similarity": 2}
+    # Lean: Style axes, percentiles and neighbours are worked out in the browser.
+    assert (len(fighter["similarity3"]), len(fighter["similarity2"])) == (3, 2)
+    assert not {"coords", "coords_2d", "percentiles", "neighbours"} & set(fighter)
     assert [la["id"] for la in payload["layouts"]] == ["axes", "similarity"]
     assert all(0 <= q["knn_kept"] <= 1 for la in payload["layouts"] for q in la["quality"].values())
-    assert set(fighter["stats"]) == set(STYLE_FEATURES)
-    assert all(0 < p <= 1 for p in fighter["percentiles"].values())
-    assert all(n["id"] in public and n["id"] != fighter["id"] for n in fighter["neighbours"])
-    assert all(0 <= n["similarity"] <= 100 for n in fighter["neighbours"])
-    division = {f["id"]: f["weight_class"] for f in payload["fighters"]}
-    assert all(division[n["id"]] == fighter["weight_class"] for n in fighter["division_neighbours"])
+    assert payload["math"]["keys"] == STYLE_FEATURES
+    assert len(fighter["stats"]) == len(fighter["vec"]) == len(STYLE_FEATURES)
+    assert len(public) == len(payload["fighters"])
     assert [f["key"] for f in payload["features"]] != []
     assert {f["key"] for f in payload["features"]} == set(STYLE_FEATURES)
 

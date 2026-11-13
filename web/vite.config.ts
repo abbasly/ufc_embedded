@@ -92,14 +92,58 @@ function goatcounter(code: string | undefined): Plugin {
   };
 }
 
+/**
+ * Fighter Lab is the landing page, and its code (three.js above all) is loaded lazily, so it
+ * would only start downloading once the main script has arrived and run. For a visit that lands
+ * on it, a few lines at the top of <head> start those downloads straight away, in parallel with
+ * the main script. Other pages (and Pick'em invite links to "/") don't download them.
+ */
+function preloadLanding(base: string): Plugin {
+  return {
+    name: "preload-landing",
+    apply: "build",
+    transformIndexHtml: {
+      order: "post",
+      handler(_html, ctx) {
+        const chunks = Object.values(ctx.bundle ?? {}).filter((c) => c.type === "chunk");
+        const page = chunks.find((c) => c.facadeModuleId?.endsWith("/features/style-map/StyleMapPage.tsx"));
+        if (!page) return [];
+        // The page's chunk and everything it imports, except what the entry loads anyway.
+        const entry = new Set(chunks.filter((c) => c.isEntry).flatMap((c) => [c.fileName, ...c.imports]));
+        const files = new Set<string>();
+        const visit = (file: string) => {
+          if (files.has(file) || entry.has(file)) return;
+          files.add(file);
+          chunks.find((c) => c.fileName === file)?.imports.forEach(visit);
+        };
+        visit(page.fileName);
+        const landing = `^${base.replace(/[/.]/g, "\\$&")}(fighter-lab|style-map)?/?$`;
+        return [
+          {
+            tag: "script",
+            children:
+              `if (new RegExp(${JSON.stringify(landing)}).test(location.pathname) && !/[?&](event|join|league)=/.test(location.search))` +
+              ` ${JSON.stringify([...files].map((f) => base + f))}.forEach(function (href) {` +
+              ` var l = document.createElement("link"); l.rel = "modulepreload"; l.href = href; document.head.appendChild(l); });`,
+            injectTo: "head-prepend",
+          },
+        ];
+      },
+    },
+  };
+}
+
+const base = process.env.BASE_PATH ?? "/";
+
 // BASE_PATH lets the same build live at "/" locally and at "/<repo>/" on GitHub Pages.
 export default defineConfig({
-  base: process.env.BASE_PATH ?? "/",
+  base,
   plugins: [
     react(),
     adsense(process.env.VITE_ADSENSE_CLIENT),
     cloudflareAnalytics(process.env.VITE_CF_ANALYTICS_TOKEN),
     goatcounter(process.env.VITE_GOATCOUNTER),
+    preloadLanding(base),
   ],
-  build: { chunkSizeWarningLimit: 6000 }, // Plotly is big but lazy-loaded on the style map only
+  build: { chunkSizeWarningLimit: 6000 }, // three.js is big but lazy-loaded with Fighter Lab
 });

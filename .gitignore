@@ -21,9 +21,15 @@ __pycache__/
 # web
 web/node_modules/
 web/dist/
+# The site's data: built by the data refresh and kept in a GitHub Release, not in git
+# (web/scripts/fetch-data.mjs downloads it).
+web/public/data/*.json
 
 # Weights & Biases local run files
 wandb/
 
 # Local settings, e.g. web/.env.local with the Supabase URL and key for development
 *.local
+
+.DS_Store
+web/tsconfig.tsbuildinfo

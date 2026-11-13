@@ -12,8 +12,9 @@ evaluated, how Pick'em runs, and where the data comes from.
 5. [Pick'em](#pickem)
 6. [Architecture](#architecture)
 7. [Data](#data)
-8. [Stack](#stack)
-9. [Limitations](#limitations)
+8. [Performance](#performance)
+9. [Stack](#stack)
+10. [Limitations](#limitations)
 
 ## Features
 
@@ -235,7 +236,9 @@ cases). See [supabase/README.md](../supabase/README.md).
 ## Architecture
 
 - **Data contract:** `export.py` writes JSON with a `schema_version`; `web/src/data/types.ts`
-  mirrors it. Moving to a real API later only changes `client.ts`.
+  mirrors it. Moving to a real API later only changes `client.ts`. The style map sends only
+  what the browser can't work out itself; `web/src/data/styleMap.ts` rebuilds the rest on load
+  (see [Performance](#performance)).
 - **Features are modular:** each product lives in `web/src/features/<name>/` and is
   lazy-loaded by its route.
 - **Accounts:** `web/src/backend/` is the only code that knows it's Supabase, behind a
@@ -243,18 +246,35 @@ cases). See [supabase/README.md](../supabase/README.md).
   (`VITE_ACCOUNTS=demo`).
 - **CI/CD:** every push to `master` runs ruff, mypy, pytest, the database tests, the web tests
   and the build, then deploys to GitHub Pages. The `beta` branch is built separately on
-  Cloudflare at beta.anarli.com, for trying things before they reach the live site. A weekly
-  workflow backs up the database, encrypted.
+  Cloudflare at beta.anarli.com, for trying things before they reach the live site. Both
+  download the site's data from a GitHub Release first (below). A weekly workflow backs up the
+  database, encrypted.
 
 ## Data
 
 **Automatic refresh.** `.github/workflows/data-refresh.yml` runs on Mondays (the weekend's card
 is in the datasets by then) and Thursdays (fresh odds for the next card), or by hand from the
 Actions tab. It downloads the datasets, rebuilds the style map, MMA math, ratings and
-predictions, refuses the result if `check_data.py` or the tests object, and otherwise commits
+predictions, refuses the result if `check_data.py` or the tests object, and otherwise publishes
 the new JSON and deploys. Each run, or failure, leaves a line in `pickem_log` (visible in the
 admin panel). The model's weights don't change (they're fit on fights before
 2024); every fighter's stats move to the latest card.
+
+**Where the site's data lives.** The three JSON files aren't in git. A refresh uploads them to a
+GitHub Release, `data` for the live site, and every build downloads them into
+`web/public/data` (`web/scripts/fetch-data.mjs`; `npm run build` does it when they're missing,
+`npm run data` replaces them). Visitors still get them from the site's own domain, so
+nothing changes for them. Before, every refresh committed about 3 MB of JSON: the repository
+grew with each one, and the beta branch's own data clashed with master's on every merge.
+
+- **Beta's data:** run the refresh by hand with *target: beta*. It builds from the `beta`
+  branch, uploads to a `data-beta` release and pushes an empty commit so Cloudflare rebuilds
+  beta. Without a `data-beta` release, beta uses the live site's data.
+- **Going back:** each run's JSON is also kept as a workflow artifact for 90 days; uploading an
+  older one to the release (`gh release upload data *.json --clobber`) and rerunning CI rolls
+  the site back.
+- **Working locally:** `node web/scripts/fetch-data.mjs` gets the live data, or the export and
+  training commands build your own.
 
 Raw data isn't committed. `scripts/download-data.sh` fetches these regularly updated Kaggle
 datasets into `data/raw/<dataset-name>/` (no account needed for public datasets):
@@ -269,6 +289,55 @@ datasets into `data/raw/<dataset-name>/` (no account needed for public datasets)
 Fighter photos are cached in `data/processed/fighter_photos*.json` (committed, so a refresh
 only looks up new fighters); delete them to refresh them all.
 Pick'em cards and results come from Wikipedia at sync time.
+
+## Performance
+
+Fighter Lab is the landing page, so its first load is what most visitors wait for. In November
+2026 it went through one round of work, measured with a script that loads the page in a fresh
+browser, as a phone (412 px wide, CPU slowed down 4×) on throttled mobile connections, and times
+how long it takes until the fighter math answer is on screen (median of 5 cold loads; local
+server with gzip, so real latency comes on top):
+
+| | Fast 4G | Slow 4G | The site's bytes before the answer |
+|---|---|---|---|
+| Before | 3.65 s | 10.7 s | 1001 KB |
+| Lean style map + right prefetch | 2.94 s | 8.5 s | 675 KB |
+| + Fighter Lab's code preloaded | **2.44 s** | **8.0 s** | 675 KB |
+
+Three changes:
+
+1. **The style map sends only what the browser can't work out (schema 7).** Most of
+   `style_map.json` was things derived from each fighter's 14 standardised stats ("vec"):
+   the 5 most similar fighters twice (overall and in the division), the percentiles of every
+   stat, and the position on Style axes. All three are cheap to work out from `vec`, the
+   learned metric and the axes projection, which the file already had for fighter math, so
+   `web/src/data/styleMap.ts` does it on load in a few milliseconds:
+   - Style axes positions are a linear function of `vec`, so they're exact
+     (`test_style_map.py` checks the projection against the pipeline's own positions).
+   - Percentiles rank every stat across the map, ties sharing their average rank, as pandas
+     did.
+   - The most similar fighters are the nearest in `vec @ metric`, worked out for the fighter
+     being looked at.
+
+   Stats now come as arrays in a fixed order instead of objects repeating 14 long key names
+   per fighter. Checked against the last full export: 720 of 723 fighters get exactly the same
+   most-similar list (the other 3 swap a near-tie, from rounding), no similarity score moves by
+   more than 1 and no percentile by more than 1 point. The file went from **1.48 MB to 396 KB**
+   (271 KB to 102 KB gzipped).
+2. **The landing page fetches the right data.** When "/" became Fighter Lab, the code that
+   starts the first page's download early still fetched the predictor's data for it: 183 KB
+   (gzipped) that the page didn't use, competing with the style map. It now starts the style
+   map, and the predictor's data only for Pick'em links.
+3. **Fighter Lab's code starts downloading with the page.** It's loaded lazily (three.js is
+   most of it, 236 KB gzipped), so it used to start only after the main script had arrived and
+   run. A few lines at the top of `<head>`, written by a Vite plugin (`preloadLanding` in
+   `vite.config.ts`), start those downloads straight away on the landing page, in parallel
+   with the main script. Other pages don't load them.
+
+**Next, if it's needed:** three.js is now the biggest single download. Showing a light 2D
+version of the map first and the 3D scene once it has loaded would make the first answer
+appear sooner on slow connections. The Supabase client (29 KB) also loads on every page, for
+the account menu, and could wait until someone signs in.
 
 ## Search pages
 

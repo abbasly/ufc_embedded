@@ -3,6 +3,7 @@
 // (scripts/route-previews.mjs writes each page as real HTML) and in the browser (SeoPage.tsx
 // shows the same page inside the app).
 
+import { neighboursOf } from "../../data/styleMap";
 import type { MmaMathData, PredictorData, PredictorFighter, StyleMapData, UpcomingCard, UpcomingFight } from "../../data/types";
 import { headToHead, outcomes, winProb } from "../predictor/model";
 
@@ -259,7 +260,7 @@ export function buildPages(d: SeoData, siteUrl: string): Map<string, SeoPageMode
       stats: { record, elo: f.elo, rank, division: f.weight_class },
       recent,
       style: cluster ? { name: cluster.name, description: cluster.description, traits } : null,
-      similar: (style?.neighbours ?? []).slice(0, 5).flatMap((n) => {
+      similar: (style ? neighboursOf(d.styles, style, "all") : []).flatMap((n) => {
         const other = styleById.get(n.id);
         return other ? [{ path: byId.has(n.id) ? fighterPath(n.id) : null, name: other.name, similarity: Math.round(n.similarity) }] : [];
       }),
