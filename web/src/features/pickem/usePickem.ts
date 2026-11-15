@@ -175,6 +175,18 @@ export function useStandings(leagueId: string | null) {
   });
 }
 
+/** A league's latest card with the model alongside; while it's being fought it checks back
+ * every minute, like the card itself. */
+export function useLeagueCard(leagueId: string | null) {
+  const { backend } = useAuth();
+  return useQuery({
+    queryKey: ["leagues", "card", leagueId],
+    queryFn: () => backend!.leagues.cardStandings(leagueId!),
+    enabled: !!backend && !!leagueId,
+    refetchInterval: (query) => (query.state.data && !query.state.data.scored ? 60_000 : false),
+  });
+}
+
 /** Create, join and leave leagues; each refreshes the list of leagues. */
 export function useLeagueActions() {
   const { backend } = useAuth();
