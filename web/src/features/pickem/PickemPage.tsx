@@ -25,7 +25,7 @@ import { guestStarters, useStarterBadges } from "../profile/starter";
 import { StarterToast } from "../profile/StarterToast";
 import { useClaimGuestPicks, useGuestPicks } from "./guestPicks";
 import { Leagues, ModelTag, playerPath } from "./Leagues";
-import { boutPoints, isUnderdog, marketChance, METHOD_LABEL, MODEL_PLAYER, places, POINTS, scores } from "./scoring";
+import { boutPoints, isUnderdog, marketChance, METHOD_LABEL, MODEL_PLAYER, places, POINTS, pointsFor, scores } from "./scoring";
 import {
   EVERYONE,
   FRIENDS,
@@ -526,24 +526,55 @@ function Bout({ bout, label, choice, byId, chance, canPick, mates, pickedBy, spl
           Your call: {surname(choice.winner)} by {METHOD_LABEL[choice.method]}
         </Text>
       )}
-      {bout.outcome && (
-        <Group gap="xs" px={4} mb={6}>
-          <Text size="xs" fw={700}>
-            {bout.outcome === "win" && bout.winner
-              ? `${surname(bout.winner)} by ${bout.method ? METHOD_LABEL[bout.method] : "other"}`
-              : bout.outcome === "draw"
-                ? "Draw: no points either way"
-                : "No contest: no points either way"}
-          </Text>
-          {points !== null && (
-            <Text size="xs" fw={800} c={points ? "green.4" : "dimmed"}>
-              {points ? `+${points}` : "0"}
-            </Text>
-          )}
-        </Group>
-      )}
+      {bout.outcome && <Verdict bout={bout} choice={choice} points={points} surname={surname} />}
       <BoutFooter bout={bout} known={byId.has(bout.fighterA) && byId.has(bout.fighterB)} pickedBy={pickedBy} leagueName={leagueName} />
     </Paper>
+  );
+}
+
+/** Once a fight is decided: who won and how, what you picked, and what it earned, in words. */
+function Verdict({ bout, choice, points, surname }: { bout: PickemBout; choice: Pick | undefined; points: number | null; surname: (id: string) => string | undefined }) {
+  const how = (method: Method | null) => (method ? METHOD_LABEL[method] : "other");
+  if (bout.outcome !== "win" || !bout.winner) {
+    return (
+      <Text size="xs" fw={700} px={4} mb={6}>
+        {bout.outcome === "draw" ? "Draw" : "No contest"}: no points either way
+      </Text>
+    );
+  }
+  const won = `${surname(bout.winner)} won by ${how(bout.method)}`;
+  const right = choice?.winner === bout.winner;
+  // On the main card your method counts too: say how yours compared.
+  const yourHow = choice?.method && scores(bout) ? (choice.method === bout.method ? "method right" : `you said ${how(choice.method)}`) : null;
+  return (
+    <Group gap="xs" px={4} mb={6} wrap="nowrap" justify="space-between" className="pickem-verdict" data-right={choice ? right : undefined}>
+      <Text size="xs" style={{ minWidth: 0 }}>
+        {!choice ? (
+          <b>{won}</b>
+        ) : right ? (
+          <>
+            <b>✓ You called it:</b> {won}
+            {yourHow && ` · ${yourHow}`}
+          </>
+        ) : (
+          <>
+            <b>✗ You picked {surname(choice.winner)}</b>
+            {choice.method && ` by ${how(choice.method)}`}. {won}.
+          </>
+        )}
+      </Text>
+      {choice && points !== null && (
+        <Text size="xs" fw={800} c={points ? "green.4" : "dimmed"} style={{ whiteSpace: "nowrap" }} title={pointsFor(bout, choice).join(" + ")}>
+          {points ? `+${points}` : "0 pts"}
+          {points > 0 && (
+            <Text span size="xs" fw={500} c="dimmed">
+              {" "}
+              {pointsFor(bout, choice).join(" + ")}
+            </Text>
+          )}
+        </Text>
+      )}
+    </Group>
   );
 }
 
@@ -599,11 +630,18 @@ function Side({ id, name, fighter, chance, underdog, bonus, chosen, winner, disa
               )}
             </Text>
           </div>
-          {chosen && (
+          {chosen && result === null && (
             // On phones the outline alone marks the pick, so the name keeps the room.
-            <Text ml="auto" fw={800} size="sm" className="pickem-mark" visibleFrom={result === null ? "sm" : undefined}>
-              {result === null ? "Your pick" : result ? "✓" : "✗"}
+            <Text ml="auto" fw={800} size="sm" className="pickem-mark" visibleFrom="sm">
+              Your pick
             </Text>
+          )}
+          {/* Once decided, each side says what it was: the winner, and your pick (right or not). */}
+          {result !== null && (result || chosen) && (
+            <div className="pickem-tags">
+              {result && <span className="pickem-tag" data-kind="won">Won</span>}
+              {chosen && <span className="pickem-tag" data-kind={result ? "right" : "wrong"}>{result ? "✓ Your pick" : "✗ Your pick"}</span>}
+            </div>
           )}
         </div>
       </UnstyledButton>

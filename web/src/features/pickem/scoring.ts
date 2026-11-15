@@ -36,6 +36,17 @@ export const isUnderdog = (bout: PickemBout, fighter: string) => (marketChance(b
 /** Whether a bout is on the main card, where the full points (and the earned cards) are. */
 export const scores = (bout: PickemBout) => bout.segment === "main";
 
+/** What a right pick's points were for, e.g. ["winner", "method"]; empty for a wrong one. */
+export function pointsFor(bout: PickemBout, pick: Pick): string[] {
+  if (bout.outcome !== "win" || pick.winner !== bout.winner) return [];
+  if (!scores(bout)) return ["prelim winner"];
+  return [
+    "winner",
+    ...(pick.method && pick.method === bout.method ? ["method"] : []),
+    ...(isUnderdog(bout, pick.winner) ? ["underdog"] : []),
+  ];
+}
+
 /** Points for one pick once the bout has a result; null before, or for a draw or no contest.
  * A prelim is worth 1 for the right winner, with no bonuses. */
 export function boutPoints(bout: PickemBout, pick: Pick | undefined): number | null {
