@@ -8,6 +8,7 @@ import { AboutPage } from "../pages/AboutPage";
 import { ImpressumPage } from "../pages/ImpressumPage";
 import { NotFoundPage } from "../pages/NotFoundPage";
 import { PrivacyPage } from "../pages/PrivacyPage";
+import { usePickemTag } from "../features/pickem/usePickem";
 import { countPage } from "./goatcounter";
 import { lazyPage } from "./lazyPage";
 import { ICONS, type NavItem, NavTabs } from "./NavTabs";
@@ -81,6 +82,9 @@ export function App() {
   // GitHub Pages serves the pages that have their own link-preview file as a folder, so a
   // refresh lands on "/predictor/": compare without the trailing slash.
   const pathname = useLocation().pathname.replace(/(.)\/$/, "$1");
+  // Pick'em's tab says when the next card closes (or that one is live), to bring people in.
+  const pickem = usePickemTag();
+  const nav = NAV.map((item) => (item.to === "/pickem" && pickem ? { ...item, fresh: true, tag: pickem.text, live: pickem.live } : item));
   useEffect(() => {
     // Pages not listed (player pages, admin, not found) set their own title.
     if (TITLES[pathname]) document.title = TITLES[pathname];
@@ -110,7 +114,7 @@ export function App() {
           </Anchor>
           <Group gap="xs" wrap="nowrap">
             <Group visibleFrom="sm" gap={0}>
-              <NavTabs items={NAV} active={pathname.startsWith("/fighters/") ? "/fighters" : pathname} placement="top" />
+              <NavTabs items={nav} active={pathname.startsWith("/fighters/") ? "/fighters" : pathname} placement="top" />
             </Group>
             {/* Sign in / account menu: only when accounts are on (src/backend). */}
             {UserMenu && (
@@ -125,7 +129,7 @@ export function App() {
       </AppShell.Header>
 
       <AppShell.Footer hiddenFrom="sm" style={{ ...GLASS, borderTop: "1px solid rgba(255, 255, 255, 0.08)" }}>
-        <NavTabs items={NAV} active={pathname} placement="bottom" />
+        <NavTabs items={nav} active={pathname} placement="bottom" />
       </AppShell.Footer>
 
       <AppShell.Main>

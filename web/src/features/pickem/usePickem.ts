@@ -8,7 +8,7 @@ import { useSearchParams } from "react-router-dom";
 
 import { useAuth } from "../../auth/AuthProvider";
 import { useFriends } from "../friends/useFriends";
-import type { Method, Pick } from "../../backend";
+import type { Method, Pick, PickemEvent } from "../../backend";
 
 export function useEvents() {
   const { backend } = useAuth();
@@ -18,6 +18,27 @@ export function useEvents() {
     enabled: !!backend,
     staleTime: 60_000,
   });
+}
+
+/** The Pick'em tab's tag in the menu, to bring people to the next card: "LIVE" while a card is
+ * being fought, the time left to pick in the week before one locks ("2D LEFT", "5H LEFT"), and
+ * nothing otherwise. */
+export function pickemTag(events: PickemEvent[], now: number): { text: string; live: boolean } | null {
+  const live = events.some((e) => !e.scoredAt && Date.parse(e.locksAt) <= now && now - Date.parse(e.locksAt) < 20 * 3600e3);
+  if (live) return { text: "LIVE", live: true };
+  const next = events
+    .map((e) => Date.parse(e.locksAt) - now)
+    .filter((left) => left > 0)
+    .sort((a, b) => a - b)[0];
+  if (next === undefined || next > 7 * 24 * 3600e3) return null;
+  const hours = next / 3600e3;
+  return { text: hours < 24 ? `${Math.max(1, Math.floor(hours))}H LEFT` : `${Math.floor(hours / 24)}D LEFT`, live: false };
+}
+
+/** The tag for the menu (the events list is refetched when stale, e.g. on coming back to the tab). */
+export function usePickemTag() {
+  const events = useEvents();
+  return events.data ? pickemTag(events.data, Date.now()) : null;
 }
 
 /** Whether a card is being fought: locked, results not all in yet. */

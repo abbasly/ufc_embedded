@@ -14,6 +14,7 @@ export interface NavItem {
   icon: ReactNode;
   fresh?: boolean; // gets a tag ("NEW", or `tag`)
   tag?: string;
+  live?: boolean; // the tag says something is happening right now (styled red, with a dot)
   topOnly?: boolean; // not in the phones' bottom bar, which has no room left
 }
 
@@ -77,7 +78,11 @@ export function NavTabs({ items, active, placement }: Props) {
             </span>
           )}
           <span className="nav-label">{placement === "bottom" ? (item.short ?? item.label) : item.label}</span>
-          {placement === "top" && item.fresh && <span className="nav-new">{item.tag ?? "NEW"}</span>}
+          {placement === "top" && item.fresh && (
+            <span className="nav-new" data-live={item.live || undefined}>
+              {item.tag ?? "NEW"}
+            </span>
+          )}
         </UnstyledButton>
       ))}
     </nav>

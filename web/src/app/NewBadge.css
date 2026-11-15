@@ -18,6 +18,26 @@
   animation: new-pulse 2s ease-out infinite;
   pointer-events: none;
 }
+/* A card being fought right now: plain red, with a blinking dot. */
+.nav-new[data-live] {
+  background: #e03131;
+}
+.nav-new[data-live]::before {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 3px;
+  border-radius: 50%;
+  background: #fff;
+  vertical-align: 1px;
+  animation: live-blink 1.2s steps(2, start) infinite;
+}
+@keyframes live-blink {
+  to {
+    visibility: hidden;
+  }
+}
 .nav-new-dot {
   position: absolute;
   top: -2px;
@@ -38,7 +58,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .nav-new,
-  .nav-new-dot {
+  .nav-new-dot,
+  .nav-new[data-live]::before {
     animation: none;
   }
 }
