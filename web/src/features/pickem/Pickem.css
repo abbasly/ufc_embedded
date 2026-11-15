@@ -365,3 +365,13 @@ a.pickem-row:hover {
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(6px);
 }
+
+/* A league's last card: its name above the board; members who sat it out, faded. */
+.pickem-card-head {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+.pickem-row[data-sat] {
+  opacity: 0.55;
+}

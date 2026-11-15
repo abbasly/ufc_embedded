@@ -428,6 +428,22 @@ export function demoBackend(): Backend {
         save({ ...load(), leagues: load().leagues.filter((l) => l.id !== leagueId) });
       },
       members: async () => ["olga", "fred", load().profile?.displayName ?? "you"],
+      cardStandings: async () => {
+        const s = load();
+        const row = (displayName: string, avatar: string | null, points: number, correct: number, played = true) => ({ displayName, avatar, points, correct, picked: played ? 5 : 0, events: played ? 1 : 0, played });
+        return {
+          eventId: "demo-e2",
+          eventName: "UFC Fight Night: Holloway vs. Topuria",
+          startsOn: "2026-10-17",
+          scored: true,
+          rows: [
+            row("olga", "islam-makhachev", 45, 3),
+            row("the_model", null, 30, 2),
+            row("fred", null, 21, 1),
+            row(s.profile?.displayName ?? "you", s.profile?.avatar ?? null, 0, 0, false),
+          ],
+        };
+      },
       standings: async () => {
         const s = load();
         const me = { displayName: s.profile?.displayName ?? "you", avatar: s.profile?.avatar ?? null, points: 0, correct: 0, picked: s.picks.length, events: 0 };

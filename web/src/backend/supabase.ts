@@ -535,6 +535,20 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
         if (error) throw friendly(error);
         return (data as Record<string, unknown>[]).map(toRow);
       },
+      async cardStandings(leagueId) {
+        const { data, error } = await db.rpc("league_card_standings", { league: leagueId });
+        if (error) throw friendly(error);
+        const rows = data as (Record<string, unknown> & { event_id: string; event_name: string; starts_on: string; scored: boolean; played: boolean })[];
+        const first = rows[0];
+        if (!first) return null;
+        return {
+          eventId: first.event_id,
+          eventName: first.event_name,
+          startsOn: first.starts_on,
+          scored: first.scored,
+          rows: rows.map((r) => ({ ...toRow({ ...r, events: r.played ? 1 : 0 }), played: r.played })),
+        };
+      },
       async champions(leagueId) {
         const { data, error } = await db.rpc("league_champions", { league: leagueId });
         if (error) throw friendly(error);

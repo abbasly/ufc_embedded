@@ -141,6 +141,15 @@ export interface LeaderboardRow {
   events: number;
 }
 
+/** A league's board for its latest card: its members' points on it, and the model's. */
+export interface LeagueCard {
+  eventId: string;
+  eventName: string;
+  startsOn: string;
+  scored: boolean; // false while it's being fought
+  rows: (LeaderboardRow & { played: boolean })[]; // best first; members who didn't play it last
+}
+
 /** A pick on a fought bout, with the bout and its result: a player's pick history. */
 export interface PastPick {
   pick: Pick;
@@ -306,6 +315,9 @@ export interface Backend {
     join(inviteCode: string): Promise<string>;
     leave(leagueId: string): Promise<void>;
     standings(leagueId: string): Promise<LeaderboardRow[]>;
+    /** The league's latest card, with the model alongside its members (members only); null
+     * before any member has points. */
+    cardStandings(leagueId: string): Promise<LeagueCard | null>;
     /** The display names of a league's members (members only). */
     members(leagueId: string): Promise<string[]>;
     /** Who won each finished card in a league, latest first (members only). */

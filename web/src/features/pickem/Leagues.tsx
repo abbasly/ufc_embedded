@@ -2,7 +2,7 @@
 // league controls (create, join with a code, invite friends, leave). An invite link is
 // /pickem?join=CODE: opening it joins that league (after signing in, if need be).
 
-import { Badge, Button, Group, Loader, Modal, Paper, Stack, Text, TextInput, Title, UnstyledButton } from "@mantine/core";
+import { Badge, Button, Group, Loader, Modal, Paper, SegmentedControl, Stack, Text, TextInput, Title, UnstyledButton } from "@mantine/core";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
@@ -12,7 +12,7 @@ import type { LeaderboardRow } from "../../backend";
 import { useFriends, useFriendsStandings } from "../friends/useFriends";
 import { LeagueChampion, reigning, useLeagueChampions } from "./LeagueChampion";
 import { MODEL_PLAYER, places } from "./scoring";
-import { EVERYONE, FRIENDS, useLeaderboard, useLeagueActions, useLeagues, useStandings } from "./usePickem";
+import { EVERYONE, FRIENDS, useLeaderboard, useLeagueActions, useLeagueCard, useLeagues, useStandings } from "./usePickem";
 
 const TOP = 10; // rows shown before "Show all"
 
@@ -75,10 +75,15 @@ export function Leagues({ selected, setSelected }: Props) {
   const showFriends = selected === FRIENDS && hasFriends;
   const everyone = useLeaderboard();
   const standings = useStandings(league?.id ?? null);
+  // A league shows its latest card first (the overall board already has everyone's totals).
+  const [leagueView, setLeagueView] = useState<"card" | "all">("card");
+  const card = useLeagueCard(league?.id ?? null);
+  const lastCard = league && leagueView === "card" ? card.data : null;
   const friendsBoard = useFriendsStandings(showFriends);
   const champions = useLeagueChampions(league?.id ?? null);
   const crowned = new Set(reigning(champions.data ?? []).map((c) => c.displayName));
   const rows = league ? standings : showFriends ? friendsBoard : everyone;
+  const cardDate = lastCard ? new Date(`${lastCard.startsOn}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : "";
   const boards = [
     { value: EVERYONE, label: "Everyone" },
     ...(hasFriends ? [{ value: FRIENDS, label: "Friends" }] : []),
@@ -114,7 +119,45 @@ export function Leagues({ selected, setSelected }: Props) {
         )}
 
         {league && <LeagueChampion league={league} rows={champions.data ?? []} me={profile?.displayName} />}
-        <Standings rows={rows.data} loading={rows.isPending && rows.fetchStatus !== "idle"} me={profile?.displayName} inLeague={!!league} crowned={league ? crowned : undefined} />
+        {league && card.data && (
+          <SegmentedControl
+            size="xs"
+            value={leagueView}
+            onChange={(v) => setLeagueView(v as "card" | "all")}
+            data={[
+              { value: "card", label: "Last card" },
+              { value: "all", label: "All cards" },
+            ]}
+          />
+        )}
+        {lastCard ? (
+          <>
+            {/* Whose points these are: the card's name, when, and whether it's over. */}
+            <Group justify="space-between" wrap="nowrap" gap="xs" className="pickem-card-head">
+              <div style={{ minWidth: 0 }}>
+                <Text fw={700} size="sm" truncate>
+                  {lastCard.eventName}
+                </Text>
+                <Text size="xs" c="dimmed">
+                  {cardDate} · points on this card
+                </Text>
+              </div>
+              <Badge variant={lastCard.scored ? "light" : "filled"} color={lastCard.scored ? "gray" : "red"} className={lastCard.scored ? undefined : "pickem-live"}>
+                {lastCard.scored ? "Final" : "● Live"}
+              </Badge>
+            </Group>
+            <Standings rows={lastCard.rows} loading={false} me={profile?.displayName} inLeague crowned={crowned} />
+          </>
+        ) : (
+          <>
+            {(!league || leagueView === "all") && (
+              <Text size="xs" c="dimmed" mb={-8}>
+                Total points, all cards
+              </Text>
+            )}
+            <Standings rows={rows.data} loading={rows.isPending && rows.fetchStatus !== "idle"} me={profile?.displayName} inLeague={!!league} crowned={league ? crowned : undefined} />
+          </>
+        )}
 
         {league && (
           <Group gap="xs">
@@ -270,7 +313,7 @@ function BoardTabs({ boards, value, onChange }: { boards: { value: string; label
   );
 }
 
-function Standings({ rows, loading, me, inLeague, crowned }: { rows?: LeaderboardRow[]; loading: boolean; me?: string; inLeague: boolean; crowned?: Set<string> }) {
+function Standings({ rows, loading, me, inLeague, crowned }: { rows?: (LeaderboardRow & { played?: boolean })[]; loading: boolean; me?: string; inLeague: boolean; crowned?: Set<string> }) {
   const [all, setAll] = useState(false);
   if (loading) return <Loader size="sm" />;
   if (!rows?.length)
@@ -281,7 +324,12 @@ function Standings({ rows, loading, me, inLeague, crowned }: { rows?: Leaderboar
     );
   // Big boards: the top 10, plus your own row if you're further down, until "Show all".
   const mine = rows.findIndex((r) => r.displayName === me);
-  const place = places(rows);
+  // On a card's board, members who didn't play it come last, without a place. In a league the
+  // model is there to compare against, not to rank: titles and prizes are the members'.
+  const ranked = (r: LeaderboardRow & { played?: boolean }) => r.played !== false && !(inLeague && r.displayName === MODEL_PLAYER);
+  const rankedPlaces = places(rows.filter(ranked));
+  let next = 0;
+  const place = rows.map((r) => (ranked(r) ? rankedPlaces[next++]! : 0));
   const shown = rows.map((row, i) => ({ row, i })).filter(({ i }) => all || i < TOP || i === mine);
   return (
     <Stack gap={8}>
@@ -293,7 +341,8 @@ function Standings({ rows, loading, me, inLeague, crowned }: { rows?: Leaderboar
       {shown.map(({ row, i }) => {
         // Places 1 to 3 (once there are points to be proud of): a medal for the number, a crown for
         // the leader, and the row lit in the medal's colour.
-        const podium = place[i]! <= 3 && row.points > 0 ? place[i]! : undefined;
+        const sat = row.played === false;
+        const podium = place[i]! > 0 && place[i]! <= 3 && row.points > 0 ? place[i]! : undefined;
         return (
         <Group
           key={row.displayName}
@@ -302,6 +351,7 @@ function Standings({ rows, loading, me, inLeague, crowned }: { rows?: Leaderboar
           className="pickem-row"
           data-me={row.displayName === me || undefined}
           data-podium={podium}
+          data-sat={sat || undefined}
           // The whole row opens the player's page.
           renderRoot={(props) => <Link {...props} to={playerPath(row.displayName)} />}
         >
@@ -312,7 +362,7 @@ function Standings({ rows, loading, me, inLeague, crowned }: { rows?: Leaderboar
               </span>
             ) : (
               <Text fw={800} w={24} ta="center" c="dimmed">
-                {place[i]}
+                {place[i] || "–"}
               </Text>
             )}
             <span className="pickem-avatar-wrap">
@@ -334,16 +384,18 @@ function Standings({ rows, loading, me, inLeague, crowned }: { rows?: Leaderboar
                 )}
               </Text>
               <Text size="xs" c="dimmed" style={{ fontVariantNumeric: "tabular-nums" }}>
-                {row.correct}/{row.picked} right{row.events > 1 ? ` · ${row.events} cards` : ""}
+                {sat ? "Didn't play this card" : `${row.correct}/${row.picked} right${row.events > 1 ? ` · ${row.events} cards` : ""}`}
               </Text>
             </div>
           </Group>
-          <Text fz="lg" fw={800} style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
-            {row.points}
-            <Text span size="xs" c="dimmed" fw={600}>
-              {" "}
-              pts
-            </Text>
+          <Text fz="lg" fw={800} c={sat ? "dimmed" : undefined} style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
+            {sat ? "–" : row.points}
+            {!sat && (
+              <Text span size="xs" c="dimmed" fw={600}>
+                {" "}
+                pts
+              </Text>
+            )}
           </Text>
         </Group>
         );
