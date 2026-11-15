@@ -33,3 +33,4 @@ wandb/
 
 .DS_Store
 web/tsconfig.tsbuildinfo
+notebooks/1.DATASET.ipynb
