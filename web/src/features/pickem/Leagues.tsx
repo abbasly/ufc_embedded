@@ -324,9 +324,9 @@ function Standings({ rows, loading, me, inLeague, crowned }: { rows?: (Leaderboa
     );
   // Big boards: the top 10, plus your own row if you're further down, until "Show all".
   const mine = rows.findIndex((r) => r.displayName === me);
-  // On a card's board, members who didn't play it come last, without a place. In a league the
-  // model is there to compare against, not to rank: titles and prizes are the members'.
-  const ranked = (r: LeaderboardRow & { played?: boolean }) => r.played !== false && !(inLeague && r.displayName === MODEL_PLAYER);
+  // On a card's board, members who didn't play it come last, without a place. The model takes a
+  // place like anyone (league titles and prize packs still only count the members).
+  const ranked = (r: LeaderboardRow & { played?: boolean }) => r.played !== false;
   const rankedPlaces = places(rows.filter(ranked));
   let next = 0;
   const place = rows.map((r) => (ranked(r) ? rankedPlaces[next++]! : 0));
