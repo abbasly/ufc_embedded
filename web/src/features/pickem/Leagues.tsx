@@ -146,7 +146,7 @@ export function Leagues({ selected, setSelected }: Props) {
                 {lastCard.scored ? "Final" : "● Live"}
               </Badge>
             </Group>
-            <Standings rows={lastCard.rows} loading={false} me={profile?.displayName} inLeague crowned={crowned} />
+            <Standings rows={lastCard.rows} loading={false} me={profile?.displayName} inLeague crowned={crowned} crownChampion />
           </>
         ) : (
           <>
@@ -313,7 +313,7 @@ function BoardTabs({ boards, value, onChange }: { boards: { value: string; label
   );
 }
 
-function Standings({ rows, loading, me, inLeague, crowned }: { rows?: (LeaderboardRow & { played?: boolean })[]; loading: boolean; me?: string; inLeague: boolean; crowned?: Set<string> }) {
+function Standings({ rows, loading, me, inLeague, crowned, crownChampion }: { rows?: (LeaderboardRow & { played?: boolean })[]; loading: boolean; me?: string; inLeague: boolean; crowned?: Set<string>; crownChampion?: boolean }) {
   const [all, setAll] = useState(false);
   if (loading) return <Loader size="sm" />;
   if (!rows?.length)
@@ -366,7 +366,9 @@ function Standings({ rows, loading, me, inLeague, crowned }: { rows?: (Leaderboa
               </Text>
             )}
             <span className="pickem-avatar-wrap">
-              {podium === 1 && (
+              {/* The crown: 1st place, or on a league's card the league's champion (the model can
+                  come 1st there, but titles are the members'), so it's always on the Champ. */}
+              {(crownChampion ? !!crowned?.has(row.displayName) : podium === 1) && (
                 <svg className="pickem-crown" viewBox="0 0 24 18" aria-hidden>
                   <path d="M2.5 16.5h19L23 4l-6.3 4.6L12 1 7.3 8.6 1 4Z" />
                 </svg>
