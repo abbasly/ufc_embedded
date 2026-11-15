@@ -186,7 +186,7 @@ export function AboutPage() {
             </Anchor>
           </Text>
           <Text size="sm" c="dimmed">
-            Full-time student, part-time fight fan.
+            Full-time student, part-time mixed martial arts fan.
           </Text>
         </div>
         <a className="github-button" href={REPO} target="_blank" rel="noreferrer">
