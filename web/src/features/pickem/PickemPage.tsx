@@ -5,7 +5,7 @@
 
 import "./Pickem.css";
 
-import { Alert, Anchor, Avatar, Badge, Button, Center, Collapse, Grid, Group, Loader, Paper, SegmentedControl, Stack, Text, Tooltip, UnstyledButton } from "@mantine/core";
+import { Alert, Anchor, Avatar, Badge, Button, Center, Collapse, Grid, Group, Paper, SegmentedControl, Stack, Text, Tooltip, UnstyledButton } from "@mantine/core";
 import { useIsMutating } from "@tanstack/react-query";
 import { type CSSProperties, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -19,6 +19,7 @@ import type { PredictorData, PredictorFighter } from "../../data/types";
 import { winProb } from "../predictor/model";
 import { cardPath } from "../seo/content";
 import { InstallBar } from "../../app/install";
+import { LogoLoader, PageLoader } from "../../components/LogoLoader";
 import { NewCards } from "../collection/NewCards";
 import { PacksBanner } from "../collection/Packs";
 import { guestStarters, useStarterBadges } from "../profile/starter";
@@ -159,12 +160,13 @@ export default function PickemPage() {
   const byId = useMemo(() => new Map(predictor?.fighters.map((f) => [f.id, f])), [predictor]);
 
   if (!enabled) return <Alert title="Pick'em isn't available here">Accounts are switched off on this site.</Alert>;
-  if (events.isPending || authLoading || (eventId && event.isPending)) return <Center h="60vh"><Loader /></Center>;
+  if (events.isPending || authLoading || (eventId && event.isPending)) return <PageLoader />;
   const failed = events.error ?? event.error;
   if (failed) return <Alert color="red" title="Couldn't load the card">{failed.message}</Alert>;
   if (!event.data) return <Alert title="No card yet">The next UFC card shows up here once it's announced.</Alert>;
 
   const { event: card, bouts } = event.data;
+  const switching = event.isPlaceholderData;
   const lockIn = new Date(card.locksAt).getTime() - now;
   const open = lockIn > 0;
   // Signed out, picks live in this browser until there's an account to save them to.
@@ -206,16 +208,7 @@ export default function PickemPage() {
   return (
     <Stack gap={0} maw={1180} mx="auto" pt={4}>
       {/* The other cards, as tabs. */}
-      {(events.data?.length ?? 0) > 1 && (
-        <div className="pickem-cards">
-          {events.data!.map((e) => (
-            <UnstyledButton key={e.id} className="pickem-card-tab" data-chosen={e.id === card.id || undefined} data-numbered={isNumbered(e) || undefined} onClick={() => choose(e.id)}>
-              {isLive(e, now) && <span className="pickem-live-dot" aria-label="live" />}
-              {shortName(e)}
-            </UnstyledButton>
-          ))}
-        </div>
-      )}
+      {(events.data?.length ?? 0) > 1 && <CardTabs events={events.data!} chosen={eventId!} now={now} onChoose={choose} />}
 
       <Stack gap="md" className="pickem-banners">
         <StarterToast earned={user ? (profile ? starters.data : undefined) : guestStarters(guest.picks, mainBouts.map((b) => b.id))} guest={!user} />
@@ -224,7 +217,13 @@ export default function PickemPage() {
         <InstallBar />
       </Stack>
 
-      <div className="pickem-sheet">
+      {/* While the next card loads, this one stays, dimmed, with the loader over it. */}
+      <div className="pickem-sheet" data-loading={switching || undefined} aria-busy={switching}>
+        {switching && (
+          <div className="pickem-switching">
+            <LogoLoader size={48} label="Loading the card" />
+          </div>
+        )}
         <Stack gap="lg">
           {/* The card's head, two lines: the name and the clock, then who's playing and how far
               they've got. */}
@@ -369,6 +368,38 @@ export default function PickemPage() {
         </Stack>
       </div>
     </Stack>
+  );
+}
+
+/** The cards as tabs, a red underline sliding to the chosen one (as in the menu bar). */
+function CardTabs({ events, chosen, now, onChoose }: { events: PickemEvent[]; chosen: string; now: number; onChoose: (id: string) => void }) {
+  const row = useRef<HTMLDivElement>(null);
+  const [bar, setBar] = useState<{ x: number; w: number } | null>(null);
+  const [ready, setReady] = useState(false);
+  useLayoutEffect(() => {
+    const measure = () => {
+      const el = row.current?.querySelector<HTMLElement>("[data-chosen]");
+      setBar(el ? { x: el.offsetLeft, w: el.offsetWidth } : null);
+    };
+    measure();
+    const id = requestAnimationFrame(() => setReady(true));
+    const observer = new ResizeObserver(measure);
+    if (row.current) observer.observe(row.current);
+    return () => {
+      cancelAnimationFrame(id);
+      observer.disconnect();
+    };
+  }, [chosen]);
+  return (
+    <div className="pickem-cards" ref={row}>
+      {events.map((e) => (
+        <UnstyledButton key={e.id} className="pickem-card-tab" data-chosen={e.id === chosen || undefined} data-numbered={isNumbered(e) || undefined} onClick={() => onChoose(e.id)}>
+          {isLive(e, now) && <span className="pickem-live-dot" aria-label="live" />}
+          {shortName(e)}
+        </UnstyledButton>
+      ))}
+      {bar && <span className="pickem-cards-bar" data-ready={ready || undefined} style={{ transform: `translateX(${bar.x}px)`, width: bar.w }} aria-hidden />}
+    </div>
   );
 }
 

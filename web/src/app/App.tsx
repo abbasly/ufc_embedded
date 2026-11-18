@@ -1,9 +1,10 @@
-import { Anchor, AppShell, Center, Group, Loader, Title } from "@mantine/core";
+import { Anchor, AppShell, Group, Title } from "@mantine/core";
 import { Suspense, useEffect, useRef } from "react";
 import { Link, Navigate, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
 
 import { accountsEnabled } from "../backend";
 import { ArenaBackdrop } from "../components/ArenaBackdrop";
+import { PageLoader } from "../components/LogoLoader";
 import { AboutPage } from "../pages/AboutPage";
 import { ImpressumPage } from "../pages/ImpressumPage";
 import { NotFoundPage } from "../pages/NotFoundPage";
@@ -130,7 +131,7 @@ export function App() {
       </AppShell.Footer>
 
       <AppShell.Main>
-        <Suspense fallback={<Center h="60vh"><Loader /></Center>}>
+        <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/fighter-lab" element={<StyleMapPage />} />

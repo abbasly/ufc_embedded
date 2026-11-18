@@ -1,8 +1,9 @@
 // "Share" button: makes the share image, shows it, and offers the ways to send it on: the
 // phone's share sheet (WhatsApp, Instagram, Reddit...), download, copy image, copy link.
 
-import { Box, Button, Center, CloseButton, Group, Image, Loader, Modal, Stack, Text } from "@mantine/core";
+import { Box, Button, Center, CloseButton, Group, Image, Modal, Stack, Text } from "@mantine/core";
 import { useEffect, useState } from "react";
+import { LogoLoader } from "../../components/LogoLoader";
 
 interface Props {
   make: () => Promise<Blob>; // draws the image
@@ -112,7 +113,7 @@ export function ShareButton({ make, fileName, text, url, label = "Share", fullWi
             <Image src={preview} alt="The image to share" w="auto" h="auto" mah="calc(100dvh - 150px)" maw="min(92vw, 640px)" />
           ) : (
             <Center w="min(92vw, 640px)" h="min(60dvh, 500px)">
-              {failed ? <Text c="dimmed">Couldn't make the image. Try again.</Text> : <Loader />}
+              {failed ? <Text c="dimmed">Couldn't make the image. Try again.</Text> : <LogoLoader />}
             </Center>
           )}
           <CloseButton

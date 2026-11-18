@@ -3,7 +3,7 @@
 
 import "../pickem/Pickem.css";
 
-import { Anchor, Avatar, Button, Center, Group, Loader, Modal, Paper, Select, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Anchor, Avatar, Button, Center, Group, Modal, Paper, Select, Stack, Text, TextInput, Title } from "@mantine/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -21,6 +21,7 @@ import { PacksBanner } from "../collection/Packs";
 import { FriendsList } from "../friends/FriendsList";
 import { EmailSettings } from "./EmailSettings";
 import { PlayerRecord } from "./PlayerRecord";
+import { LogoLoader, PageLoader } from "../../components/LogoLoader";
 
 const VALID_NAME = /^[A-Za-z0-9_.-]{3,24}$/;
 
@@ -28,7 +29,7 @@ export default function ProfilePage() {
   const { user, profile, profileReady, loading } = useAuth();
   const [signingIn, setSigningIn] = useState(false);
 
-  if (loading || (user && !profileReady)) return <Center h="60vh"><Loader /></Center>;
+  if (loading || (user && !profileReady)) return <PageLoader />;
   if (!user) {
     return (
       <Center h="50vh">
@@ -189,7 +190,7 @@ function MyLeagues() {
         Your leagues
       </Title>
       {leagues.isPending ? (
-        <Loader size="sm" />
+        <LogoLoader size={30} />
       ) : !leagues.data?.length ? (
         <Text size="sm" c="dimmed">
           No leagues yet.{" "}

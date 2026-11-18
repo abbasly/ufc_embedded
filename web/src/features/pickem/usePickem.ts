@@ -2,7 +2,7 @@
 // through the backend interface (src/backend) with TanStack Query. Picks update optimistically:
 // the tap shows at once, and rolls back if the database refuses it (e.g. the card just locked).
 
-import { useMutation, useMutationState, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useMutationState, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
@@ -54,6 +54,8 @@ export function useCard(eventId: string | undefined) {
     queryFn: () => backend!.pickem.card(eventId!),
     enabled: !!backend && !!eventId,
     staleTime: 60_000,
+    // Switching cards: the last one stays on screen (dimmed) until the next is in.
+    placeholderData: keepPreviousData,
     refetchInterval: (query) => (isLive(query.state.data) ? 60_000 : false),
   });
 }
