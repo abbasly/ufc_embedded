@@ -338,3 +338,39 @@
     transition: none;
   }
 }
+
+/* The logo, explained: the mark beside a short key. */
+.about-logo {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  margin-top: 22px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+}
+.about-logo img {
+  flex: none;
+}
+.about-logo-key {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--mantine-color-gray-4);
+}
+.about-logo-key b {
+  color: var(--mantine-color-white);
+}
+@media (max-width: 36em) {
+  .about-logo {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .about-logo img {
+    width: 96px;
+    height: 96px;
+  }
+}
