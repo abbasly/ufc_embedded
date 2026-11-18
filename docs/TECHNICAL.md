@@ -13,8 +13,9 @@ evaluated, how Pick'em runs, and where the data comes from.
 6. [Architecture](#architecture)
 7. [Data](#data)
 8. [Performance](#performance)
-9. [Stack](#stack)
-10. [Limitations](#limitations)
+9. [Design](#design)
+10. [Stack](#stack)
+11. [Limitations](#limitations)
 
 ## Features
 
@@ -346,6 +347,27 @@ the account menu, and could wait until someone signs in.
 with its own title, description, structured data and sitemap entry. The content comes from
 `web/src/features/seo/` and the site's JSON, so each data refresh updates the pages. A test checks
 that every page has a unique title and that no internal link is dead.
+
+## Design
+
+The site is dark, built from flat panes: one surface a shade above the page, a hairline border,
+small corners, no glass, glows or gradients, with colour kept for data (wins and losses, picks,
+the podium). The UI is [Mantine](https://mantine.dev); its default look is replaced site-wide in
+`web/src/app/console.css` (panes, fields, switches, tags), and the type is Libre Franklin,
+bundled with the app rather than loaded from Google (`web/src/app/paper.css`).
+
+- **Pick'em** is a judges' scorecard: each fight in a quiet frame, your pick circled by hand as
+  you tap it, the method ticked in its box. Each pick shows its own save state ("Saving…",
+  "Saved", or a lasting "Not saved") where you tapped. Switching cards keeps the last one on
+  screen, dimmed, until the next is in.
+- **The logo** is the cage drawn as a graph: fighters as nodes on the octagon, chords for the
+  closest pairs in the style embedding, nodes sized by how connected they are, the fighter in
+  focus in red (also explained on the About page). `web/scripts/logo.py` draws it
+  (`logo.svg`, `favicon.svg`); `web/scripts/icons.mjs` renders the app icons from it.
+- **Loading** everywhere is the logo itself, its fighters lighting up in turn round the cage
+  (`web/src/components/LogoLoader.tsx`).
+
+The versions are tagged in git: `v1.0` is the first design, `v2.0` this one.
 
 ## Stack
 
