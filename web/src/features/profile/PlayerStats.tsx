@@ -2,13 +2,14 @@
 // their place on the overall leaderboard, and their scored cards. Built from scores, which are
 // public like the leaderboard (picks themselves stay private).
 
-import { Anchor, Collapse, Group, Loader, Paper, Stack, Text, Title, UnstyledButton } from "@mantine/core";
+import { Anchor, Collapse, Group, Paper, Stack, Text, Title, UnstyledButton } from "@mantine/core";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import type { EventScore, PastPick } from "../../backend";
 import { boutPoints, METHOD_LABEL, placeOf } from "../pickem/scoring";
 import { useLeaderboard } from "../pickem/usePickem";
+import { LogoLoader } from "../../components/LogoLoader";
 
 const day = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
@@ -61,7 +62,7 @@ export function History({ scores, loading, own, history }: { scores: EventScore[
         Past cards
       </Title>
       {loading ? (
-        <Loader size="sm" />
+        <LogoLoader size={30} />
       ) : !scores?.length ? (
         <Text size="sm" c="dimmed">
           No scored cards yet. Cards are scored once the results are in.

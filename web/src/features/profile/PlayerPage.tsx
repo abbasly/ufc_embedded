@@ -3,7 +3,7 @@
 
 import "../pickem/Pickem.css";
 
-import { Alert, Anchor, Button, Center, Group, Loader, Paper, Stack, Text, Title } from "@mantine/core";
+import { Alert, Anchor, Button, Group, Paper, Stack, Text, Title } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -17,6 +17,7 @@ import { MODEL_PLAYER } from "../pickem/scoring";
 import { HeadToHeadPanel } from "./Insights";
 import { PlayerRecord } from "./PlayerRecord";
 import { headToHead } from "./record";
+import { PageLoader } from "../../components/LogoLoader";
 
 const joined = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
 
@@ -45,7 +46,7 @@ export default function PlayerPage() {
     document.title = `${name} | Pick'em | UFC Embedded`;
   }, [name]);
 
-  if (player.isPending) return <Center h="60vh"><Loader /></Center>;
+  if (player.isPending) return <PageLoader />;
   if (player.error) return <Alert color="red" title="Couldn't load this player">{player.error.message}</Alert>;
   if (!player.data) {
     return (

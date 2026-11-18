@@ -7,7 +7,6 @@ import {
   Container,
   Grid,
   Group,
-  Loader,
   Paper,
   Progress,
   Select,
@@ -38,6 +37,7 @@ import { ShareButton } from "../share/ShareButton";
 import { useCountUp } from "./useCountUp";
 import "./Chapters.css";
 import "./Verdict.css";
+import { PageLoader } from "../../components/LogoLoader";
 
 // Loaded only on wide screens, and only once the fight is on screen: the physics engine is the
 // biggest download on the site, and fetching it earlier slowed the predictor data down. The
@@ -98,7 +98,7 @@ export default function PredictorPage() {
     [cards],
   );
 
-  if (isPending) return <Center h="60vh"><Loader /></Center>;
+  if (isPending) return <PageLoader />;
   if (error) return <Alert color="red" title="Could not load the predictor">{error.message}</Alert>;
 
   const aId = params.get("a") ?? DEFAULT[0]!;

@@ -4,7 +4,7 @@
 
 import "../pickem/Pickem.css";
 
-import { Anchor, Badge, Center, Group, Loader, Paper, ScrollArea, SimpleGrid, Stack, Table, Text, TextInput, Title, UnstyledButton } from "@mantine/core";
+import { Anchor, Badge, Group, Paper, ScrollArea, SimpleGrid, Stack, Table, Text, TextInput, Title, UnstyledButton } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -14,6 +14,7 @@ import { useAuth } from "../../auth/AuthProvider";
 import type { AdminUser } from "../../backend";
 import { playerPath } from "../pickem/Leagues";
 import { VisitsPanel } from "./VisitsPanel";
+import { LogoLoader, PageLoader } from "../../components/LogoLoader";
 
 const when = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "–";
@@ -38,7 +39,7 @@ export default function AdminPage() {
     document.title = "Admin | UFC Embedded";
   }, []);
 
-  if (loading || (user && admin.isPending)) return <Center h="60vh"><Loader /></Center>;
+  if (loading || (user && admin.isPending)) return <PageLoader />;
   // Not signed in, or not an admin: the same as any page that doesn't exist.
   if (!yes) return <NotFoundPage />;
 
@@ -184,7 +185,7 @@ function Players({ users, loading }: { users: AdminUser[] | undefined; loading: 
         <TextInput size="xs" placeholder="Search name or email" value={query} onChange={(e) => setQuery(e.currentTarget.value)} w={240} />
       </Group>
       {loading ? (
-        <Loader size="sm" />
+        <LogoLoader size={30} />
       ) : (
         <ScrollArea type="auto">
           <Table striped highlightOnHover verticalSpacing={6} miw={820} fz="sm">

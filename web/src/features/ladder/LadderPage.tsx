@@ -8,7 +8,6 @@ import {
   Container,
   Grid,
   Group,
-  Loader,
   Modal,
   Paper,
   SegmentedControl,
@@ -32,6 +31,7 @@ import { GOLD, WEIGHT_CLASSES } from "../style-map/model";
 import "./Ladder.css";
 
 import { ACTIVE_YEARS, isActive, movers, yearChange } from "./ladder";
+import { PageLoader } from "../../components/LogoLoader";
 
 const PAGE = 50;
 
@@ -56,7 +56,7 @@ export default function LadderPage() {
     [pool, division],
   );
 
-  if (isPending) return <Center h="60vh"><Loader /></Center>;
+  if (isPending) return <PageLoader />;
   if (error) return <Alert color="red" title="Could not load the ladder">{error.message}</Alert>;
 
   const q = query.trim().toLowerCase();

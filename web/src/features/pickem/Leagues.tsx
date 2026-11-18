@@ -2,7 +2,7 @@
 // league controls (create, join with a code, invite friends, leave). An invite link is
 // /pickem?join=CODE: opening it joins that league (after signing in, if need be).
 
-import { Badge, Button, Group, Loader, Modal, SegmentedControl, Stack, Text, TextInput, UnstyledButton } from "@mantine/core";
+import { Badge, Button, Group, Modal, SegmentedControl, Stack, Text, TextInput, UnstyledButton } from "@mantine/core";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
@@ -13,6 +13,7 @@ import { useFriends, useFriendsStandings } from "../friends/useFriends";
 import { LeagueChampion, reigning, useLeagueChampions } from "./LeagueChampion";
 import { MODEL_PLAYER, places } from "./scoring";
 import { EVERYONE, FRIENDS, useLeaderboard, useLeagueActions, useLeagueCard, useLeagues, useStandings } from "./usePickem";
+import { LogoLoader } from "../../components/LogoLoader";
 
 const TOP = 10; // rows shown before "Show all"
 
@@ -315,7 +316,7 @@ function BoardTabs({ boards, value, onChange }: { boards: { value: string; label
 
 function Standings({ rows, loading, me, inLeague, crowned, crownChampion }: { rows?: (LeaderboardRow & { played?: boolean })[]; loading: boolean; me?: string; inLeague: boolean; crowned?: Set<string>; crownChampion?: boolean }) {
   const [all, setAll] = useState(false);
-  if (loading) return <Loader size="sm" />;
+  if (loading) return <LogoLoader size={30} />;
   if (!rows?.length)
     return (
       <Text size="sm" c="dimmed">
