@@ -79,7 +79,7 @@ export default function LadderPage() {
         </Stack>
 
         <Grid>
-          <Grid.Col span={{ base: 12, md: 8 }}>
+          <Grid.Col span={{ base: 12, md: 8 }} order={{ base: 2, md: 1 }}>
             <Stack gap="sm">
               <Group gap="sm" wrap="wrap">
                 <SegmentedControl
@@ -164,8 +164,8 @@ export default function LadderPage() {
             </Stack>
           </Grid.Col>
 
-          {/* The year's movers, set like a markets page. */}
-          <Grid.Col span={{ base: 12, md: 4 }}>
+          {/* The year's movers, set like a markets page: beside the ladder, or above it on phones. */}
+          <Grid.Col span={{ base: 12, md: 4 }} order={{ base: 1, md: 2 }}>
             <Stack gap="md">
               <Movers title="Top gainers" fighters={movers(pool, 1)} onOpen={setOpen} />
               <Movers title="Top decliners" fighters={movers(pool, -1)} onOpen={setOpen} />

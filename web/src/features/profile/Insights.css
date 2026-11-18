@@ -38,12 +38,26 @@
   align-items: center;
   padding: 4px 8px;
   border-radius: 6px;
-  background: rgba(20, 21, 25, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--inset);
+  border: 1px solid var(--line-strong);
   font-size: 12px;
   line-height: 1.3;
   white-space: nowrap;
   pointer-events: none;
+}
+/* The one under the pointer (or the latest) sits on top, a shade brighter. */
+.points-tip[data-active] {
+  z-index: 1;
+  border-color: #6a6e76;
+}
+.points-tip:not([data-active]) {
+  color: var(--mantine-color-gray-4);
+}
+/* Phones: no room for every label, so only the latest (or the one tapped). */
+@media (max-width: 30em) {
+  .points-tip:not([data-active]) {
+    display: none;
+  }
 }
 .points-tip[data-align="end"] {
   transform: translate(calc(-100% + 10px), calc(-100% - 12px));

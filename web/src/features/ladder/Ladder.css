@@ -97,6 +97,15 @@
     padding-inline: 12px;
   }
 }
+/* Phones: the top three each way, so the ladder itself isn't far below. */
+@media (max-width: 61.99em) {
+  .mover:nth-child(n + 5) {
+    display: none;
+  }
+  .mover:nth-child(4) {
+    border-bottom: 0;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .mover {
     transition: none;
