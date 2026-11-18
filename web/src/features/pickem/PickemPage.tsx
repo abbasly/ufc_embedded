@@ -383,6 +383,16 @@ function CardTabs({ events, chosen, now, onChoose }: { events: PickemEvent[]; ch
       setBar(el ? { x: el.offsetLeft, y: el.offsetTop + el.offsetHeight - 2, w: el.offsetWidth } : null);
     };
     measure();
+    // Phones: one row that scrolls sideways; bring the chosen card into view.
+    // (Scrolling the row itself: scrollIntoView would also shift the page sideways.)
+    const r = row.current;
+    const el = r?.querySelector<HTMLElement>("[data-chosen]");
+    if (r && el && r.scrollWidth > r.clientWidth) {
+      const left = el.offsetLeft - 12;
+      const right = el.offsetLeft + el.offsetWidth - r.clientWidth + 40;
+      if (left < r.scrollLeft) r.scrollTo({ left, behavior: "smooth" });
+      else if (right > r.scrollLeft) r.scrollTo({ left: right, behavior: "smooth" });
+    }
     const id = requestAnimationFrame(() => setReady(true));
     const observer = new ResizeObserver(measure);
     if (row.current) observer.observe(row.current);
