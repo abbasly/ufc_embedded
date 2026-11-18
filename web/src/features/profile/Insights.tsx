@@ -105,6 +105,9 @@ export function Highlights({ history, vsModel, isModel, whose, picksHidden }: { 
 }
 
 /** Running points total card by card: one line, a dot per card, a tooltip on each. */
+/** Up to this many cards, every point on the chart has its label showing. */
+const ALL_LABELS = 6;
+
 export function PointsChart({ scores }: { scores: EventScore[] }) {
   const series = pointsOverTime(scores);
   const [hover, setHover] = useState<number | null>(null);
@@ -142,18 +145,26 @@ export function PointsChart({ scores }: { scores: EventScore[] }) {
             {day(series.at(-1)!.startsOn)}
           </Text>
         </Group>
-        {/* Next to its dot (below it when it's high up), kept inside the panel. */}
-        <div
-          className="points-tip"
-          data-align={x(shown) / W > 0.8 ? "end" : x(shown) / W < 0.2 ? "start" : undefined}
-          data-below={y(point.total) / H < 0.5 || undefined}
-          style={{ left: `${(x(shown) / W) * 100}%`, top: `${(y(point.total) / H) * 100}%` }}
-        >
-          <b>{point.total} pts</b>
-          <span>
-            {point.name.split(":")[0]} · +{point.points}
-          </span>
-        </div>
+        {/* A label by each dot (below it when it's high up), kept inside the panel: on every card
+            while there's room for them all, else on the latest and the one under the pointer. */}
+        {series.map((s, i) => {
+          if (!(series.length <= ALL_LABELS || i === shown)) return null;
+          return (
+            <div
+              key={s.startsOn + s.name}
+              className="points-tip"
+              data-active={i === shown || undefined}
+              data-align={x(i) / W > 0.8 ? "end" : x(i) / W < 0.2 ? "start" : undefined}
+              data-below={y(s.total) / H < 0.5 || undefined}
+              style={{ left: `${(x(i) / W) * 100}%`, top: `${(y(s.total) / H) * 100}%` }}
+            >
+              <b>{s.total} pts</b>
+              <span>
+                {s.name.split(":")[0]} · +{s.points}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </Panel>
   );
