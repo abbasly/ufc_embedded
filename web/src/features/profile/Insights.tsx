@@ -19,7 +19,7 @@ const pct = (x: number) => `${Math.round(x * 100)}%`;
 function Panel({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <Paper p="md" radius="md" className="pickem-board">
-      <Text size="xs" c="dimmed" tt="uppercase" fw={700} mb={6} style={{ letterSpacing: "0.08em" }}>
+      <Text size="xs" c="dimmed" fw={700} mb={6}>
         {label}
       </Text>
       {children}
@@ -257,14 +257,14 @@ export function Badges({ list, starters }: { list: Badge[]; starters: Badge[] })
         </Text>
       </Group>
       {starters.length > 0 && (
-        <SimpleGrid cols={{ base: 3, xs: 5 }} spacing="xs" mb={list.length ? "sm" : 0} className="badge-starters">
+        <SimpleGrid cols={{ base: 3, xs: 5, md: 3 }} spacing="xs" mb={list.length ? "sm" : 0} className="badge-starters">
           {starters.map((b) => (
             <BadgeTile key={b.key} badge={b} />
           ))}
         </SimpleGrid>
       )}
       {list.length > 0 && (
-        <SimpleGrid cols={{ base: 2, xs: 4 }} spacing="sm">
+        <SimpleGrid cols={{ base: 2, xs: 4, md: 3 }} spacing="sm">
           {list.map((b) => (
             <BadgeTile key={b.key} badge={b} />
           ))}
@@ -301,7 +301,7 @@ function Predictor({ player, label, tone }: { player: ClosestPredictor; label: s
   const pctAgreed = Math.round(agreement(player) * 100);
   return (
     <div className="closest-card" data-tone={tone}>
-      <Text size="xs" tt="uppercase" fw={700} className="closest-label">
+      <Text size="xs" fw={700} className="closest-label">
         {label}
       </Text>
       <Group gap="sm" wrap="nowrap" mt={8}>

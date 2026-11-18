@@ -14,7 +14,7 @@
   touch-action: pan-y;
 }
 .visits-grid {
-  stroke: rgba(255, 255, 255, 0.08);
+  stroke: rgba(var(--ink-rgb), 0.08);
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
@@ -36,7 +36,7 @@
   opacity: 0.1;
 }
 .visits-crosshair {
-  stroke: rgba(255, 255, 255, 0.28);
+  stroke: rgba(var(--ink-rgb), 0.28);
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }
@@ -54,8 +54,8 @@
   align-items: center;
   padding: 3px 8px;
   border-radius: 6px;
-  background: rgba(20, 21, 25, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(var(--glass-rgb), 0.92);
+  border: 1px solid rgba(var(--ink-rgb), 0.1);
   font-size: 12px;
   line-height: 1.35;
   white-space: nowrap;

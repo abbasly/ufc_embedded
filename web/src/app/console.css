@@ -1,0 +1,88 @@
+/* The site's panes: solid, one hairline border, small corners, no glass, glows or gradients.
+   Like the panes of an analytics console: each box is a flat surface a shade above the page,
+   fields and option groups are set into it a shade below, and colour is kept for data (wins,
+   losses, picks) rather than decoration. Loaded after Mantine's styles, at the same specificity,
+   so it replaces Mantine's defaults but a page's own classes still win. */
+
+:root,
+:root[data-mantine-color-scheme="dark"] {
+  --page: #18191c;
+  --surface: #202125; /* a pane */
+  --surface-raised: #26282d; /* a row or item inside a pane, on hover */
+  --inset: #141518; /* fields and option groups, set into a pane */
+  --line: #2f3137;
+  --line-strong: #3d4047;
+  --mantine-color-body: var(--page);
+}
+
+/* Panes. */
+.mantine-Paper-root {
+  background-color: var(--surface);
+  box-shadow: none;
+}
+.mantine-Paper-root[data-with-border] {
+  border-color: var(--line);
+}
+
+/* Fields: set into the pane. */
+.mantine-Input-input[data-variant="default"],
+.mantine-Input-input[data-variant="filled"] {
+  background: var(--inset);
+  border: 1px solid var(--line-strong);
+}
+.mantine-Input-input[data-variant="default"]:focus,
+.mantine-Input-input[data-variant="default"]:focus-within,
+.mantine-Input-input[data-variant="filled"]:focus {
+  border-color: var(--mantine-color-red-6);
+}
+
+/* Option groups: one inset box; the chosen option is a raised block inside it. */
+.mantine-SegmentedControl-root {
+  background: var(--inset);
+  border: 1px solid var(--line);
+  padding: 2px;
+}
+.mantine-SegmentedControl-indicator {
+  background: #33363d;
+  box-shadow: none;
+}
+.mantine-SegmentedControl-control::before {
+  display: none; /* the chosen block is enough; no dividers */
+}
+.mantine-SegmentedControl-label {
+  color: var(--mantine-color-dimmed);
+}
+.mantine-SegmentedControl-label[data-active],
+.mantine-SegmentedControl-label[data-active]:hover {
+  color: var(--mantine-color-white);
+}
+
+/* Secondary buttons: a raised block with a border, not a grey slab. */
+.mantine-Button-root[data-variant="default"] {
+  background: var(--surface-raised);
+  border: 1px solid var(--line-strong);
+}
+.mantine-Button-root[data-variant="default"]:hover {
+  background: #2d3035;
+}
+
+/* Tags: small rectangles in sentence case, not shouting pills. */
+.mantine-Badge-root {
+  border-radius: 3px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 700;
+}
+
+/* Dropdowns and dialogs: the same surface as a pane. */
+.mantine-Popover-dropdown,
+.mantine-Combobox-dropdown,
+.mantine-Menu-dropdown,
+.mantine-Modal-content {
+  background: var(--surface);
+  border-color: var(--line-strong);
+}
+
+.mantine-Title-root {
+  letter-spacing: -0.01em;
+}

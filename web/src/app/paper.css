@@ -1,0 +1,12 @@
+/* The site's type, bundled rather than loaded from Google: Libre Franklin for everything, and
+   Caveat for what Pick'em shows as written by hand. Plus faint lines that work on the dark. */
+
+@import "@fontsource-variable/libre-franklin/index.css";
+@import "@fontsource/caveat/600.css";
+@import "@fontsource/caveat/700.css";
+
+:root {
+  --ink-rgb: 255, 255, 255;
+  --glass-rgb: 20, 21, 25;
+  --hand: "Caveat", "Segoe Print", "Bradley Hand", cursive;
+}

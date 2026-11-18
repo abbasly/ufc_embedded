@@ -594,7 +594,7 @@ function Notes({ data, mma, a, b }: { data: PredictorData; mma?: MmaMathData; a:
         <Stack gap={8}>
           {rows.map(([label, content], i) => (
             <Group key={i} gap="md" wrap="nowrap" align="baseline">
-              <Text size="xs" tt="uppercase" fw={700} c="dimmed" w={84} style={{ flexShrink: 0, letterSpacing: "0.06em" }}>
+              <Text size="xs" fw={700} c="dimmed" w={84} style={{ flexShrink: 0 }}>
                 {label}
               </Text>
               <Text size="sm" component="div">{content}</Text>
@@ -604,7 +604,7 @@ function Notes({ data, mma, a, b }: { data: PredictorData; mma?: MmaMathData; a:
       )}
       {common.length > 0 && (
         <Box mt={rows.length ? "lg" : 0}>
-          <Text size="xs" tt="uppercase" fw={700} c="dimmed" mb={6} style={{ letterSpacing: "0.06em" }}>
+          <Text size="xs" fw={700} c="dimmed" mb={6}>
             Common opponents
           </Text>
           <Text size="sm" mb={6}>

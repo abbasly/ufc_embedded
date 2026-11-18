@@ -46,7 +46,7 @@ export default function AdminPage() {
     <Stack gap="lg" maw={1100} mx="auto" pt={4}>
       <Group justify="space-between" align="flex-end">
         <div>
-          <Text size="xs" fw={800} c="red.4" tt="uppercase" style={{ letterSpacing: "0.12em" }}>
+          <Text size="xs" fw={800} c="red.4">
             Admin
           </Text>
           <Title order={1} fz={{ base: 26, md: 32 }}>

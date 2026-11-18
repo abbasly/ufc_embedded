@@ -100,7 +100,16 @@ export function CardCollection({ history, isMe, displayName }: { history: PastPi
         />
       )}
 
-      <Modal opened={!!open} onClose={() => setOpen(null)} centered size={380} title={open?.shiny ? "Shiny card" : "Card"}>
+      <Modal
+        opened={!!open}
+        onClose={() => setOpen(null)}
+        centered
+        size={380}
+        title={open?.shiny ? "Shiny card" : "Card"}
+        // The card on the dimmed page, no box around it (as on the ladder).
+        overlayProps={{ backgroundOpacity: 0.75, blur: 2 }}
+        styles={{ content: { background: "transparent", boxShadow: "none", border: 0 }, header: { background: "transparent" }, body: { paddingInline: 0 } }}
+      >
         {open && <CardCloseUp card={open} isMe={isMe} displayName={displayName} />}
       </Modal>
     </Paper>
