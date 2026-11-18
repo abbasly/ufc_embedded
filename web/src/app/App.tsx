@@ -103,7 +103,7 @@ export function App() {
         <Group h="100%" px={{ base: "sm", sm: "md" }} justify="space-between" wrap="nowrap">
           <Anchor component={Link} to="/" c="inherit" underline="never">
             <Group gap={8} wrap="nowrap">
-              <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" width={26} height={26} />
+              <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" width={28} height={28} />
               <Title order={4} fz={{ base: "md", sm: "lg" }} fw={850} style={{ whiteSpace: "nowrap", letterSpacing: "-0.01em" }}>
                 UFC Embedded
               </Title>
