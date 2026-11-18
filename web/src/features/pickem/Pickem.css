@@ -6,7 +6,7 @@
   --print: #eceef1;
   --print-soft: #9ba0a8;
   --rule: rgba(255, 255, 255, 0.13);
-  --rule-strong: rgba(255, 255, 255, 0.82);
+  --rule-strong: rgba(255, 255, 255, 0.2);
   --spot: #ff6b6b; /* the printed red */
   --spot-wash: rgba(255, 107, 107, 0.09);
   --pen: #8fa8ff; /* ink */
