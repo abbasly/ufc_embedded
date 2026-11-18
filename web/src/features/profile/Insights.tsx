@@ -236,19 +236,12 @@ const BADGE_ICONS: Record<string, React.ReactNode> = {
   ),
 };
 
-/** A hexagonal medal in the badge's own colours; grey with a dashed edge until it's earned. */
+/** A hexagonal medal: flat, in the badge's colour with a darker rim, like an enamel pin; grey
+ * with a dashed edge until it's earned. */
 export function Medal({ badge }: { badge: Badge }) {
-  const gradient = `badge-fill-${badge.key}`;
   return (
     <svg className="badge-medal" viewBox="0 0 64 64" aria-hidden>
-      <defs>
-        <linearGradient id={gradient} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" className="badge-stop-top" />
-          <stop offset="1" className="badge-stop-bottom" />
-        </linearGradient>
-      </defs>
-      <path d="M32 3.5 56.7 17.7v28.6L32 60.5 7.3 46.3V17.7Z" fill={badge.earned ? `url(#${gradient})` : "rgba(255, 255, 255, 0.04)"} className="badge-hex" />
-      {badge.earned && <path d="M32 9 52 20.5v9.3C43 24 21 24 12 29.8v-9.3Z" fill="rgba(255, 255, 255, 0.14)" />}
+      <path d="M32 3.5 56.7 17.7v28.6L32 60.5 7.3 46.3V17.7Z" className="badge-hex" />
       <g transform="translate(17 17) scale(1.25)" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="badge-icon">
         {BADGE_ICONS[badge.key]}
       </g>
