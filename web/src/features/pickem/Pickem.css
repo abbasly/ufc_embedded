@@ -503,20 +503,15 @@ a.pickem-row:hover {
 .pickem-row[data-podium] .pickem-points {
   color: var(--podium);
 }
+/* The place itself, in its medal's colour: no ring around it. */
 .pickem-medal {
   flex: none;
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border: 2px solid var(--podium);
-  border-radius: 50%;
-  font-size: 14px;
+  width: 24px;
+  text-align: center;
+  font-size: 18px;
   font-weight: 900;
   color: var(--podium);
-  background: var(--paper-raised);
-  box-shadow: inset 0 0 0 2px var(--paper-raised), inset 0 0 0 3px var(--podium);
-  transform: rotate(-8deg);
+  font-variant-numeric: tabular-nums;
 }
 .pickem-avatar-wrap {
   position: relative;
