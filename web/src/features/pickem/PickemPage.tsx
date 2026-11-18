@@ -40,7 +40,9 @@ import {
   useMatesWhoPicked,
   useMyPicks,
   usePick,
+  usePickSaves,
   usePickSplit,
+  type SaveState,
 } from "./usePickem";
 
 /** The current time, ticking every ``ms``: for the lock countdown. */
@@ -132,6 +134,7 @@ export default function PickemPage() {
   useClaimGuestPicks();
   const starters = useStarterBadges(profile ? user?.id : undefined);
   const saving = useIsMutating({ mutationKey: PICK_MUTATION }) > 0;
+  const saves = usePickSaves();
   const now = useNow(15_000); // the countdown badge ticks by itself, every second
   const locked = !!event.data && new Date(event.data.event.locksAt).getTime() <= now;
   const mates = useMatesPicks(eventId, locked);
@@ -194,6 +197,7 @@ export default function PickemPage() {
         pickedBy={locked ? [] : (whoPicked.data ?? []).filter((m) => m.boutId === bout.id && inLeague.has(m.displayName))}
         split={split.data?.[bout.id]}
         leagueName={leagueName}
+        save={user ? saves.get(bout.id) : undefined}
         onPick={(winner, method) => (user ? pick.mutate({ boutId: bout.id, winner, method }) : guest.pick(bout.id, winner, method))}
       />
     );
@@ -492,15 +496,17 @@ interface BoutProps {
   pickedBy: MateWhoPicked[]; // league-mates who have picked (before the lock; not whom)
   split: PickSplit[string] | undefined; // how everyone picked (after the lock)
   leagueName: string; // whose faces these are
+  save: SaveState | undefined; // this bout's latest save (signed in)
   onPick: (winner: string | null, method: Method | null) => void;
 }
 
-function Bout({ bout, label, choice, byId, chance, canPick, mates, pickedBy, split, leagueName, onPick }: BoutProps) {
+function Bout({ bout, label, choice, byId, chance, canPick, mates, pickedBy, split, leagueName, save, onPick }: BoutProps) {
   const choose = (id: string) => (choice?.winner === id ? onPick(null, null) : onPick(id, choice?.method ?? null));
   const points = boutPoints(bout, choice);
   const surname = (id: string) => (id === bout.fighterA ? bout.aName : bout.bName).split(" ").at(-1);
   return (
     <div className="pickem-bout" data-headline={label === "Main event" || undefined}>
+      <SaveMark save={save} />
       {(label || bout.title) && (
         <Group gap={8} mb={6}>
           {label && <span className="pickem-bout-label">{label}</span>}
@@ -557,6 +563,19 @@ function Bout({ bout, label, choice, byId, chance, canPick, mates, pickedBy, spl
       {bout.outcome && <Verdict bout={bout} choice={choice} points={points} surname={surname} />}
       <BoutFooter bout={bout} known={byId.has(bout.fighterA) && byId.has(bout.fighterB)} pickedBy={pickedBy} leagueName={leagueName} />
     </div>
+  );
+}
+
+/** A pick's save, in the bout's top corner: "Saving…", then "Saved" for a moment, fading out.
+ * A failed save stays until the next tap, since the pick was put back as it was. */
+function SaveMark({ save }: { save: SaveState | undefined }) {
+  if (!save) return null;
+  // A save from a while ago (back on the page later) has nothing to say.
+  if (save.state === "saved" && Date.now() - save.at > 4000) return null;
+  return (
+    <span key={`${save.state}-${save.at}`} className="pickem-save" data-state={save.state} role="status" aria-live="polite">
+      {save.state === "saving" ? "Saving…" : save.state === "saved" ? "✓ Saved" : "Not saved. Check your connection and tap again."}
+    </span>
   );
 }
 
