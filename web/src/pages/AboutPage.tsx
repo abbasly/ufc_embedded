@@ -197,7 +197,37 @@ export function AboutPage() {
         </a>
       </div>
 
-      <div className="disclaimer reveal" style={step(statsStart + 5)}>
+      {/* What the logo is: the project's own idea, drawn. */}
+      <section className="about-logo reveal" style={step(statsStart + 5)} aria-labelledby="about-logo-title">
+        <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="The UFC Embedded logo: an octagon drawn as a graph" width={132} height={132} />
+        <div>
+          <Text id="about-logo-title" fw={700} mb={4}>
+            The logo
+          </Text>
+          <Text size="sm" c="dimmed" mb={8}>
+            The cage, drawn as a graph: the idea behind the whole site, that fighters live in a space where
+            distance means style.
+          </Text>
+          <ul className="about-logo-key">
+            <li>
+              <b>The octagon</b> is the cage, and its corners are fighters.
+            </li>
+            <li>
+              <b>The lines across it</b> join fighters who are close in the style embedding, the same
+              neighbours Fighter Lab finds.
+            </li>
+            <li>
+              <b>Bigger dots</b> are fighters with more close neighbours, the way a graph drawing shows
+              who's central.
+            </li>
+            <li>
+              <b>The red one</b> is the fighter you're looking at.
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <div className="disclaimer reveal" style={step(statsStart + 6)}>
         <Text size="sm" fw={600}>
           Not an official UFC product.
         </Text>
