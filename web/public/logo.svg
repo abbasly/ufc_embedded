@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <polygon points="55.10,41.57 41.57,55.10 22.43,55.10 8.90,41.57 8.90,22.43 22.43,8.90 41.57,8.90 55.10,22.43" fill="none" stroke="#eceef1" stroke-width="2.60" stroke-linejoin="round" opacity=".85"/>
+  <line x1="8.90" y1="41.57" x2="55.10" y2="41.57" stroke="#eceef1" stroke-width="1.80" stroke-linecap="round" opacity=".4"/>
+  <line x1="8.90" y1="41.57" x2="22.43" y2="8.90" stroke="#eceef1" stroke-width="1.80" stroke-linecap="round" opacity=".4"/>
+  <line x1="22.43" y1="8.90" x2="55.10" y2="41.57" stroke="#eceef1" stroke-width="1.80" stroke-linecap="round" opacity=".4"/>
+  <line x1="41.57" y1="55.10" x2="22.43" y2="8.90" stroke="#eceef1" stroke-width="1.80" stroke-linecap="round" opacity=".4"/>
+  <circle cx="55.10" cy="41.57" r="4.60" fill="#eceef1"/>
+  <circle cx="41.57" cy="55.10" r="2.80" fill="#eceef1"/>
+  <circle cx="22.43" cy="55.10" r="3.20" fill="#eceef1"/>
+  <circle cx="8.90" cy="41.57" r="6.00" fill="#e03131"/>
+  <circle cx="8.90" cy="22.43" r="2.60" fill="#eceef1"/>
+  <circle cx="22.43" cy="8.90" r="3.80" fill="#eceef1"/>
+  <circle cx="41.57" cy="8.90" r="3.00" fill="#eceef1"/>
+  <circle cx="55.10" cy="22.43" r="2.60" fill="#eceef1"/>
+</svg>
