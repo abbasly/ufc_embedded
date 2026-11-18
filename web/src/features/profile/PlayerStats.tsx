@@ -2,7 +2,7 @@
 // their place on the overall leaderboard, and their scored cards. Built from scores, which are
 // public like the leaderboard (picks themselves stay private).
 
-import { Anchor, Collapse, Group, Loader, Paper, SimpleGrid, Stack, Text, Title, UnstyledButton } from "@mantine/core";
+import { Anchor, Collapse, Group, Loader, Paper, Stack, Text, Title, UnstyledButton } from "@mantine/core";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -28,14 +28,15 @@ export function Stats({ scores, displayName }: { scores: EventScore[] | undefine
     { key: "rank", label: "Rank", value: rank ? `#${rank}` : "–", note: rank ? "overall" : undefined },
   ];
   return (
-    <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm">
+    // One scoreboard: four cells in a single pane, split by rules.
+    <Paper withBorder className="scoreboard">
       {tiles.map((t) => (
-        <Paper key={t.key} p="md" radius="md" className="pickem-board stat-tile" data-stat={t.key}>
-          <Text size="xs" c="dimmed" tt="uppercase" fw={700} style={{ letterSpacing: "0.08em" }}>
+        <div key={t.key} className="stat-tile" data-stat={t.key}>
+          <Text size="sm" c="dimmed" fw={600}>
             {t.label}
           </Text>
           <Group gap={6} align="baseline">
-            <Text fz={26} fw={800} className="stat-value">
+            <Text fz={{ base: 28, sm: 36 }} fw={850} className="stat-value">
               {t.value}
             </Text>
             {t.note && (
@@ -44,9 +45,9 @@ export function Stats({ scores, displayName }: { scores: EventScore[] | undefine
               </Text>
             )}
           </Group>
-        </Paper>
+        </div>
       ))}
-    </SimpleGrid>
+    </Paper>
   );
 }
 

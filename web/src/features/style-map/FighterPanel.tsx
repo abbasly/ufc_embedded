@@ -61,7 +61,7 @@ export function FighterPanel(props: Props) {
         <CloseButton onClick={() => onSelect(null)} aria-label="Clear selection" />
       </Group>
       <FighterTradingCard id={fighter.id} fallback={header} />
-      <Button component={Link} to={`/predictor?a=${fighter.id}`} variant="light" leftSection="🥊">
+      <Button component={Link} to={`/predictor?a=${fighter.id}`} variant="light">
         Predict a fight with {fighter.name.split(" ").at(-1)}
       </Button>
       <FighterPageButton id={fighter.id}>{fighter.name.split(" ").at(-1)}'s record and next fight</FighterPageButton>
@@ -188,7 +188,7 @@ function StyleProfile({ data, fighter }: { data: StyleMapData; fighter: Fighter 
       <Stack gap={10}>
         {featureGroups(data.features).map(({ group, features }) => (
           <Stack key={group} gap={6}>
-            <Text size="xs" fw={700} c="dimmed" tt="uppercase" style={{ letterSpacing: "0.06em" }}>
+            <Text size="xs" fw={700} c="dimmed">
               {group}
             </Text>
             {features.map((feat) => (

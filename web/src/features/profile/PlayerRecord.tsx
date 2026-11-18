@@ -2,7 +2,7 @@
 // record, points over time, and past cards with their picks. Used on your own profile (with a
 // share button) and on anyone's player page.
 
-import { Group, Stack } from "@mantine/core";
+import { Grid, Group, Stack } from "@mantine/core";
 
 import { usePredictor } from "../../data/client";
 import { MODEL_PLAYER, placeOf } from "../pickem/scoring";
@@ -70,22 +70,34 @@ export function PlayerRecord({ userId, displayName, avatar, isMe, children, afte
   );
 
   return (
+    // The numbers across the top, the cards they've called under them; then how they play on the
+    // left (points over time, highlights, past cards) and who they play with on the right.
     <Stack gap="lg">
       <Stats scores={scores.data} displayName={displayName} />
       {share}
-      {children}
-      <LeagueTitles userId={userId} />
       {history.isSuccess && !picksHidden && <CardCollection history={picks} isMe={isMe} displayName={displayName} />}
       <PulledCards userId={userId} isMe={isMe} displayName={displayName} />
-      <Badges list={picksHidden ? [] : list} starters={isModel ? [] : starterBadges(starters.data ?? [])} />
-      {!!scores.data?.length && (
-        <>
-          <Highlights history={picks} vsModel={vsModel} isModel={isModel} whose={isMe ? "you" : "they"} picksHidden={picksHidden} />
-          <ClosestPredictors players={closest} isMe={isMe} />
-          <PointsChart scores={scores.data} />
-        </>
-      )}
-      <History scores={scores.data} loading={scores.isPending} own={isMe} history={picks} />
+      <Grid gap="lg">
+        <Grid.Col span={{ base: 12, md: 7.5 }}>
+          <Stack gap="lg">
+            {!!scores.data?.length && (
+              <>
+                <PointsChart scores={scores.data} />
+                <Highlights history={picks} vsModel={vsModel} isModel={isModel} whose={isMe ? "you" : "they"} picksHidden={picksHidden} />
+              </>
+            )}
+            <History scores={scores.data} loading={scores.isPending} own={isMe} history={picks} />
+          </Stack>
+        </Grid.Col>
+        <Grid.Col span={{ base: 12, md: 4.5 }}>
+          <Stack gap="lg">
+            {!!scores.data?.length && <ClosestPredictors players={closest} isMe={isMe} />}
+            {children}
+            <LeagueTitles userId={userId} />
+            <Badges list={picksHidden ? [] : list} starters={isModel ? [] : starterBadges(starters.data ?? [])} />
+          </Stack>
+        </Grid.Col>
+      </Grid>
       {after}
     </Stack>
   );

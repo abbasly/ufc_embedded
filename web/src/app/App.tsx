@@ -44,11 +44,8 @@ const NAV: NavItem[] = [
   { to: "/about", label: "About", icon: ICONS.about },
 ];
 
-const GLASS = {
-  background: "rgba(14, 15, 18, 0.72)",
-  backdropFilter: "blur(12px)",
-  WebkitBackdropFilter: "blur(12px)",
-};
+// The header and the phone tab bar: the desk's own dark, a shade deeper than behind the pages.
+const BAR = { background: "#121315" };
 
 // Browser tab titles (also what search results show); keep in sync with scripts/route-previews.mjs.
 const TITLES: Record<string, string> = {
@@ -102,12 +99,12 @@ export function App() {
       {/* The spotlit arena behind every page; the predictor also gets the cage fence. */}
       <ArenaBackdrop fence={pathname === "/predictor"} />
       {/* Dark glass rather than flat grey, so the arena's colours show through the menu. */}
-      <AppShell.Header style={{ ...GLASS, borderBottom: "1px solid rgba(255, 255, 255, 0.06)" }}>
+      <AppShell.Header style={{ ...BAR, borderBottom: "1px solid rgba(255, 255, 255, 0.08)" }}>
         <Group h="100%" px={{ base: "sm", sm: "md" }} justify="space-between" wrap="nowrap">
           <Anchor component={Link} to="/" c="inherit" underline="never">
             <Group gap={8} wrap="nowrap">
-              <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" width={26} height={26} />
-              <Title order={4} fz={{ base: "md", sm: "lg" }} style={{ whiteSpace: "nowrap" }}>
+              <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" width={28} height={28} />
+              <Title order={4} fz={{ base: "md", sm: "lg" }} fw={850} style={{ whiteSpace: "nowrap", letterSpacing: "-0.01em" }}>
                 UFC Embedded
               </Title>
             </Group>
@@ -128,7 +125,7 @@ export function App() {
         </Group>
       </AppShell.Header>
 
-      <AppShell.Footer hiddenFrom="sm" style={{ ...GLASS, borderTop: "1px solid rgba(255, 255, 255, 0.08)" }}>
+      <AppShell.Footer hiddenFrom="sm" style={{ ...BAR, borderTop: "1px solid rgba(255, 255, 255, 0.08)" }}>
         <NavTabs items={nav} active={pathname} placement="bottom" />
       </AppShell.Footer>
 

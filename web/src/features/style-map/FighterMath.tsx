@@ -99,9 +99,9 @@ export function MathBar({ data, terms, onTerms, best, onOpenFighter, onClose, an
           </div>
         ))}
         {terms.length < MAX_TERMS && (
-          <Button variant="default" radius="md" size="md" onClick={() => onTerms([...terms, { sign: 1, ref: "" }])}>
-            + Add
-          </Button>
+          <UnstyledButton className="math-add" onClick={() => onTerms([...terms, { sign: 1, ref: "" }])}>
+            + Add a fighter or a style
+          </UnstyledButton>
         )}
         {answer && <span className="math-eq">=</span>}
         {!answer ? null : best ? (

@@ -49,7 +49,7 @@ export default function ProfilePage() {
 function Own({ displayName }: { displayName: string }) {
   const { profile } = useAuth();
   return (
-    <Stack gap="lg" maw={720} mx="auto" pt={4}>
+    <Stack gap="lg" maw={1100} mx="auto" pt={4}>
       <Identity />
       <NewCards />
       <PacksBanner />
