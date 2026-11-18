@@ -1,4 +1,7 @@
 import "@mantine/core/styles.css";
+// The paper the pages are printed on, and the site's type (bundled, not loaded from Google).
+import "./app/paper.css";
+import "./app/console.css";
 
 import { MantineProvider, createTheme } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -21,7 +24,15 @@ window.addEventListener("vite:preloadError", (event) => {
   if (reloadForNewCode()) event.preventDefault();
 });
 
-const theme = createTheme({ primaryColor: "red", defaultRadius: "md" });
+const FONT = '"Libre Franklin Variable", "Libre Franklin", system-ui, -apple-system, "Segoe UI", sans-serif';
+const theme = createTheme({
+  primaryColor: "red",
+  defaultRadius: "sm",
+  // Small corners on boxes (round things like avatars ask for "xl" and stay round).
+  radius: { xs: "2px", sm: "3px", md: "5px", lg: "6px", xl: "32px" },
+  fontFamily: FONT,
+  headings: { fontFamily: FONT, fontWeight: "800" },
+});
 const queryClient = new QueryClient();
 const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 prefetchFor(queryClient, window.location.pathname.slice(base.length) || "/", window.location.search);

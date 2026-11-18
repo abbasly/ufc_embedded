@@ -58,7 +58,7 @@ export default function PlayerPage() {
   const isMe = profile?.id === p.id;
 
   return (
-    <Stack gap="lg" maw={720} mx="auto" pt={4}>
+    <Stack gap="lg" maw={1100} mx="auto" pt={4}>
       <Paper p="lg" radius="md" className="pickem-board">
         <Group gap="lg" wrap="wrap" align="center">
           <PlayerAvatar name={p.displayName} avatar={p.avatar} size={88} />

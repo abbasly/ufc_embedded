@@ -218,11 +218,55 @@
 }
 
 /* ---- League champions and titles -------------------------------------------------------- */
+/* The league's champion: a solid plate with a gold edge, like the answer in fighter math. */
 .champion-strip {
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid rgba(244, 196, 48, 0.35);
-  background: linear-gradient(100deg, rgba(244, 196, 48, 0.14), rgba(244, 196, 48, 0.02) 70%);
+  padding: 12px 14px;
+  border-radius: 5px;
+  border: 1px solid var(--line-strong);
+  border-left: 3px solid #f4c430;
+  background: var(--surface-raised);
+}
+.champion-faces .mantine-Avatar-root {
+  box-shadow: 0 0 0 2px #f4c430, 0 0 0 4px var(--surface-raised);
+}
+.champion-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #f4c430;
+}
+.champion-won {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+.champion-won span {
+  font-size: 22px;
+  font-weight: 850;
+  line-height: 1.05;
+}
+.champion-won small {
+  font-size: 11px;
+  color: var(--mantine-color-dimmed);
+}
+.champion-titles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 14px;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+.champion-titles-head {
+  color: var(--mantine-color-dimmed);
+}
+.champion-tally b {
+  margin-left: 2px;
+  color: #f4c430;
+  font-variant-numeric: tabular-nums;
 }
 .champion-crown {
   width: 20px;

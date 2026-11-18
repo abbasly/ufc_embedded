@@ -1,5 +1,4 @@
 import {
-  ActionIcon,
   Alert,
   Button,
   Center,
@@ -115,29 +114,38 @@ export default function MmaMathPage() {
                     from one to the other, it's proven.
                   </Text>
                 </div>
-                <Select label="Winner" searchable limit={PICKER_LIMIT} placeholder={placeholder} data={options} value={a} onChange={(v) => setPair([v, b])} />
-                {/* Centred between the two boxes (the Loser label sits under it). */}
-                <Group justify="center" mt={4} mb={-20}>
-                  <Tooltip label="Swap: prove it the other way round" withArrow>
-                    <ActionIcon variant="light" size="lg" onClick={() => setPair([b, a])} aria-label="Swap fighters">
-                      ⇅
-                    </ActionIcon>
-                  </Tooltip>
-                </Group>
-                <Select label="Loser" searchable limit={PICKER_LIMIT} placeholder={placeholder} data={options} value={b} onChange={(v) => setPair([a, v])} />
-                <Button variant="light" size="xs" onClick={randomPair}>
-                  Random matchup
-                </Button>
-                {proof && (
-                  <ShareButton
-                    fullWidth
-                    label="Share this proof"
-                    make={() => mmaMathImage(proof.chain, proof.nodes.map((f) => ({ fighter: f, ring: ringColor(f, lookup) })))}
-                    fileName={`${proof.nodes[0]!.id}-beats-${proof.nodes.at(-1)!.id}`}
-                    text={`${proof.winner} beats ${proof.loser}, in ${proof.chain.length} fights of airtight MMA math.`}
-                    url={`${window.location.origin}${import.meta.env.BASE_URL}mma-math?winner=${proof.nodes[0]!.id}&loser=${proof.nodes.at(-1)!.id}`}
-                  />
-                )}
+                {/* The claim, as a sentence: winner, "beats", loser. Swapping flips it. */}
+                <Paper withBorder p="md" className="mm-claim">
+                  <Select aria-label="Winner" searchable limit={PICKER_LIMIT} placeholder={placeholder} data={options} value={a} onChange={(v) => setPair([v, b])} />
+                  <Group justify="space-between" my={8} wrap="nowrap">
+                    <Text fw={800} c="red.5">
+                      beats
+                    </Text>
+                    <Tooltip label="Prove it the other way round" withArrow>
+                      <Button variant="subtle" color="gray" size="compact-sm" onClick={() => setPair([b, a])} aria-label="Swap fighters">
+                        ⇅ Swap
+                      </Button>
+                    </Tooltip>
+                  </Group>
+                  <Select aria-label="Loser" searchable limit={PICKER_LIMIT} placeholder={placeholder} data={options} value={b} onChange={(v) => setPair([a, v])} />
+                  <Stack gap="xs" mt="md">
+                    {proof && (
+                      <div>
+                        <ShareButton
+                          fullWidth
+                          label="Share this proof"
+                          make={() => mmaMathImage(proof.chain, proof.nodes.map((f) => ({ fighter: f, ring: ringColor(f, lookup) })))}
+                          fileName={`${proof.nodes[0]!.id}-beats-${proof.nodes.at(-1)!.id}`}
+                          text={`${proof.winner} beats ${proof.loser}, in ${proof.chain.length} fights of airtight MMA math.`}
+                          url={`${window.location.origin}${import.meta.env.BASE_URL}mma-math?winner=${proof.nodes[0]!.id}&loser=${proof.nodes.at(-1)!.id}`}
+                        />
+                      </div>
+                    )}
+                    <Button variant="default" size="sm" onClick={randomPair}>
+                      Random matchup
+                    </Button>
+                  </Stack>
+                </Paper>
               </Stack>
             </Grid.Col>
             <Grid.Col span={{ base: 12, md: 8 }}>

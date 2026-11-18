@@ -29,6 +29,8 @@ import type { PredictorFighter } from "../../data/types";
 import { FighterTradingCard } from "../predictor/FighterTradingCard";
 import { FighterPageButton } from "../seo/FighterPageLink";
 import { GOLD, WEIGHT_CLASSES } from "../style-map/model";
+import "./Ladder.css";
+
 import { ACTIVE_YEARS, isActive, movers, yearChange } from "./ladder";
 
 const PAGE = 50;
@@ -77,7 +79,7 @@ export default function LadderPage() {
         </Stack>
 
         <Grid>
-          <Grid.Col span={{ base: 12, md: 8.5 }}>
+          <Grid.Col span={{ base: 12, md: 8 }}>
             <Stack gap="sm">
               <Group gap="sm" wrap="wrap">
                 <SegmentedControl
@@ -162,10 +164,11 @@ export default function LadderPage() {
             </Stack>
           </Grid.Col>
 
-          <Grid.Col span={{ base: 12, md: 3.5 }}>
+          {/* The year's movers, set like a markets page. */}
+          <Grid.Col span={{ base: 12, md: 4 }}>
             <Stack gap="md">
-              <Movers title="📈 Biggest climbers" subtitle="Elo gained in the last 12 months" fighters={movers(pool, 1)} onOpen={setOpen} />
-              <Movers title="📉 Biggest drops" subtitle="Elo lost in the last 12 months" fighters={movers(pool, -1)} onOpen={setOpen} />
+              <Movers title="Top gainers" fighters={movers(pool, 1)} onOpen={setOpen} />
+              <Movers title="Top decliners" fighters={movers(pool, -1)} onOpen={setOpen} />
             </Stack>
           </Grid.Col>
         </Grid>
@@ -180,14 +183,16 @@ export default function LadderPage() {
         size="auto"
         withCloseButton={false}
         trapFocus={false}
-        padding="md"
-        radius="lg"
+        padding={0}
+        // Just the card on the dimmed page, with its buttons under it: no box around them.
+        overlayProps={{ backgroundOpacity: 0.75, blur: 2 }}
+        styles={{ content: { background: "transparent", boxShadow: "none", border: 0 } }}
       >
         {open && (
           <Stack gap="sm" w={320} maw="calc(100vw - 64px)">
             <FighterTradingCard id={open.id} />
             <Group grow>
-              <Button component={Link} to={`/predictor?a=${open.id}`} variant="light" leftSection="🥊">
+              <Button component={Link} to={`/predictor?a=${open.id}`} color="red.7">
                 Predict
               </Button>
               <FighterPageButton id={open.id}>Fighter page</FighterPageButton>
@@ -240,35 +245,83 @@ function OfficialRank({ f }: { f: PredictorFighter }) {
 
 interface MoversProps {
   title: string;
-  subtitle: string;
   fighters: PredictorFighter[];
   onOpen: (f: PredictorFighter) => void;
 }
 
-function Movers({ title, subtitle, fighters, onOpen }: MoversProps) {
+/** "Light Heavyweight" → "LHW": a division as a short code, the way a markets page shows one. */
+const CODES: Record<string, string> = {
+  Heavyweight: "HW",
+  "Light Heavyweight": "LHW",
+  Middleweight: "MW",
+  Welterweight: "WW",
+  Lightweight: "LW",
+  Featherweight: "FW",
+  Bantamweight: "BW",
+  Flyweight: "FLW",
+  Strawweight: "SW",
+};
+const divisionCode = (wc: string) => {
+  const women = wc.startsWith("Women's ");
+  const base = wc.replace("Women's ", "");
+  return `${women ? "W-" : ""}${CODES[base] ?? base}`;
+};
+
+function Movers({ title, fighters, onOpen }: MoversProps) {
   return (
-    <Paper withBorder p="md" radius="md">
-      <Text fw={700}>{title}</Text>
-      <Text size="xs" c="dimmed" mb="xs">
-        {subtitle}
-      </Text>
-      <Stack gap={6}>
-        {fighters.map((f) => (
-          <UnstyledButton key={f.id} onClick={() => onOpen(f)}>
-            <Group justify="space-between" wrap="nowrap">
-              <Group gap={8} wrap="nowrap">
-                <Avatar src={f.image?.url} size={24} radius="xl" color="gray">
-                  {f.name[0]}
-                </Avatar>
-                <Text size="sm" lineClamp={1}>
-                  {f.name}
-                </Text>
-              </Group>
-              <Change f={f} />
-            </Group>
-          </UnstyledButton>
-        ))}
-      </Stack>
+    <Paper withBorder className="movers">
+      <div className="movers-head">
+        <Text fw={800}>{title}</Text>
+        <Text size="xs" c="dimmed">
+          Elo, last 12 months
+        </Text>
+      </div>
+      {fighters.map((f) => (
+        <MoverRow key={f.id} f={f} onOpen={onOpen} />
+      ))}
     </Paper>
+  );
+}
+
+/** One mover: who, a line from a year ago to now, the rating now, and the change. */
+function MoverRow({ f, onOpen }: { f: PredictorFighter; onOpen: (f: PredictorFighter) => void }) {
+  const from = f.elo_year_ago!;
+  const d = f.elo - from;
+  const pct = (100 * d) / from;
+  const up = d > 0;
+  // The line: a year ago on the left, now on the right, peak as a faint ceiling.
+  const lo = Math.min(from, f.elo) - 20;
+  const hi = Math.max(f.elo_peak, from, f.elo) + 10;
+  const y = (v: number) => 26 - (22 * (v - lo)) / (hi - lo);
+  return (
+    <UnstyledButton className="mover" data-up={up || undefined} onClick={() => onOpen(f)}>
+      <Avatar src={f.image?.url} size={34} radius="xl" color="gray">
+        {f.name[0]}
+      </Avatar>
+      <div className="mover-name">
+        <Text fw={700} truncate>
+          {f.name}
+        </Text>
+        <Text size="xs" c="dimmed" className="mover-meta">
+          <b>{f.elo}</b> from {from} · {divisionCode(f.weight_class)}
+          {f.champion ? " · champ" : f.rank !== null ? ` #${f.rank}` : ""}
+        </Text>
+      </div>
+      <svg className="mover-line" viewBox="0 0 80 28" preserveAspectRatio="none" aria-hidden>
+        <line x1="0" x2="80" y1={y(f.elo_peak)} y2={y(f.elo_peak)} className="mover-peak" />
+        <path d={`M2 ${y(from)} L78 ${y(f.elo)} L78 28 L2 28 Z`} className="mover-area" />
+        <path d={`M2 ${y(from)} L78 ${y(f.elo)}`} className="mover-stroke" />
+      </svg>
+      <div className="mover-change">
+        <span>
+          {up ? "+" : "−"}
+          {Math.abs(d)}
+        </span>
+        <span className="mover-pct">
+          {up ? "+" : "−"}
+          {Math.abs(pct).toFixed(1)}%
+        </span>
+      </div>
+    </UnstyledButton>
   );
 }

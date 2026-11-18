@@ -5,9 +5,9 @@
 
 import "./Pickem.css";
 
-import { Alert, Anchor, Avatar, Badge, Button, Center, Collapse, Grid, Group, Loader, Paper, SegmentedControl, Stack, Text, Title, Tooltip, UnstyledButton } from "@mantine/core";
+import { Alert, Anchor, Avatar, Badge, Button, Center, Collapse, Grid, Group, Loader, Paper, SegmentedControl, Stack, Text, Tooltip, UnstyledButton } from "@mantine/core";
 import { useIsMutating } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { useAuth } from "../../auth/AuthProvider";
@@ -77,11 +77,7 @@ function Countdown({ until, card }: { until: string; card: string }) {
       document.title = before;
     };
   }, [tab]);
-  return (
-    <Badge size="lg" variant="light" color="red" style={{ fontVariantNumeric: "tabular-nums" }}>
-      Picks close in {timeLeft(new Date(until).getTime() - now)}
-    </Badge>
-  );
+  return <span className="pickem-clock">{timeLeft(new Date(until).getTime() - now)}</span>;
 }
 
 /** "Sat 7 Nov, 17:00" in the visitor's own time zone. */
@@ -204,172 +200,212 @@ export default function PickemPage() {
   };
 
   return (
-    <Stack gap="lg" maw={1100} mx="auto" pt={4}>
+    <Stack gap={0} maw={1180} mx="auto" pt={4}>
+      {/* The other cards, as tabs. */}
       {(events.data?.length ?? 0) > 1 && (
-        <Group gap={6} wrap="wrap">
+        <div className="pickem-cards">
           {events.data!.map((e) => (
-            <UnstyledButton key={e.id} className="pickem-method" data-chosen={e.id === card.id || undefined} data-numbered={isNumbered(e) || undefined} onClick={() => choose(e.id)}>
+            <UnstyledButton key={e.id} className="pickem-card-tab" data-chosen={e.id === card.id || undefined} data-numbered={isNumbered(e) || undefined} onClick={() => choose(e.id)}>
               {isLive(e, now) && <span className="pickem-live-dot" aria-label="live" />}
               {shortName(e)}
             </UnstyledButton>
           ))}
-        </Group>
-      )}
-      <Group justify="space-between" align="flex-end" wrap="wrap" gap="sm">
-        <div>
-          <Text size="xs" fw={800} c="red.4" tt="uppercase" style={{ letterSpacing: "0.12em" }}>
-            Pick'em
-          </Text>
-          <Title order={1} fz={{ base: 26, md: 32 }} lh={1.15}>
-            {card.name}
-          </Title>
-          <Text c="dimmed" size="sm">
-            {dateLabel(card.startsOn)} · {bouts.length} fights
-          </Text>
-          <Group gap="md" mt={4}>
-            <Anchor component={Link} to={cardPage ? `/${cardPage}/` : "/cards/"} size="sm">
-              {cardPage ? "Full card predictions" : "Upcoming card predictions"} →
-            </Anchor>
-            <Anchor component={Link} to="/fighters/" size="sm">
-              All fighters →
-            </Anchor>
-          </Group>
         </div>
-        <Stack gap={4} align="flex-end">
-          {open ? (
-            <Countdown until={card.locksAt} card={card.name} />
-          ) : (
-            <Badge size="lg" variant={live ? "filled" : "light"} color={live ? "red" : "gray"} className={live ? "pickem-live" : undefined}>
-              {card.scoredAt ? "Results are in" : live ? "● Live" : "Picks are locked"}
-            </Badge>
-          )}
-          <Text size="xs" c="dimmed">
-            {open ? "Closes" : "Closed"} {lockLabel(card.locksAt)}
-          </Text>
-          {(user || picked > 0) && (
-            <Text size="sm" c="dimmed" style={{ fontVariantNumeric: "tabular-nums" }}>
-              {card.scoredAt ? `${earned} points from ` : "You've picked "}
-              {picked} of {mainBouts.length}
-              {prelims.length > 0 && " main-card fights"}
-              {open && picked > 0 && user && <span className="pickem-saved"> · {saving ? "Saving…" : "✓ Saved"}</span>}
-            </Text>
-          )}
-        </Stack>
-      </Group>
-
-      {/* Phones: the fights or the leagues, a tap apart, right under the title and kept in reach
-          while scrolling. */}
-      <SegmentedControl
-        hiddenFrom="md"
-        fullWidth
-        size="md"
-        className="pickem-view-switch"
-        value={view}
-        onChange={(v) => setView(v as "fights" | "board")}
-        data={[
-          { value: "fights", label: "Fights" },
-          { value: "board", label: "Leagues" },
-        ]}
-      />
-
-      {card.scoredAt && results.data && <Results rows={results.data} me={profile?.displayName} />}
-      {!open && !card.scoredAt && (
-        <Paper p="sm" radius="md" className="pickem-board">
-          <Text size="sm">
-            {live
-              ? "The fights are on: results show up here as each one ends (this page checks every minute). Points and the final ranking come once the whole card is done."
-              : "Picks are locked: no more changes. Points and the final ranking come in once the results are in, usually the morning after the fights."}
-          </Text>
-        </Paper>
       )}
 
-      <StarterToast earned={user ? (profile ? starters.data : undefined) : guestStarters(guest.picks, mainBouts.map((b) => b.id))} guest={!user} />
-      <NewCards />
-      <PacksBanner />
-      <InstallBar />
-      {!user && open && guest.picks.length === 0 && (
-        <Text size="sm" c="dimmed">
-          Tap a fighter to start picking. No account needed until you want to save them.
-        </Text>
-      )}
-      <SignInModal opened={signingIn} onClose={() => setSigningIn(false)} />
-      {pick.error && (
-        <Alert color="red" withCloseButton onClose={() => pick.reset()}>
-          {pick.error.message}
-        </Alert>
-      )}
+      <Stack gap="md" className="pickem-banners">
+        <StarterToast earned={user ? (profile ? starters.data : undefined) : guestStarters(guest.picks, mainBouts.map((b) => b.id))} guest={!user} />
+        <NewCards />
+        <PacksBanner />
+        <InstallBar />
+      </Stack>
 
-      <Grid gap="xl" className="pickem-columns" data-view={view}>
-        <Grid.Col span={{ base: 12, md: 7 }} className="pickem-col-fights">
-          <Stack gap="lg">
-            <Stack gap="sm">
-              {/* A single list (no Wikipedia card yet) needs no heading. */}
-              {prelims.length > 0 && (
-                <Text size="xs" fw={800} c="dimmed" tt="uppercase" className="pickem-segment">
-                  Main card
-                </Text>
-              )}
-              {mainBouts.map(renderBout)}
-            </Stack>
-            {prelims.length > 0 && (
-              // The prelims fold away: they're worth little, and a full card is a long scroll.
-              <Stack gap="sm">
-                <UnstyledButton className="pickem-prelims-toggle" onClick={() => setPrelimsOpen((o) => !o)} aria-expanded={prelimsOpen}>
-                  <span>
-                    <b>Prelims</b> · {prelims.length} {prelims.length === 1 ? "fight" : "fights"} · {POINTS.prelim} point each
-                  </span>
-                  <span className="pickem-chevron" data-open={prelimsOpen || undefined} aria-hidden>
-                    ▾
-                  </span>
-                </UnstyledButton>
-                <Collapse expanded={prelimsOpen}>
-                  <Stack gap="sm">
-                    {PRELIMS.map(({ key, label }) => {
-                      const segment = prelims.filter((b) => b.segment === key);
-                      if (!segment.length) return null;
-                      return (
-                        <Stack key={key} gap="sm">
-                          {key === "early" && (
-                            <Text size="xs" fw={800} c="dimmed" tt="uppercase" className="pickem-segment">
-                              {label}
-                            </Text>
-                          )}
-                          {segment.map(renderBout)}
-                        </Stack>
-                      );
-                    })}
-                  </Stack>
-                </Collapse>
-              </Stack>
-            )}
-          </Stack>
-        </Grid.Col>
-        <Grid.Col span={{ base: 12, md: 5 }} className="pickem-col-board">
-          <Stack gap="md">
-            <Leagues selected={league} setSelected={setLeague} />
-            <Rules />
-          </Stack>
-        </Grid.Col>
-      </Grid>
-
-      {!user && open && guest.picks.length > 0 && (
-        <Paper p="sm" radius="md" className="pickem-guest-bar">
-          <Group justify="space-between" wrap="nowrap" gap="sm">
-            <div style={{ minWidth: 0 }}>
-              <Text fw={700} lh={1.25} style={{ fontVariantNumeric: "tabular-nums" }}>
-                {picked} of {mainBouts.length} picked
-              </Text>
-              <Text size="xs" c="dimmed">
-                They're only on this device until you save them.
+      <div className="pickem-sheet">
+        <Stack gap="lg">
+          <header className="pickem-form-head">
+            <div>
+              <h1>{card.name}</h1>
+              <Text c="dimmed" size="sm" mt={6}>
+                {dateLabel(card.startsOn)}, {bouts.length} fights
               </Text>
             </div>
-            <Button onClick={() => setSigningIn(true)} style={{ flexShrink: 0 }}>
-              Save my picks
-            </Button>
-          </Group>
-        </Paper>
-      )}
+            <div className="pickem-field" data-right>
+              {open ? (
+                <>
+                  Picks close in
+                  <div>
+                    <Countdown until={card.locksAt} card={card.name} />
+                  </div>
+                </>
+              ) : live ? (
+                <Badge size="lg" variant="filled" color="red" className="pickem-live">
+                  ● Live
+                </Badge>
+              ) : (
+                <span className="pickem-clock" data-done>
+                  {card.scoredAt ? "Results are in" : "Picks are locked"}
+                </span>
+              )}
+              <div>
+                {open ? "Closes" : "Closed"} {lockLabel(card.locksAt)}
+              </div>
+            </div>
+            <div className="pickem-field">
+              Player
+              <span className="pickem-hand">{profile?.displayName ?? "you (not saved yet)"}</span>
+            </div>
+            <div className="pickem-field" data-right>
+              {card.scoredAt ? "Your points" : prelims.length > 0 ? "Main card" : "Picked"}
+              <span className="pickem-hand" style={{ fontVariantNumeric: "tabular-nums" }}>
+                {card.scoredAt ? `${earned} from ${picked} picks` : `${picked} of ${mainBouts.length} picked`}
+              </span>
+              {open && picked > 0 && user && <span className="pickem-saved">{saving ? "Saving…" : "Saved"}</span>}
+            </div>
+          </header>
+          <nav className="pickem-form-links" aria-label="More on this card">
+            <Link to={cardPage ? `/${cardPage}/` : "/cards/"}>{cardPage ? "Full card predictions" : "Upcoming card predictions"}</Link>
+            <Link to="/fighters/">All fighters</Link>
+          </nav>
+
+          {/* Phones: the fights or the leagues, a tap apart, kept in reach while scrolling. */}
+          <SegmentedControl
+            hiddenFrom="md"
+            fullWidth
+            size="md"
+            className="pickem-view-switch"
+            value={view}
+            onChange={(v) => setView(v as "fights" | "board")}
+            data={[
+              { value: "fights", label: "Fights" },
+              { value: "board", label: "Leagues" },
+            ]}
+          />
+
+          {card.scoredAt && results.data && <Results rows={results.data} me={profile?.displayName} />}
+          {!open && !card.scoredAt && (
+            <div className="pickem-notice">
+              {live
+                ? "The fights are on: results show up here as each one ends (this page checks every minute). Points and the final ranking come once the whole card is done."
+                : "Picks are locked: no more changes. Points and the final ranking come in once the results are in, usually the morning after the fights."}
+            </div>
+          )}
+          {!user && open && guest.picks.length === 0 && (
+            <Text size="sm" c="dimmed">
+              Tap a fighter to start picking. No account needed until you want to save them.
+            </Text>
+          )}
+          <SignInModal opened={signingIn} onClose={() => setSigningIn(false)} />
+          {pick.error && (
+            <Alert color="red" withCloseButton onClose={() => pick.reset()}>
+              {pick.error.message}
+            </Alert>
+          )}
+
+          <Grid gap={40} className="pickem-columns" data-view={view}>
+            <Grid.Col span={{ base: 12, md: 7 }} className="pickem-col-fights">
+              <Stack gap="xl">
+                <div>
+                  <div className="pickem-segment">{prelims.length > 0 ? "Main card" : "The fights"}</div>
+                  {mainBouts.map(renderBout)}
+                </div>
+                {prelims.length > 0 && (
+                  // The prelims fold away: they're worth little, and a full card is a long scroll.
+                  <div>
+                    <UnstyledButton className="pickem-prelims-toggle" w="100%" onClick={() => setPrelimsOpen((o) => !o)} aria-expanded={prelimsOpen}>
+                      <span>
+                        <b>Prelims</b>, {prelims.length} {prelims.length === 1 ? "fight" : "fights"}, {POINTS.prelim} point each
+                      </span>
+                      <span className="pickem-chevron" data-open={prelimsOpen || undefined} aria-hidden>
+                        ▾
+                      </span>
+                    </UnstyledButton>
+                    <Collapse expanded={prelimsOpen}>
+                      <Stack gap="lg" pt="sm">
+                        {PRELIMS.map(({ key, label }) => {
+                          const segment = prelims.filter((b) => b.segment === key);
+                          if (!segment.length) return null;
+                          return (
+                            <div key={key}>
+                              {key === "early" && <div className="pickem-segment">{label}</div>}
+                              {segment.map(renderBout)}
+                            </div>
+                          );
+                        })}
+                      </Stack>
+                    </Collapse>
+                  </div>
+                )}
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={{ base: 12, md: 5 }} className="pickem-col-board">
+              <Stack gap="xl">
+                <Leagues selected={league} setSelected={setLeague} />
+                <Rules />
+              </Stack>
+            </Grid.Col>
+          </Grid>
+
+          {!user && open && guest.picks.length > 0 && (
+            <Paper className="pickem-guest-bar">
+              <Group justify="space-between" wrap="nowrap" gap="sm">
+                <div style={{ minWidth: 0 }}>
+                  <Text fw={700} lh={1.25} style={{ fontVariantNumeric: "tabular-nums" }}>
+                    {picked} of {mainBouts.length} picked
+                  </Text>
+                  <Text size="xs" c="dimmed">
+                    They're only on this device until you save them.
+                  </Text>
+                </div>
+                <Button onClick={() => setSigningIn(true)} style={{ flexShrink: 0 }}>
+                  Save my picks
+                </Button>
+              </Group>
+            </Paper>
+          )}
+        </Stack>
+      </div>
     </Stack>
+  );
+}
+
+/** Your pick, circled in pen. Drawn a little off and overshooting where it started, the way a
+ * hand draws it, and drawn in front of you: the pen goes round in a third of a second. */
+function Ring() {
+  const path = useRef<SVGPathElement>(null);
+  // How long the line is on screen. The ring stretches to fit the name, and its stroke keeps an
+  // even width (non-scaling), so the dash that draws it is measured in screen pixels: walk the
+  // path and scale each step to the ring's size.
+  const [length, setLength] = useState<number | null>(null);
+  const [drawn, setDrawn] = useState(false);
+  useLayoutEffect(() => {
+    const p = path.current;
+    const box = p?.ownerSVGElement?.getBoundingClientRect();
+    if (!p || !box) return;
+    const sx = box.width / 100;
+    const sy = box.height / 40;
+    const total = p.getTotalLength();
+    let sum = 0;
+    let last = p.getPointAtLength(0);
+    for (let i = 1; i <= 64; i++) {
+      const pt = p.getPointAtLength((total * i) / 64);
+      sum += Math.hypot((pt.x - last.x) * sx, (pt.y - last.y) * sy);
+      last = pt;
+    }
+    setLength(Math.ceil(sum) + 2);
+  }, []);
+  const drawing = length !== null && !drawn;
+  return (
+    <svg className="pickem-ring" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden>
+      <path
+        ref={path}
+        vectorEffect="non-scaling-stroke"
+        data-drawing={drawing || undefined}
+        data-measuring={length === null || undefined}
+        style={drawing ? ({ "--len": length } as CSSProperties) : undefined}
+        onAnimationEnd={() => setDrawn(true)}
+        d="M10 24C5 12 34 3 62 3.5 88 4 99 13 97 24 95 35 62 39 36 38 13 37 1 29 7 17 11 9 22 6 31 5"
+      />
+    </svg>
   );
 }
 
@@ -378,20 +414,18 @@ function Results({ rows, me }: { rows: LeaderboardRow[]; me?: string }) {
   if (!rows.length) return null;
   const myRank = rows.findIndex((r) => r.displayName === me);
   const place = places(rows);
-  const medals = ["#f4c430", "#c0c6cf", "#cd7f32"];
+  const medals = ["#b07d0b", "#6f7884", "#a3542a"];
   return (
-    <Paper p="md" radius="md" className="pickem-board pickem-results">
+    <section className="pickem-results">
       <Group justify="space-between" align="flex-start" wrap="wrap" gap="md">
         <div>
-          <Text size="xs" fw={800} c="yellow.5" tt="uppercase" style={{ letterSpacing: "0.12em" }}>
-            Final standings
-          </Text>
+          <h2 className="pickem-section-title">Final standings</h2>
           <Text size="sm" c="dimmed">
             {rows.length} {rows.length === 1 ? "player" : "players"}
             {myRank >= 0 && (
               <>
                 {" "}
-                · you finished <b style={{ color: "var(--mantine-color-white)" }}>#{place[myRank]}</b> with {rows[myRank]?.points} points
+                · you finished <b>#{place[myRank]}</b> with {rows[myRank]?.points} points
               </>
             )}
           </Text>
@@ -408,23 +442,21 @@ function Results({ rows, me }: { rows: LeaderboardRow[]; me?: string }) {
                   {r.displayName === MODEL_PLAYER && <ModelTag />}
                 </Text>
                 <Text size="xs" c="dimmed">
-                  {r.points} pts · {r.correct}/{r.picked}
+                  {r.points} pts, {r.correct}/{r.picked} right
                 </Text>
               </div>
             </Group>
           ))}
         </Group>
       </Group>
-    </Paper>
+    </section>
   );
 }
 
 function Rules() {
   return (
-    <Paper p="md" radius="md" className="pickem-board">
-      <Text size="xs" fw={800} c="dimmed" tt="uppercase" mb={6} style={{ letterSpacing: "0.1em" }}>
-        Scoring
-      </Text>
+    <section>
+      <h2 className="pickem-section-title">Scoring</h2>
       <Stack gap={2}>
         <Text size="sm">
           <b>{POINTS.winner}</b> for the right winner
@@ -445,7 +477,7 @@ function Rules() {
       <Text size="xs" c="dimmed" mt={6}>
         Prelims: {POINTS.prelim} point for the right winner, no bonuses. Picks save as you tap; change them until the card locks.
       </Text>
-    </Paper>
+    </section>
   );
 }
 
@@ -468,14 +500,10 @@ function Bout({ bout, label, choice, byId, chance, canPick, mates, pickedBy, spl
   const points = boutPoints(bout, choice);
   const surname = (id: string) => (id === bout.fighterA ? bout.aName : bout.bName).split(" ").at(-1);
   return (
-    <Paper p="sm" radius="md" className="pickem-bout" data-headline={label === "Main event" || undefined}>
+    <div className="pickem-bout" data-headline={label === "Main event" || undefined}>
       {(label || bout.title) && (
         <Group gap={8} mb={6}>
-          {label && (
-            <Text size="xs" fw={800} tt="uppercase" c={label === "Main event" ? "red.4" : "dimmed"} style={{ letterSpacing: "0.1em" }}>
-              {label}
-            </Text>
-          )}
+          {label && <span className="pickem-bout-label">{label}</span>}
           {bout.title && (
             <Badge size="xs" variant="light" color="yellow">
               Title fight
@@ -528,7 +556,7 @@ function Bout({ bout, label, choice, byId, chance, canPick, mates, pickedBy, spl
       )}
       {bout.outcome && <Verdict bout={bout} choice={choice} points={points} surname={surname} />}
       <BoutFooter bout={bout} known={byId.has(bout.fighterA) && byId.has(bout.fighterB)} pickedBy={pickedBy} leagueName={leagueName} />
-    </Paper>
+    </div>
   );
 }
 
@@ -564,7 +592,7 @@ function Verdict({ bout, choice, points, surname }: { bout: PickemBout; choice: 
         )}
       </Text>
       {choice && points !== null && (
-        <Text size="xs" fw={800} c={points ? "green.4" : "dimmed"} style={{ whiteSpace: "nowrap" }} title={pointsFor(bout, choice).join(" + ")}>
+        <Text size="xs" fw={800} c={points ? "var(--good)" : "dimmed"} style={{ whiteSpace: "nowrap" }} title={pointsFor(bout, choice).join(" + ")}>
           {points ? `+${points}` : "0 pts"}
           {points > 0 && (
             <Text span size="xs" fw={500} c="dimmed">
@@ -610,11 +638,12 @@ function Side({ id, name, fighter, chance, underdog, bonus, chosen, winner, disa
       >
         {/* A row; on small phones the photo sits above the name, so names have the full width. */}
         <div className="pickem-side-body">
+          {chosen && <Ring />}
           <Avatar src={fighter?.image?.url} size={46} radius="xl" color="gray">
             {initials}
           </Avatar>
           <div style={{ minWidth: 0 }}>
-            <Text fw={700} lineClamp={2} lh={1.2}>
+            <Text className="pickem-name" lineClamp={2}>
               {name}
             </Text>
             <Text size="xs" c="dimmed" truncate>
@@ -630,24 +659,18 @@ function Side({ id, name, fighter, chance, underdog, bonus, chosen, winner, disa
               )}
             </Text>
           </div>
-          {chosen && result === null && (
-            // On phones the outline alone marks the pick, so the name keeps the room.
-            <Text ml="auto" fw={800} size="sm" className="pickem-mark" visibleFrom="sm">
-              Your pick
-            </Text>
-          )}
           {/* Once decided, each side says what it was: the winner, and your pick (right or not). */}
           {result !== null && (result || chosen) && (
             <div className="pickem-tags">
               {result && <span className="pickem-tag" data-kind="won">Won</span>}
-              {chosen && <span className="pickem-tag" data-kind={result ? "right" : "wrong"}>{result ? "✓ Your pick" : "✗ Your pick"}</span>}
+              {chosen && <span className="pickem-tag" data-kind={result ? "right" : "wrong"}>{result ? "✓ your pick" : "✗ your pick"}</span>}
             </div>
           )}
         </div>
       </UnstyledButton>
       {vs && (
         <Center>
-          <Text fw={900} fs="italic" c="dimmed">
+          <Text size="sm" c="dimmed">
             vs
           </Text>
         </Center>
@@ -735,10 +758,10 @@ function BoutFooter({ bout, known, pickedBy, leagueName }: { bout: PickemBout; k
       {known && (
         <>
           <Anchor component={Link} to={`/predictor?a=${bout.fighterA}&b=${bout.fighterB}`} size="xs" c="dimmed">
-            Full prediction →
+            Full prediction
           </Anchor>
           <Anchor component={Link} to={`/mma-math?winner=${bout.fighterA}&loser=${bout.fighterB}`} size="xs" c="dimmed">
-            MMA math →
+            MMA math
           </Anchor>
         </>
       )}

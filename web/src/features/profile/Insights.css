@@ -210,21 +210,33 @@
 }
 
 /* The four numbers at the top, each with its own colour. */
-.stat-tile {
-  position: relative;
-  overflow: hidden;
+/* The scoreboard: one pane, four cells split by rules (two by two on phones). */
+.scoreboard {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
 }
-.stat-tile::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  height: 3px;
-  background: var(--stat);
+.stat-tile {
+  padding: 16px 20px;
+  border-left: 1px solid var(--line);
+}
+.stat-tile:first-child {
+  border-left: 0;
+}
+@media (max-width: 48em) {
+  .scoreboard {
+    grid-template-columns: 1fr 1fr;
+  }
+  .stat-tile:nth-child(3) {
+    border-left: 0;
+  }
+  .stat-tile:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
+  }
 }
 .stat-tile[data-stat="points"] { --stat: #f5c542; }
 .stat-tile[data-stat="right"] { --stat: #69db7c; }
-.stat-tile[data-stat="cards"] { --stat: #74c0fc; }
-.stat-tile[data-stat="rank"] { --stat: #b197fc; }
+.stat-tile[data-stat="cards"] { --stat: #e9ecef; }
+.stat-tile[data-stat="rank"] { --stat: #e9ecef; }
 .stat-value {
   color: var(--stat);
   font-variant-numeric: tabular-nums;

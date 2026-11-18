@@ -1,51 +1,137 @@
-/* Pick'em: dark glass panels on the arena backdrop; a picked fighter lights up in red. */
+/* Pick'em is a judges' scorecard, drawn on the same dark as the rest of the site: ruled rows,
+   the form's red as its one printed colour, and everything you add (the ring round your pick,
+   the tick on how they win, your name, your points) in blue ink. */
 
-.pickem-bout,
-.pickem-board {
-  background: rgba(20, 21, 25, 0.62);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(4px);
-}
-/* The main event: the bout the card is named after stands out. */
-.pickem-bout[data-headline] {
-  border-color: rgba(250, 82, 82, 0.45);
-  background:
-    radial-gradient(120% 140% at 50% 0%, rgba(250, 82, 82, 0.16), transparent 60%),
-    rgba(20, 21, 25, 0.66);
-  box-shadow: 0 0 24px rgba(250, 82, 82, 0.12);
+.pickem-sheet {
+  --print: #eceef1;
+  --print-soft: #9ba0a8;
+  --rule: rgba(255, 255, 255, 0.13);
+  --rule-strong: rgba(255, 255, 255, 0.82);
+  --spot: #ff6b6b; /* the printed red */
+  --spot-wash: rgba(255, 107, 107, 0.09);
+  --pen: #8fa8ff; /* ink */
+  --pen-wash: rgba(143, 168, 255, 0.12);
+  --good: #69db7c;
+  --bad: #ff6b6b;
+  --paper-raised: #23252a;
+  --paper-hover: rgba(255, 255, 255, 0.06);
+  color: var(--print);
 }
 
-/* "Main card", "Prelims": a label with a hairline running out to the right. */
-.pickem-segment {
+.pickem-hand {
+  font-family: var(--hand);
+  font-weight: 700;
+  color: var(--pen);
+  line-height: 1;
+}
+
+/* The form's head: a ruled box with the card's name and the fields you fill in. */
+.pickem-form-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px 28px;
+  padding: 14px 18px 16px;
+  border: 2px solid var(--rule-strong);
+}
+.pickem-form-head h1 {
+  margin: 0;
+  font-size: clamp(26px, 3.4vw, 38px);
+  font-weight: 850;
+  line-height: 1.04;
+  letter-spacing: -0.015em;
+}
+.pickem-field {
+  font-size: 13px;
+  color: var(--print-soft);
+}
+.pickem-field .pickem-hand {
+  display: block;
+  font-size: 26px;
+  margin-top: 2px;
+}
+.pickem-field[data-right] {
+  text-align: right;
+}
+.pickem-form-links {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  letter-spacing: 0.12em;
+  gap: 18px;
+  flex-wrap: wrap;
+  font-size: 14px;
 }
-.pickem-segment::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.1);
+.pickem-form-links a {
+  color: var(--spot);
+  font-weight: 600;
+  text-decoration: none;
+}
+.pickem-form-links a:hover {
+  text-decoration: underline;
+}
+@media (max-width: 36em) {
+  .pickem-form-head {
+    grid-template-columns: 1fr;
+  }
+  .pickem-field[data-right] {
+    text-align: left;
+  }
 }
 
-/* The prelims' fold-away header. */
+/* The countdown, printed in the head. */
+.pickem-clock {
+  font-weight: 800;
+  font-size: 22px;
+  color: var(--spot);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.pickem-clock[data-done] {
+  color: var(--print);
+}
+
+/* Fights are rows of the form, not cards: a rule between them. */
+.pickem-bout {
+  padding: 16px 4px 14px;
+  border-bottom: 1px solid var(--rule);
+}
+.pickem-bout[data-headline] {
+  margin-inline: -10px;
+  padding-inline: 14px;
+  background: var(--spot-wash);
+  box-shadow: inset 3px 0 0 var(--spot);
+  border-bottom-color: transparent;
+}
+.pickem-bout-label {
+  font-size: 13px;
+  font-weight: 750;
+  color: var(--print-soft);
+}
+.pickem-bout[data-headline] .pickem-bout-label {
+  color: var(--spot);
+}
+
+/* "Main card", "Early prelims": a printed heading with a heavy rule under it. */
+.pickem-segment {
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--rule-strong);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+/* The prelims' fold-away header: a form section you open. */
 .pickem-prelims-toggle {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--mantine-radius-md);
-  background: rgba(20, 21, 25, 0.62);
-  color: var(--mantine-color-gray-4);
-  font-size: var(--mantine-font-size-sm);
+  padding: 10px 4px;
+  border-top: 2px solid var(--rule-strong);
+  border-bottom: 1px solid var(--rule);
+  color: var(--print-soft);
+  font-size: 14px;
 }
 .pickem-prelims-toggle:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--paper-hover);
 }
 .pickem-prelims-toggle b {
-  color: var(--mantine-color-white);
+  color: var(--print);
 }
 .pickem-chevron {
   transition: transform 0.2s;
@@ -59,7 +145,6 @@
   position: sticky;
   top: calc(var(--app-shell-header-offset, 56px) + 6px);
   z-index: 5;
-  backdrop-filter: blur(10px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 
@@ -71,12 +156,12 @@
   }
 }
 
-/* The leaderboard's boards (Everyone, Friends, leagues): one row of pills, scrolling sideways
-   with a fade at the edge when there are more than fit. */
+/* The leaderboard's boards (Everyone, Friends, leagues): one row that scrolls sideways, with a
+   fade at the edge when there are more than fit. */
 .board-tabs {
-  position: relative; /* the pills' offsets are measured from the row */
+  position: relative;
   display: flex;
-  gap: 6px;
+  gap: 4px;
   overflow-x: auto;
   scrollbar-width: none;
   padding-bottom: 2px;
@@ -92,97 +177,172 @@
   white-space: nowrap;
 }
 
-/* Bonus hints and the method buttons. */
 .pickem-bonus {
-  color: var(--mantine-color-yellow-5);
+  color: var(--spot);
   font-weight: 700;
 }
 .pickem-saved {
-  color: var(--mantine-color-green-5);
-}
-.pickem-method {
-  padding: 2px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 999px;
-  font-size: var(--mantine-font-size-xs);
-  font-weight: 600;
-  color: var(--mantine-color-gray-4);
-  transition: background 0.15s, border-color 0.15s;
-}
-.pickem-method:hover {
-  background: rgba(255, 255, 255, 0.07);
-}
-.pickem-method[data-chosen] {
-  border-color: rgba(250, 82, 82, 0.8);
-  background: rgba(250, 82, 82, 0.18);
-  color: var(--mantine-color-white);
-}
-/* Numbered events ("UFC 334") are the big cards: gold in the card switcher. */
-.pickem-method[data-numbered] {
-  border-color: rgba(244, 196, 48, 0.55);
-  color: #ffd95a;
-  font-weight: 800;
-}
-.pickem-method[data-numbered]:hover {
-  background: rgba(244, 196, 48, 0.1);
-}
-.pickem-method[data-numbered][data-chosen] {
-  border-color: #f4c430;
-  background: rgba(244, 196, 48, 0.2);
-  color: #fff3bf;
-  box-shadow: 0 0 12px rgba(244, 196, 48, 0.25);
+  color: var(--good);
 }
 
+/* How they win, and the board switcher: printed choices; the one you chose is ticked in pen. */
+.pickem-method {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px 3px 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--print);
+}
+.pickem-method::before {
+  content: "";
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--print);
+  background: var(--paper-raised);
+  flex: none;
+}
+.pickem-method[data-chosen]::after {
+  content: "✓";
+  position: absolute;
+  left: 4px;
+  top: -12px;
+  font: 700 30px/1 var(--hand);
+  color: var(--pen);
+}
+.pickem-method:hover::before {
+  background: var(--pen-wash);
+}
+/* In the board switcher the choices are tabs: underlined, no boxes. */
+.board-tabs .pickem-method {
+  padding: 4px 10px 6px;
+  color: var(--print-soft);
+}
+.board-tabs .pickem-method::before,
+.board-tabs .pickem-method::after {
+  content: none;
+}
+.board-tabs .pickem-method[data-chosen] {
+  color: var(--print);
+  box-shadow: inset 0 -2.5px 0 var(--spot);
+}
+
+/* Toasts and banners from the rest of the site, above the scorecard. */
+.pickem-banners {
+  margin-block: 12px;
+}
+.pickem-banners:empty {
+  display: none;
+}
+
+
+/* The card switcher: tabs above the scorecard. */
+.pickem-cards {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.pickem-card-tab {
+  padding: 6px 12px;
+  border-radius: 3px 3px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--mantine-color-gray-4);
+  background: rgba(255, 255, 255, 0.06);
+}
+.pickem-card-tab:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.pickem-card-tab[data-numbered] {
+  font-weight: 800;
+}
+.pickem-card-tab[data-chosen] {
+  background: transparent;
+  color: var(--mantine-color-white);
+  box-shadow: inset 0 -2px 0 var(--mantine-color-red-6);
+}
+
+/* One fighter: the name is printed on the form; picking them circles it in pen. */
 .pickem-side {
+  position: relative;
   padding: 8px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
-  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  border-radius: 4px;
+  transition: background 0.15s;
 }
 .pickem-side-body {
+  position: relative; /* the ring goes round this: the photo and the name */
   display: flex;
   align-items: center;
-  gap: var(--mantine-spacing-sm);
+  gap: 12px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 2px 16px 2px 2px;
+}
+.pickem-side-body .mantine-Avatar-root {
+  filter: grayscale(0.15);
 }
 @media (max-width: 30em) {
   .pickem-side-body {
     flex-direction: column;
     gap: 6px;
+    margin-inline: auto;
+    padding: 4px 6px;
     text-align: center;
-  }
-  .pickem-side-body .pickem-mark {
-    margin: 0;
   }
 }
 
 .pickem-side:not(:disabled):hover {
-  background: rgba(255, 255, 255, 0.07);
-  transform: translateY(-1px);
+  background: var(--pen-wash);
 }
 .pickem-side:disabled {
   cursor: default;
 }
-.pickem-side[data-chosen] {
-  border-color: rgba(250, 82, 82, 0.8);
-  background: rgba(250, 82, 82, 0.14);
+.pickem-side:focus-visible {
+  outline: 2px dashed var(--pen);
+  outline-offset: 2px;
 }
-.pickem-side[data-chosen] .pickem-mark {
-  color: var(--mantine-color-red-4);
+.pickem-name {
+  font-weight: 750;
+  font-size: 17px;
+  line-height: 1.2;
 }
-/* After the event: the winner is outlined green and tagged "Won"; your pick is tagged too, green
-   if it won and red if it lost, so the two never read as the same thing. */
-.pickem-side[data-won] {
-  border-color: rgba(64, 192, 87, 0.8);
-  background: rgba(64, 192, 87, 0.1);
+/* The ring: drawn a little off, the way a hand draws it. */
+.pickem-ring {
+  position: absolute;
+  left: -8px;
+  top: -7px;
+  width: calc(100% + 18px);
+  height: calc(100% + 14px);
+  pointer-events: none;
+  overflow: visible;
 }
-.pickem-side[data-lost] {
-  border-color: rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
+.pickem-ring path {
+  fill: none;
+  stroke: var(--pen);
+  stroke-width: 2.4;
+  stroke-linecap: round;
 }
-.pickem-side[data-lost][data-chosen] {
-  border-color: rgba(250, 82, 82, 0.45);
+/* Measured before it's shown (a frame), then drawn: the dash is the line's own length, and it
+   slides from hidden to whole. */
+.pickem-ring path[data-measuring] {
+  opacity: 0;
 }
+.pickem-ring path[data-drawing] {
+  stroke-dasharray: calc(var(--len) * 1px);
+  animation: pickem-draw 0.32s cubic-bezier(0.45, 0.05, 0.55, 0.95);
+}
+@keyframes pickem-draw {
+  from {
+    stroke-dashoffset: calc(var(--len) * 1px);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* After the event: the winner gets the official stamp; your pick a tick or a cross in pen. */
 .pickem-tags {
   margin-left: auto;
   display: flex;
@@ -192,24 +352,32 @@
   flex-shrink: 0;
 }
 .pickem-tag {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.02em;
-  padding: 2px 7px;
-  border-radius: 999px;
   white-space: nowrap;
 }
 .pickem-tag[data-kind="won"] {
-  background: rgba(64, 192, 87, 0.2);
-  color: var(--mantine-color-green-3);
+  padding: 1px 7px;
+  border: 2px solid var(--spot);
+  color: var(--spot);
+  transform: rotate(-4deg);
+  letter-spacing: 0.04em;
+}
+.pickem-tag[data-kind="right"],
+.pickem-tag[data-kind="wrong"] {
+  font: 700 22px/1 var(--hand);
 }
 .pickem-tag[data-kind="right"] {
-  background: rgba(64, 192, 87, 0.12);
-  color: var(--mantine-color-green-4);
+  color: var(--good);
 }
 .pickem-tag[data-kind="wrong"] {
-  background: rgba(250, 82, 82, 0.14);
-  color: var(--mantine-color-red-4);
+  color: var(--bad);
+}
+.pickem-side[data-lost]:not([data-chosen]) {
+  opacity: 0.6;
+}
+.pickem-side[data-lost][data-chosen] .pickem-ring path {
+  stroke: var(--bad);
 }
 @media (max-width: 30em) {
   .pickem-tags {
@@ -218,36 +386,28 @@
   }
 }
 .pickem-verdict {
-  padding: 6px 8px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.03);
-}
-.pickem-verdict[data-right="true"] {
-  background: rgba(64, 192, 87, 0.08);
-}
-.pickem-verdict[data-right="false"] {
-  background: rgba(250, 82, 82, 0.07);
+  padding: 6px 4px 0;
+  border-top: 1px dashed var(--rule);
 }
 
-/* After the lock: who picked whom. The bar is the crowd's split, red for the left fighter. */
+/* After the lock: who picked whom, as a printed bar. */
 .pickem-faces {
   min-width: 24px;
 }
 .pickem-split {
-  height: 6px;
-  border-radius: 999px;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.14);
+  height: 5px;
+  background: var(--rule);
 }
 .pickem-split > div {
   height: 100%;
-  background: linear-gradient(90deg, #c92a2a, #fa5252);
+  background: var(--print);
 }
 
+/* The leaderboard: ruled rows. */
 .pickem-row {
   margin-inline: -8px;
-  padding: 6px 8px;
-  border-radius: 8px;
+  padding: 8px;
+  border-bottom: 1px solid var(--rule);
 }
 a.pickem-podium {
   color: inherit;
@@ -263,20 +423,35 @@ a.pickem-row {
   transition: background 0.15s;
 }
 a.pickem-row:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--paper-hover);
 }
+/* Your own row: your name in the margin, in pen. */
 .pickem-row[data-me] {
-  background: rgba(250, 82, 82, 0.12);
+  background: var(--pen-wash);
+}
+.pickem-points {
+  font-weight: 850;
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.pickem-row[data-me] .pickem-points {
+  font: 700 30px/1 var(--hand);
+  color: var(--pen);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .pickem-side,
-  .pickem-method {
+  .pickem-chevron {
     transition: none;
+  }
+  .pickem-ring path[data-drawing] {
+    animation: none;
+    stroke-dasharray: none;
   }
 }
 
-/* A card being fought: a gently pulsing "Live" badge, and a red dot in the card switcher. */
+/* A card being fought: a pulsing "Live", and a dot in the card switcher. */
 .pickem-live {
   animation: pickem-pulse 1.8s ease-in-out infinite;
 }
@@ -302,27 +477,32 @@ a.pickem-row:hover {
   }
 }
 
-/* The top three on a leaderboard: a medal for the place, the row lit in its colour, a crown on
-   the leader. */
-.pickem-row[data-podium="1"] { --podium: 245, 197, 66; --podium-top: #ffe08a; --podium-bottom: #c98a12; }
-.pickem-row[data-podium="2"] { --podium: 200, 208, 218; --podium-top: #eef1f5; --podium-bottom: #8a94a3; }
-.pickem-row[data-podium="3"] { --podium: 214, 138, 84; --podium-top: #f0bd92; --podium-bottom: #a4602f; }
+/* The top three: the place stamped in its medal's colour, the row washed in it, a crown on the
+   leader. */
+.pickem-row[data-podium="1"] { --podium: #f5c542; --podium-wash: rgba(245, 197, 66, 0.11); }
+.pickem-row[data-podium="2"] { --podium: #c9d0d9; --podium-wash: rgba(201, 208, 217, 0.08); }
+.pickem-row[data-podium="3"] { --podium: #e0925a; --podium-wash: rgba(224, 146, 90, 0.1); }
 .pickem-row[data-podium] {
-  background: linear-gradient(90deg, rgba(var(--podium), 0.16), rgba(var(--podium), 0) 75%);
-  box-shadow: inset 2px 0 0 rgb(var(--podium));
+  background: var(--podium-wash);
+  box-shadow: inset 3px 0 0 var(--podium);
+}
+.pickem-row[data-podium] .pickem-points {
+  color: var(--podium);
 }
 .pickem-medal {
   flex: none;
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--podium);
   border-radius: 50%;
-  font-size: 13px;
-  font-weight: 800;
-  color: #17181c;
-  background: radial-gradient(circle at 35% 30%, var(--podium-top), var(--podium-bottom));
-  box-shadow: 0 0 8px rgba(var(--podium), 0.45);
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--podium);
+  background: var(--paper-raised);
+  box-shadow: inset 0 0 0 2px var(--paper-raised), inset 0 0 0 3px var(--podium);
+  transform: rotate(-8deg);
 }
 .pickem-avatar-wrap {
   position: relative;
@@ -330,7 +510,7 @@ a.pickem-row:hover {
   display: inline-flex;
 }
 .pickem-row[data-podium] .pickem-row-avatar {
-  box-shadow: 0 0 0 2px rgb(var(--podium));
+  box-shadow: 0 0 0 2px var(--podium);
 }
 .pickem-crown {
   position: absolute;
@@ -339,39 +519,51 @@ a.pickem-row:hover {
   left: -6px;
   width: 19px;
   height: 14px;
-  fill: #f5c542;
-  stroke: #17181c;
+  fill: #e0a91b;
+  stroke: #18191c;
   stroke-width: 1.2;
   stroke-linejoin: round;
   transform: rotate(-18deg);
 }
-/* Your own row on the podium keeps its red tint under the medal's colour. */
+/* Your own row on the podium: the medal's wash, your pen points. */
 .pickem-row[data-me][data-podium] {
-  background:
-    linear-gradient(90deg, rgba(var(--podium), 0.16), rgba(var(--podium), 0) 75%),
-    rgba(250, 82, 82, 0.12);
+  background: linear-gradient(90deg, var(--podium-wash) 55%, var(--pen-wash));
 }
 
 /* Signed out with picks made: the way to keep them stays in reach above the phone's tab bar. */
-.pickem-guest-bar {
+.pickem-sheet .pickem-guest-bar {
   position: sticky;
   bottom: calc(var(--app-shell-footer-offset, 0px) + 10px);
   z-index: 20;
   width: 100%;
   max-width: 560px;
   margin-inline: auto;
-  background: rgba(30, 31, 36, 0.94);
-  border: 1px solid rgba(250, 82, 82, 0.5);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(6px);
+  padding: 10px 14px;
+  background: #1f2024;
+  border: 2px solid var(--rule-strong);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.6);
 }
 
 /* A league's last card: its name above the board; members who sat it out, faded. */
 .pickem-card-head {
   padding: 8px 10px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--rule);
 }
 .pickem-row[data-sat] {
   opacity: 0.55;
+}
+
+/* Sections (scoring, results, notices): a heading and a heavy rule. */
+.pickem-section-title {
+  margin: 0 0 6px;
+  padding-bottom: 4px;
+  border-bottom: 2px solid var(--rule-strong);
+  font-size: 18px;
+  font-weight: 850;
+}
+.pickem-notice {
+  padding: 10px 12px;
+  border-left: 3px solid var(--spot);
+  background: var(--spot-wash);
+  font-size: 14px;
 }

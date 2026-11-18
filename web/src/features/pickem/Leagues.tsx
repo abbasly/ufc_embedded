@@ -2,7 +2,7 @@
 // league controls (create, join with a code, invite friends, leave). An invite link is
 // /pickem?join=CODE: opening it joins that league (after signing in, if need be).
 
-import { Badge, Button, Group, Loader, Modal, Paper, SegmentedControl, Stack, Text, TextInput, Title, UnstyledButton } from "@mantine/core";
+import { Badge, Button, Group, Loader, Modal, SegmentedControl, Stack, Text, TextInput, UnstyledButton } from "@mantine/core";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
@@ -106,9 +106,9 @@ export function Leagues({ selected, setSelected }: Props) {
   };
 
   return (
-    <Paper p="lg" radius="md" className="pickem-board">
+    <section className="pickem-board">
       <Stack gap="md">
-        <Title order={3}>Leaderboard</Title>
+        <h2 className="pickem-section-title">Leaderboard</h2>
         {user && boards.length > 1 && (
           <BoardTabs boards={boards} value={league ? league.id : showFriends ? FRIENDS : EVERYONE} onChange={setSelected} />
         )}
@@ -139,7 +139,7 @@ export function Leagues({ selected, setSelected }: Props) {
                   {lastCard.eventName}
                 </Text>
                 <Text size="xs" c="dimmed">
-                  {cardDate} · points on this card
+                  {cardDate}, points on this card
                 </Text>
               </div>
               <Badge variant={lastCard.scored ? "light" : "filled"} color={lastCard.scored ? "gray" : "red"} className={lastCard.scored ? undefined : "pickem-live"}>
@@ -272,7 +272,7 @@ export function Leagues({ selected, setSelected }: Props) {
           })
         }
       />
-    </Paper>
+    </section>
   );
 }
 
@@ -386,11 +386,11 @@ function Standings({ rows, loading, me, inLeague, crowned, crownChampion }: { ro
                 )}
               </Text>
               <Text size="xs" c="dimmed" style={{ fontVariantNumeric: "tabular-nums" }}>
-                {sat ? "Didn't play this card" : `${row.correct}/${row.picked} right${row.events > 1 ? ` · ${row.events} cards` : ""}`}
+                {sat ? "Didn't play this card" : `${row.correct}/${row.picked} right${row.events > 1 ? `, ${row.events} cards` : ""}`}
               </Text>
             </div>
           </Group>
-          <Text fz="lg" fw={800} c={sat ? "dimmed" : undefined} style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
+          <Text className="pickem-points" c={sat ? "dimmed" : undefined}>
             {sat ? "–" : row.points}
             {!sat && (
               <Text span size="xs" c="dimmed" fw={600}>

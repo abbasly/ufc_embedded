@@ -1,26 +1,26 @@
-/* "NEW" tag pinned to a nav tab's corner: a hot gradient that pulses. Phones get a
-   glowing dot instead (the tabs are tight there). */
+/* A tag pinned to a nav tab's corner ("NEW", "2d left"): a scrap of the paper the pages are
+   printed on, written on in red. Phones get a dot instead (the tabs are tight there). */
 
 .nav-new {
   position: absolute;
-  top: -7px;
-  right: -9px;
+  top: -9px;
+  right: -14px;
   z-index: 1;
-  padding: 1px 5px;
-  border-radius: 999px;
-  font-size: 9px;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  line-height: 1.4;
-  color: #fff;
-  background: linear-gradient(135deg, #ff9f43, #ff3b3b 60%, #e0218a);
-  box-shadow: 0 0 0 0 rgba(255, 70, 70, 0.6);
-  animation: new-pulse 2s ease-out infinite;
+  padding: 0 5px;
+  border-radius: 1px;
+  font: 700 14px/1.25 var(--hand);
+  white-space: nowrap;
+  color: #b8262a;
+  background: #e8e8e3;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+  transform: rotate(-6deg);
+  text-transform: lowercase;
   pointer-events: none;
 }
 /* A card being fought right now: plain red, with a blinking dot. */
 .nav-new[data-live] {
-  background: #e03131;
+  color: #fff;
+  background: #c92a2a;
 }
 .nav-new[data-live]::before {
   content: "";

@@ -210,13 +210,12 @@ export default function StyleMapPage() {
             {mathOpen ? "Fighter math: each arrow adds or takes away one term, on Style axes" : METHOD_NOTE[layout]}
           </Text>
         </Group>
-        {/* The plot lit like the page around it: warm light from the top, a red haze below. */}
+        {/* The plot: a dark screen. */}
         <Paper
           withBorder
           pos="relative"
           h={{ base: "65vh", md: "calc(100vh - 150px)" }}
-          style={{ overflow: "hidden", background:
-              "radial-gradient(65% 50% at 50% -5%, rgba(255, 214, 160, 0.2), transparent 72%), radial-gradient(85% 42% at 50% 108%, rgba(250, 82, 82, 0.18), transparent 72%), linear-gradient(180deg, #1c1d22, #131417)" }}
+          style={{ overflow: "hidden", background: "#121315" }}
         >
           <ErrorBoundary
             fallback={

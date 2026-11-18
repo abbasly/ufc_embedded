@@ -17,7 +17,7 @@ export function ChampionsStrip({ data, selectedId, onSelect }: Props) {
   return (
     <Stack gap={6}>
       <Text size="sm" fw={500}>
-        🏆 Current champions{" "}
+        Current champions{" "}
         {data.champions_as_of && (
           <Text span size="xs" c="dimmed">
             ({data.champions_as_of})

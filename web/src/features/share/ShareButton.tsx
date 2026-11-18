@@ -89,11 +89,9 @@ export function ShareButton({ make, fileName, text, url, label = "Share", fullWi
       <Button
         size="sm"
         fullWidth={fullWidth}
-        variant="gradient"
-        gradient={{ from: "red.7", to: "red.5", deg: 135 }}
+        color="red.7"
         leftSection={<ShareIcon size={16} />}
         onClick={start}
-        style={{ boxShadow: "0 4px 14px rgba(250, 82, 82, 0.22)" }}
       >
         {label}
       </Button>
