@@ -273,6 +273,25 @@
 .pickem-cards {
   position: relative;
 }
+/* Phones: the cards in one row that scrolls sideways, never wrapping onto a second line. */
+@media (max-width: 48em) {
+  .pickem-cards {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    /* Edge to edge: the page's own side padding (AppShell "xs"). */
+    margin-inline: calc(-1 * var(--mantine-spacing-xs));
+    padding-inline: var(--mantine-spacing-xs);
+    mask-image: linear-gradient(90deg, #000 88%, transparent);
+  }
+  .pickem-cards::-webkit-scrollbar {
+    display: none;
+  }
+  .pickem-card-tab {
+    flex: none;
+    white-space: nowrap;
+  }
+}
 .pickem-cards-bar {
   position: absolute;
   left: 0;
