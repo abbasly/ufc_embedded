@@ -2,7 +2,7 @@
 // through the backend interface (src/backend) with TanStack Query. Picks update optimistically:
 // the tap shows at once, and rolls back if the database refuses it (e.g. the card just locked).
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useMutationState, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
@@ -113,6 +113,29 @@ export function usePick(eventId: string | undefined) {
       return client.invalidateQueries({ queryKey: key });
     },
   });
+}
+
+/** Where a pick's save stands: being sent, saved, or failed (and rolled back). */
+export type SaveState = { state: "saving" | "saved" | "failed"; at: number };
+
+/** Each bout's latest save this session, from the pick mutations in flight or just done. */
+export function usePickSaves(): Map<string, SaveState> {
+  const saves = useMutationState({
+    filters: { mutationKey: PICK_MUTATION },
+    select: (m) => ({
+      boutId: (m.state.variables as { boutId?: string } | undefined)?.boutId,
+      status: m.state.status,
+      at: m.state.submittedAt,
+    }),
+  });
+  const latest = new Map<string, SaveState>();
+  for (const s of saves) {
+    if (!s.boutId || s.status === "idle") continue;
+    const prev = latest.get(s.boutId);
+    if (prev && prev.at > s.at) continue;
+    latest.set(s.boutId, { state: s.status === "pending" ? "saving" : s.status === "success" ? "saved" : "failed", at: s.at });
+  }
+  return latest;
 }
 
 /** League-mates' picks on the event: empty until the card locks. */

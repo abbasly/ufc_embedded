@@ -18,13 +18,6 @@
   color: var(--print);
 }
 
-.pickem-hand {
-  font-family: var(--hand);
-  font-weight: 700;
-  color: var(--pen);
-  line-height: 1;
-}
-
 /* The card's head: a name and the clock, then the player's line. No frame,
    a rule under it. */
 .pickem-form-head {
@@ -95,6 +88,7 @@
 
 /* Fights are rows of the form, not cards: a rule between them. */
 .pickem-bout {
+  position: relative;
   padding: 16px 4px 14px;
   border-bottom: 1px solid var(--rule);
 }
@@ -445,7 +439,7 @@ a.pickem-row {
 a.pickem-row:hover {
   background: var(--paper-hover);
 }
-/* Your own row: your name in the margin, in pen. */
+/* Your own row: a faint blue wash. */
 .pickem-row[data-me] {
   background: var(--pen-wash);
 }
@@ -455,10 +449,7 @@ a.pickem-row:hover {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.pickem-row[data-me] .pickem-points {
-  font: 700 30px/1 var(--hand);
-  color: var(--pen);
-}
+
 
 @media (prefers-reduced-motion: reduce) {
   .pickem-side,
@@ -586,4 +577,46 @@ a.pickem-row:hover {
   border-left: 3px solid var(--spot);
   background: var(--spot-wash);
   font-size: 14px;
+}
+
+/* A pick's save, small in the bout's top-right corner: grey while sending, green for a moment
+   once saved (then it fades), red and staying if it failed. */
+.pickem-save {
+  position: absolute;
+  top: 14px;
+  right: 6px;
+  max-width: 60%;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+  pointer-events: none;
+}
+.pickem-save[data-state="saving"] {
+  color: var(--print-soft);
+}
+.pickem-save[data-state="saved"] {
+  color: var(--good);
+  animation: pickem-saved 2.6s ease-in forwards;
+}
+.pickem-save[data-state="failed"] {
+  color: var(--bad);
+}
+@keyframes pickem-saved {
+  0% {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  10%,
+  70% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pickem-save[data-state="saved"] {
+    animation: none;
+  }
 }
