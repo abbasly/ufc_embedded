@@ -25,32 +25,38 @@
   line-height: 1;
 }
 
-/* The form's head: a ruled box with the card's name and the fields you fill in. */
+/* The card's head: a name and the clock, then the player's line. No frame,
+   a rule under it. */
 .pickem-form-head {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px 28px;
-  padding: 14px 18px 16px;
-  border: 2px solid var(--rule-strong);
+  gap: 4px 24px;
+  align-items: end;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--rule);
 }
 .pickem-form-head h1 {
   margin: 0;
-  font-size: clamp(26px, 3.4vw, 38px);
+  font-size: clamp(24px, 2.8vw, 32px);
   font-weight: 850;
-  line-height: 1.04;
+  line-height: 1.1;
   letter-spacing: -0.015em;
 }
-.pickem-field {
-  font-size: 13px;
+.pickem-clock-box {
+  text-align: right;
+}
+.pickem-signed {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: baseline;
+  gap: 6px 14px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  font-size: 14px;
   color: var(--print-soft);
 }
-.pickem-field .pickem-hand {
-  display: block;
-  font-size: 26px;
-  margin-top: 2px;
-}
-.pickem-field[data-right] {
-  text-align: right;
+.pickem-signed b {
+  color: var(--print);
 }
 .pickem-form-links {
   display: flex;
@@ -70,7 +76,7 @@
   .pickem-form-head {
     grid-template-columns: 1fr;
   }
-  .pickem-field[data-right] {
+  .pickem-clock-box {
     text-align: left;
   }
 }
@@ -205,12 +211,18 @@
   flex: none;
 }
 .pickem-method[data-chosen]::after {
-  content: "✓";
+  /* A tick in pen, the way a hand ticks a box: the short stroke and the turn inside it, the
+     long stroke running on out past the top corner. */
+  content: "";
   position: absolute;
-  left: 4px;
-  top: -12px;
-  font: 700 30px/1 var(--hand);
-  color: var(--pen);
+  left: 10px;
+  top: 50%;
+  width: 7px;
+  height: 19px;
+  border: solid var(--pen);
+  border-width: 0 2.6px 2.6px 0;
+  border-radius: 0 0 2px 0;
+  transform: translateY(-78%) rotate(38deg);
 }
 .pickem-method:hover::before {
   background: var(--pen-wash);
@@ -240,6 +252,7 @@
 
 /* The card switcher: tabs above the scorecard. */
 .pickem-cards {
+  margin-bottom: 22px;
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
@@ -255,13 +268,20 @@
 .pickem-card-tab:hover {
   background: rgba(255, 255, 255, 0.12);
 }
-.pickem-card-tab[data-numbered] {
-  font-weight: 800;
-}
 .pickem-card-tab[data-chosen] {
   background: transparent;
   color: var(--mantine-color-white);
   box-shadow: inset 0 -2px 0 var(--mantine-color-red-6);
+}
+/* Numbered events (UFC 334) are the big cards: gold text, and gold underline once chosen. */
+.pickem-card-tab[data-numbered] {
+  font-weight: 800;
+  color: #f4c430;
+  background: rgba(244, 196, 48, 0.1);
+}
+.pickem-card-tab[data-numbered][data-chosen] {
+  color: #ffd95a;
+  box-shadow: inset 0 -2px 0 #f4c430;
 }
 
 /* One fighter: the name is printed on the form; picking them circles it in pen. */
