@@ -222,42 +222,42 @@ export default function PickemPage() {
 
       <div className="pickem-sheet">
         <Stack gap="lg">
+          {/* The card's head, two lines: the name and the clock, then who's playing and how far
+              they've got. */}
           <header className="pickem-form-head">
-            <div>
+            <div style={{ minWidth: 0 }}>
               <h1>{card.name}</h1>
-              <Text c="dimmed" size="sm" mt={6}>
+              <Text c="dimmed" size="sm">
                 {dateLabel(card.startsOn)}, {bouts.length} fights
               </Text>
             </div>
-            <div className="pickem-field" data-right>
+            <div className="pickem-clock-box">
               {open ? (
                 <>
-                  Picks close in
-                  <div>
-                    <Countdown until={card.locksAt} card={card.name} />
-                  </div>
+                  <Countdown until={card.locksAt} card={card.name} />
+                  <Text size="xs" c="dimmed">
+                    until picks close, {lockLabel(card.locksAt)}
+                  </Text>
                 </>
               ) : live ? (
                 <Badge size="lg" variant="filled" color="red" className="pickem-live">
                   ● Live
                 </Badge>
               ) : (
-                <span className="pickem-clock" data-done>
-                  {card.scoredAt ? "Results are in" : "Picks are locked"}
-                </span>
+                <>
+                  <span className="pickem-clock" data-done>
+                    {card.scoredAt ? "Results are in" : "Picks are locked"}
+                  </span>
+                  <Text size="xs" c="dimmed">
+                    Closed {lockLabel(card.locksAt)}
+                  </Text>
+                </>
               )}
-              <div>
-                {open ? "Closes" : "Closed"} {lockLabel(card.locksAt)}
-              </div>
             </div>
-            <div className="pickem-field">
-              Player
-              <span className="pickem-hand">{profile?.displayName ?? "you (not saved yet)"}</span>
-            </div>
-            <div className="pickem-field" data-right>
-              {card.scoredAt ? "Your points" : prelims.length > 0 ? "Main card" : "Picked"}
-              <span className="pickem-hand" style={{ fontVariantNumeric: "tabular-nums" }}>
-                {card.scoredAt ? `${earned} from ${picked} picks` : `${picked} of ${mainBouts.length} picked`}
+            <div className="pickem-signed">
+              <b>{profile?.displayName ?? "Not signed in"}</b>
+              <span style={{ fontVariantNumeric: "tabular-nums" }}>
+                {card.scoredAt ? `${earned} pts from ${picked} picks` : `${picked} of ${mainBouts.length} picked`}
               </span>
               {open && picked > 0 && user && <span className="pickem-saved">{saving ? "Saving…" : "Saved"}</span>}
             </div>
