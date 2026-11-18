@@ -71,7 +71,7 @@ export function StarterToast({ earned, guest }: { earned: string[] | undefined; 
           ))}
         </div>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <Text size="xs" fw={800} c="yellow.4" tt="uppercase" style={{ letterSpacing: "0.1em" }}>
+          <Text size="sm" fw={700} c="yellow.4">
             {single ? "Badge unlocked" : `${medals.length} badges unlocked`}
           </Text>
           <Text fw={800} lh={1.25}>
