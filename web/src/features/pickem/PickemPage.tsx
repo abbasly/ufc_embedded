@@ -374,12 +374,13 @@ export default function PickemPage() {
 /** The cards as tabs, a red underline sliding to the chosen one (as in the menu bar). */
 function CardTabs({ events, chosen, now, onChoose }: { events: PickemEvent[]; chosen: string; now: number; onChoose: (id: string) => void }) {
   const row = useRef<HTMLDivElement>(null);
-  const [bar, setBar] = useState<{ x: number; w: number } | null>(null);
+  const [bar, setBar] = useState<{ x: number; y: number; w: number } | null>(null);
   const [ready, setReady] = useState(false);
   useLayoutEffect(() => {
     const measure = () => {
       const el = row.current?.querySelector<HTMLElement>("[data-chosen]");
-      setBar(el ? { x: el.offsetLeft, w: el.offsetWidth } : null);
+      // On phones the tabs wrap: the line goes under the chosen tab, whichever row it is on.
+      setBar(el ? { x: el.offsetLeft, y: el.offsetTop + el.offsetHeight - 2, w: el.offsetWidth } : null);
     };
     measure();
     const id = requestAnimationFrame(() => setReady(true));
@@ -398,7 +399,7 @@ function CardTabs({ events, chosen, now, onChoose }: { events: PickemEvent[]; ch
           {shortName(e)}
         </UnstyledButton>
       ))}
-      {bar && <span className="pickem-cards-bar" data-ready={ready || undefined} style={{ transform: `translateX(${bar.x}px)`, width: bar.w }} aria-hidden />}
+      {bar && <span className="pickem-cards-bar" data-ready={ready || undefined} style={{ transform: `translate(${bar.x}px, ${bar.y}px)`, width: bar.w }} aria-hidden />}
     </div>
   );
 }
