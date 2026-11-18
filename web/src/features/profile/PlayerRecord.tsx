@@ -76,6 +76,7 @@ export function PlayerRecord({ userId, displayName, avatar, isMe, children, afte
       <Stats scores={scores.data} displayName={displayName} />
       {share}
       {history.isSuccess && !picksHidden && <CardCollection history={picks} isMe={isMe} displayName={displayName} />}
+      <PulledCards userId={userId} isMe={isMe} displayName={displayName} />
       <Grid gap="lg">
         <Grid.Col span={{ base: 12, md: 7.5 }}>
           <Stack gap="lg">
@@ -90,11 +91,10 @@ export function PlayerRecord({ userId, displayName, avatar, isMe, children, afte
         </Grid.Col>
         <Grid.Col span={{ base: 12, md: 4.5 }}>
           <Stack gap="lg">
+            {!!scores.data?.length && <ClosestPredictors players={closest} isMe={isMe} />}
             {children}
             <LeagueTitles userId={userId} />
             <Badges list={picksHidden ? [] : list} starters={isModel ? [] : starterBadges(starters.data ?? [])} />
-            {!!scores.data?.length && <ClosestPredictors players={closest} isMe={isMe} />}
-            <PulledCards userId={userId} isMe={isMe} displayName={displayName} />
           </Stack>
         </Grid.Col>
       </Grid>

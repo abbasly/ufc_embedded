@@ -3,7 +3,7 @@
 
 import "./Insights.css";
 
-import { Group, Paper, SimpleGrid, Stack, Text, Title, Tooltip } from "@mantine/core";
+import { Group, Paper, SimpleGrid, Stack, Text, Title, Tooltip, UnstyledButton } from "@mantine/core";
 import { useState } from "react";
 
 import { Link } from "react-router-dom";
@@ -245,53 +245,71 @@ export function Medal({ badge }: { badge: Badge }) {
   );
 }
 
+/** Badges, kept short: the earned ones as a wall of medals, then the next few to go for (the
+ * closest to done first), with the rest a tap away. */
 export function Badges({ list, starters }: { list: Badge[]; starters: Badge[] }) {
-  const all = [...starters, ...list];
-  if (!all.length) return null;
+  const [all, setAll] = useState(false);
+  const badges = [...starters, ...list];
+  if (!badges.length) return null;
+  const earned = badges.filter((b) => b.earned);
+  const todo = badges.filter((b) => !b.earned).sort((a, b) => b.fraction - a.fraction);
+  const NEXT = 3;
+  const shown = all ? todo : todo.slice(0, NEXT);
   return (
     <Paper p="md" radius="md" className="pickem-board">
       <Group justify="space-between" mb="sm">
         <Title order={4}>Badges</Title>
         <Text size="sm" c="dimmed">
-          {all.filter((b) => b.earned).length} of {all.length}
+          {earned.length} of {badges.length}
         </Text>
       </Group>
-      {starters.length > 0 && (
-        <SimpleGrid cols={{ base: 3, xs: 5, md: 3 }} spacing="xs" mb={list.length ? "sm" : 0} className="badge-starters">
-          {starters.map((b) => (
-            <BadgeTile key={b.key} badge={b} />
+      {earned.length > 0 && (
+        <SimpleGrid cols={4} spacing={6} mb={todo.length ? "md" : 0}>
+          {earned.map((b) => (
+            <Tooltip key={b.key} label={`${b.name}: ${b.how}`} withArrow multiline maw={220} events={{ hover: true, focus: true, touch: true }}>
+              <div className="badge-tile badge-mini" data-badge={b.key} data-earned tabIndex={0}>
+                <Medal badge={b} />
+                <Text size="xs" fw={700} lh={1.15} ta="center" lineClamp={2}>
+                  {b.name}
+                </Text>
+              </div>
+            </Tooltip>
           ))}
         </SimpleGrid>
       )}
-      {list.length > 0 && (
-        <SimpleGrid cols={{ base: 2, xs: 4, md: 3 }} spacing="sm">
-          {list.map((b) => (
-            <BadgeTile key={b.key} badge={b} />
+      {todo.length > 0 && (
+        <>
+          <Text size="xs" c="dimmed" fw={600} mb={4}>
+            Next up
+          </Text>
+          {shown.map((b) => (
+            <Tooltip key={b.key} label={b.how} withArrow multiline maw={220} events={{ hover: true, focus: true, touch: true }}>
+              <div className="badge-tile badge-next" data-badge={b.key} tabIndex={0}>
+                <Medal badge={b} />
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <Group justify="space-between" gap={6} wrap="nowrap">
+                    <Text size="sm" fw={700} truncate>
+                      {b.name}
+                    </Text>
+                    <Text size="xs" c="dimmed" style={{ flexShrink: 0 }}>
+                      {b.progress}
+                    </Text>
+                  </Group>
+                  <div className="badge-progress">
+                    <div style={{ width: `${b.fraction * 100}%` }} />
+                  </div>
+                </div>
+              </div>
+            </Tooltip>
           ))}
-        </SimpleGrid>
+          {todo.length > NEXT && (
+            <UnstyledButton className="badge-more" onClick={() => setAll((a) => !a)}>
+              {all ? "Show fewer" : `Show all ${todo.length} to unlock`}
+            </UnstyledButton>
+          )}
+        </>
       )}
     </Paper>
-  );
-}
-
-function BadgeTile({ badge: b }: { badge: Badge }) {
-  return (
-    <Tooltip label={b.how} withArrow multiline maw={220} events={{ hover: true, focus: true, touch: true }}>
-      <div className="badge-tile" data-badge={b.key} data-earned={b.earned || undefined} tabIndex={0}>
-        <Medal badge={b} />
-        <Text size="sm" fw={700} lh={1.2} ta="center">
-          {b.name}
-        </Text>
-        <Text size="xs" c="dimmed" ta="center" lineClamp={1}>
-          {b.progress}
-        </Text>
-        {!b.earned && (
-          <div className="badge-progress">
-            <div style={{ width: `${b.fraction * 100}%` }} />
-          </div>
-        )}
-      </div>
-    </Tooltip>
   );
 }
 
@@ -333,7 +351,7 @@ export function ClosestPredictors({ players, isMe }: { players: ClosestPredictor
   const farthest = players.at(-1)!;
   const showFar = players.length > 1 && agreement(farthest) < agreement(closest);
   return (
-    <SimpleGrid cols={{ base: 1, xs: showFar ? 2 : 1 }} spacing="sm">
+    <SimpleGrid cols={{ base: 1, xs: showFar ? 2 : 1, md: 1 }} spacing="sm">
       <Paper p="md" radius="md" className="pickem-board">
         <Predictor player={closest} label={isMe ? "Picks most like you" : "Picks most like them"} tone="close" />
       </Paper>
