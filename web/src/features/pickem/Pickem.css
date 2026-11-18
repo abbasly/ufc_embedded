@@ -87,17 +87,20 @@
 }
 
 /* Fights are rows of the form, not cards: a rule between them. */
+/* Each fight: a quiet frame, one hairline and a shade off the page, so the fights read as
+   separate without shouting. The main event's frame is edged in red. */
 .pickem-bout {
   position: relative;
-  padding: 16px 4px 14px;
-  border-bottom: 1px solid var(--rule);
+  margin-top: 10px;
+  padding: 14px 14px 12px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: #1c1d21;
 }
 .pickem-bout[data-headline] {
-  margin-inline: -10px;
-  padding-inline: 14px;
-  background: var(--spot-wash);
+  border-color: rgba(255, 107, 107, 0.35);
   box-shadow: inset 3px 0 0 var(--spot);
-  border-bottom-color: transparent;
+  background: #211c1e;
 }
 .pickem-bout-label {
   font-size: 13px;
@@ -584,7 +587,7 @@ a.pickem-row:hover {
 .pickem-save {
   position: absolute;
   top: 14px;
-  right: 6px;
+  right: 14px;
   max-width: 60%;
   font-size: 12px;
   font-weight: 700;
