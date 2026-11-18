@@ -268,7 +268,50 @@
 .pickem-card-tab[data-chosen] {
   background: transparent;
   color: var(--mantine-color-white);
-  box-shadow: inset 0 -2px 0 var(--mantine-color-red-6);
+}
+/* The chosen card's underline, sliding between tabs (no slide on the first placement). */
+.pickem-cards {
+  position: relative;
+}
+.pickem-cards-bar {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--mantine-color-red-6);
+  pointer-events: none;
+}
+.pickem-cards-bar[data-ready] {
+  transition:
+    transform 0.32s cubic-bezier(0.3, 0.9, 0.3, 1),
+    width 0.32s cubic-bezier(0.3, 0.9, 0.3, 1);
+}
+.pickem-card-tab {
+  transition: background 0.2s, color 0.2s;
+}
+/* Switching cards: this one dims, the loader sits over its top. */
+.pickem-sheet {
+  position: relative;
+}
+.pickem-sheet > :not(.pickem-switching) {
+  transition: opacity 0.2s;
+}
+.pickem-sheet[data-loading] > :not(.pickem-switching) {
+  opacity: 0.35;
+  pointer-events: none;
+}
+.pickem-switching {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  top: 70px;
+  transform: translateX(-50%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pickem-cards-bar[data-ready],
+  .pickem-card-tab {
+    transition: none;
+  }
 }
 /* Numbered events (UFC 334) are the big cards: just a heavier weight. */
 .pickem-card-tab[data-numbered] {

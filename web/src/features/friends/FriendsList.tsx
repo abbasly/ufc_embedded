@@ -2,7 +2,7 @@
 // in view, since they need an answer; opening it shows your friends and the requests you've sent.
 // Names open player pages.
 
-import { Anchor, Avatar, Button, Collapse, Group, Loader, Paper, Stack, Text, Title, UnstyledButton } from "@mantine/core";
+import { Center, Anchor, Avatar, Button, Collapse, Group, Paper, Stack, Text, Title, UnstyledButton } from "@mantine/core";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -10,6 +10,7 @@ import { PlayerAvatar } from "../../auth/PlayerAvatar";
 import type { Friend } from "../../backend";
 import { playerPath } from "../pickem/Leagues";
 import { useFriendActions, useFriends } from "./useFriends";
+import { LogoLoader } from "../../components/LogoLoader";
 
 export function FriendsList() {
   const friends = useFriends();
@@ -76,7 +77,7 @@ export function FriendsList() {
         <Title order={4}>Friends</Title>
       )}
       {friends.isPending ? (
-        <Loader size="sm" mt="sm" />
+        <Center mt="sm"><LogoLoader size={30} /></Center>
       ) : !all.length ? (
         <Text size="sm" c="dimmed" mt="sm">
           No friends yet. Tap a name on any leaderboard and hit <b>Add friend</b>: friends get their own leaderboard tab and

@@ -1,0 +1,59 @@
+/* The logo loader: the fence and chords dim, the fighters lighting up in turn round the cage. */
+.logo-loader {
+  display: block;
+  overflow: visible;
+}
+.logo-loader-fence {
+  fill: none;
+  stroke: #eceef1;
+  stroke-width: 2.6;
+  stroke-linejoin: round;
+  opacity: 0.35;
+}
+.logo-loader-chord {
+  stroke: #eceef1;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  opacity: 0.15;
+  animation: logo-chord 0.96s ease-in-out infinite;
+}
+.logo-loader-node {
+  fill: #eceef1;
+  opacity: 0.35;
+  animation: logo-node 0.96s ease-in-out infinite;
+}
+.logo-loader-node[data-red] {
+  fill: #e03131;
+}
+@keyframes logo-node {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  25% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+}
+@keyframes logo-chord {
+  0%,
+  100% {
+    opacity: 0.12;
+  }
+  40% {
+    opacity: 0.5;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .logo-loader-node,
+  .logo-loader-chord {
+    animation-duration: 2.4s;
+  }
+}
+
+.page-loader {
+  display: grid;
+  place-items: center;
+  height: 60vh;
+}

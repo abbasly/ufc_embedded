@@ -1,4 +1,4 @@
-import { Alert, Box, Button, Center, CloseButton, Grid, Group, Loader, MultiSelect, Paper, SegmentedControl, Select, Stack, Switch, Text, UnstyledButton } from "@mantine/core";
+import { Alert, Box, Button, Center, CloseButton, Grid, Group, MultiSelect, Paper, SegmentedControl, Select, Stack, Switch, Text, UnstyledButton } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import "./StyleMap.css";
 
@@ -15,6 +15,7 @@ import type { MathView } from "./MathArrows";
 import { FighterPanel } from "./FighterPanel";
 import { type ColorBy, type Dims, SHOW_OPTIONS, type Scope, type Show, WEIGHT_CLASSES, colorOfGroup, groupOf, legend, positionOf, similarTo } from "./model";
 import { Scene } from "./Scene";
+import { PageLoader } from "../../components/LogoLoader";
 
 // What the current layout is, shown next to the plot.
 const METHOD_NOTE: Record<LayoutId, string> = {
@@ -97,7 +98,7 @@ export default function StyleMapPage() {
     return { terms, result, matches, view };
   }, [data, mathTerms, dims, sameDivision, replays]);
 
-  if (isPending) return <Center h="60vh"><Loader /></Center>;
+  if (isPending) return <PageLoader />;
   if (error) return <Alert color="red" title="Could not load Fighter Lab">{error.message}</Alert>;
 
   const mathReady = hasMath(data);

@@ -5,7 +5,6 @@ import {
   Container,
   Grid,
   Group,
-  Loader,
   Paper,
   SegmentedControl,
   Select,
@@ -24,6 +23,7 @@ import { ShareButton } from "../share/ShareButton";
 import { Chain, type Lookup, ringColor } from "./Chain";
 import { CircleChain } from "./CircleChain";
 import { type Fight, fighterOptions, notablePool, shortestChain, toFight, winsByFighter } from "./graph";
+import { PageLoader } from "../../components/LogoLoader";
 
 const PAGE_SIZE = 12;
 const PICKER_LIMIT = 200; // rendering all ~2,800 fighters makes the dropdown laggy on phones
@@ -62,7 +62,7 @@ export default function MmaMathPage() {
   const [length, setLength] = useState("3");
   const [shown, setShown] = useState(PAGE_SIZE);
 
-  if (isPending) return <Center h="60vh"><Loader /></Center>;
+  if (isPending) return <PageLoader />;
   if (error || !lookup) return <Alert color="red" title="Could not load MMA math">{error?.message}</Alert>;
 
   const indexOf = (name: string) => data.fighters.findIndex((f) => f.name === name);
