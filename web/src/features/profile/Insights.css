@@ -379,3 +379,50 @@
   }
   .starter-toast::after { display: none; }
 }
+
+/* Compact badges: earned ones as small medals in a wall, no tile around them... */
+.badge-mini {
+  padding: 4px 2px;
+  border: 0;
+  background: none;
+}
+.badge-tile.badge-mini[data-earned] {
+  border: 0;
+  background: none;
+}
+.badge-mini .badge-medal {
+  width: 44px;
+  height: 44px;
+}
+/* ...and the ones still to get as single lines: a small grey medal, the name, how far along. */
+.badge-next {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+}
+.badge-next .badge-medal {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  margin: 0;
+}
+.badge-next .badge-progress {
+  width: 100%;
+  margin-top: 4px;
+}
+.badge-more {
+  display: block;
+  width: 100%;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  font-size: var(--mantine-font-size-xs);
+  color: var(--mantine-color-dimmed);
+  text-align: center;
+}
+.badge-more:hover {
+  color: var(--mantine-color-white);
+}
