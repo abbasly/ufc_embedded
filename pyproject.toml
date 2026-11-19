@@ -21,6 +21,14 @@ dependencies = [
 [project.scripts]
 ufc_embedded = "ufc_embedded:main"
 
+[project.optional-dependencies]
+vision = [
+    "opencv-python-headless>=5.1.0.95",
+    "pillow>=13.0.0",
+    "torch>=2.15.0",
+    "torchvision>=0.29.2",
+]
+
 [build-system]
 requires = ["uv_build>=0.13.6,<0.14.0"]
 build-backend = "uv_build"
@@ -53,7 +61,7 @@ known-third-party = ["wandb"]
 strict = true
 
 [[tool.mypy.overrides]]
-module = ["sklearn.*", "scipy.*"]
+module = ["sklearn.*", "scipy.*", "torch.*", "torchvision.*", "PIL.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
