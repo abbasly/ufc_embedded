@@ -164,6 +164,23 @@ for (const seo of pages) {
 }
 console.log(`${pages.length} fighter, card and fight pages`);
 
+// Old addresses of renamed pages. GitHub Pages can't send a real redirect and would answer 404,
+// so each gets a page that sends the visitor on at once; search engines take it as a redirect.
+const MOVED = { "style-map": "fighter-lab" };
+for (const [from, to] of Object.entries(MOVED)) {
+  const target = `${siteUrl}${to}/`;
+  mkdirSync(`dist/${from}`, { recursive: true });
+  writeFileSync(
+    `dist/${from}/index.html`,
+    `<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><title>Moved</title>` +
+      `<link rel="canonical" href="${target}"><meta name="robots" content="noindex">` +
+      `<meta http-equiv="refresh" content="0; url=${target}">` +
+      `<script>location.replace(${JSON.stringify(target)} + location.search + location.hash)</script>` +
+      `</head><body><a href="${target}">This page moved here.</a></body></html>\n`,
+  );
+  console.log(`moved: /${from}/ -> /${to}/`);
+}
+
 // 404.html (the fallback for every other address) stays a plain copy of the home page.
 const today = new Date().toISOString().slice(0, 10);
 writeFileSync(
