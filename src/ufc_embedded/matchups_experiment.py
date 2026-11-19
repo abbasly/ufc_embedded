@@ -43,14 +43,8 @@ from sklearn.linear_model import LogisticRegression  # noqa: E402
 
 from ufc_embedded.evaluate import CV_YEARS, calibration_table, metrics  # noqa: E402
 from ufc_embedded.recency import bootstrap_gain, per_year_loss  # noqa: E402
-from ufc_embedded.train import (  # noqa: E402
-    FEATURE_LABELS,
-    LR_CS,
-    PROJECT,
-    build,
-    lr_inputs,
-    wandb_mode,
-)
+from ufc_embedded.tracking import Tracker  # noqa: E402
+from ufc_embedded.train import FEATURE_LABELS, LR_CS, build, lr_inputs  # noqa: E402
 
 OUT = Path(__file__).resolve().parents[2] / "docs" / "experiments"
 FINISHING = ["d_finished_rate", "d_kd_absorbed15", "d_ko_win_rate", "d_ew_finished",
@@ -137,7 +131,12 @@ def rolling_lr(
 
 
 def tune_lr(
-    m: pd.DataFrame, oof: pd.DataFrame, x: list[str], boost: dict[str, float] | None = None
+    m: pd.DataFrame,
+    oof: pd.DataFrame,
+    x: list[str],
+    boost: dict[str, float] | None = None,
+    tracker: Tracker | None = None,
+    name: str = "",
 ) -> tuple[float, np.ndarray, np.ndarray]:
     best: tuple[float, float, np.ndarray, np.ndarray] | None = None
     for C in LR_CS:
@@ -145,6 +144,8 @@ def tune_lr(
         loss = per_year_loss(oof.assign(_p=p), "_p")
         if best is None or loss < best[0]:
             best = (loss, C, p, coef)
+        if tracker:
+            tracker.log({f"tuning/{name}/log_loss": loss, f"tuning/{name}/C": C})
     assert best is not None
     return best[1], best[2], best[3]
 
@@ -375,6 +376,9 @@ def main() -> None:
                         choices=["auto", "online", "offline", "disabled"])  # fmt: skip
     args = parser.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
+    tracker = Tracker("domain-matchups", args.wandb, {
+        "cv_years": CV_YEARS, "matchups": MATCHUPS, "gated": GATED,
+        "finishing": FINISHING})  # fmt: skip
 
     print("building features...")
     m = add_matchups(build().m)
@@ -395,11 +399,12 @@ def main() -> None:
     weights: dict[str, pd.Series] = {}
     print("logistic regression (rolling validation 2019-23):")
     for name, x, boost in lr_variants:
-        C, p, coef = tune_lr(m, oof, x, boost)
+        C, p, coef = tune_lr(m, oof, x, boost, tracker, name)
         oof[f"p_{name}"] = p
         weights[name] = pd.Series(coef, index=x)
         rows.append({"variant": name, "model": "logistic", "inputs": len(x), "C": C})
-        print(f"  {name:<34} C={C:<6g} {per_year_loss(oof, f'p_{name}'):.4f}")
+        print(f"  {name:<34} C={C:<6g} {per_year_loss(oof, f'p_{name}'):.4f}", flush=True)
+        tracker.log({f"result/{name}": per_year_loss(oof, f"p_{name}")})
 
     full = base + MATCHUPS + GATED
     print("Bayes models:")
@@ -413,7 +418,8 @@ def main() -> None:
     ]:
         oof[f"p_{name}"] = rolling_bayes(m, x, tree)
         rows.append({"variant": name, "model": "bayes", "inputs": len(x), "C": np.nan})
-        print(f"  {name:<34} {per_year_loss(oof, f'p_{name}'):.4f}")
+        print(f"  {name:<34} {per_year_loss(oof, f'p_{name}'):.4f}", flush=True)
+        tracker.log({f"result/{name}": per_year_loss(oof, f"p_{name}")})
 
     table = pd.DataFrame(rows)
     y = oof["y"].to_numpy()
@@ -436,6 +442,7 @@ def main() -> None:
     for c in full:
         _, p, _ = tune_lr(m, oof, [c])
         alone[c] = math.log(2) - per_year_loss(oof.assign(_p=p), "_p")
+        tracker.log({f"alone/{label(c)}": 1000 * alone[c]})
     alone_s = pd.Series(alone)
 
     # The TAN tree on all the fights before the test years, for the picture.
@@ -488,33 +495,20 @@ def main() -> None:
     print(edges.head(12).round(3).to_string(index=False))
     print(f"\nplots in {OUT}")
 
-    mode = wandb_mode(args.wandb)
-    if mode == "disabled":
-        return
-    import wandb
-
-    run = wandb.init(project=PROJECT, job_type="experiment", name="domain-matchups",
-                     mode=mode,  # type: ignore[arg-type]
-                     config={"cv_years": CV_YEARS, "matchups": MATCHUPS, "gated": GATED,
-                             "finishing": FINISHING})  # fmt: skip
     weights_table = w.round(4).rename(index=label).reset_index(names="feature")
     alone_table = pd.DataFrame({"feature": [label(c) for c in alone_s.index],
                                 "gain_x1000": (1000 * alone_s).round(3).to_numpy()})  # fmt: skip
-    run.log({
-        "matchups/results": wandb.Table(dataframe=table.round(5)),
-        "matchups/weights": wandb.Table(dataframe=weights_table),
-        "matchups/alone": wandb.Table(dataframe=alone_table),
-        "matchups/tan_edges": wandb.Table(dataframe=edges.round(4)),
-        **{f"matchups/{k}": wandb.Image(str(p)) for k, p in paths.items()},
-    })  # fmt: skip
     best = table.iloc[1:].sort_values("mean_year_log_loss").iloc[0]
-    run.summary.update({"baseline_log_loss": float(table["mean_year_log_loss"].iloc[0]),
-                        "best_variant": best["variant"],
-                        "best_log_loss": float(best["mean_year_log_loss"]),
-                        "best_gain": float(best["gain"]), "best_gain_lo": float(best["gain_lo"]),
-                        "best_gain_hi": float(best["gain_hi"])})  # fmt: skip
-    print(f"W&B: {run.url or 'offline run, upload with wandb sync'}")
-    run.finish()
+    tracker.finish(
+        summary={"baseline_log_loss": float(table["mean_year_log_loss"].iloc[0]),
+                 "best_variant": best["variant"],
+                 "best_log_loss": float(best["mean_year_log_loss"]),
+                 "best_gain": float(best["gain"]), "best_gain_lo": float(best["gain_lo"]),
+                 "best_gain_hi": float(best["gain_hi"])},
+        tables={"matchups/results": table.round(5), "matchups/weights": weights_table,
+                "matchups/alone": alone_table, "matchups/tan_edges": edges.round(4)},
+        images={f"matchups/{k}": p for k, p in paths.items()},
+    )  # fmt: skip
 
 
 if __name__ == "__main__":

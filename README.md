@@ -26,9 +26,9 @@ Because the embedding is linear, styles can be added and subtracted ("fighter ma
 that nothing from after a fight leaks into its prediction. On rolling yearly validation
 (2019–23) it reaches 62.2% accuracy and a log loss of 0.652, against 66.2% and 0.614 for the
 betting market, which has information the statistics lack. Experiments with recency weighting,
-expert matchup features and Bayesian network classifiers did not improve on it. Both models run
-in a public website, including a prediction game in which players compete against the model on
-real cards.
+expert matchup features, Bayesian network classifiers and tree ensembles did not improve on
+it. Both models run in a public website, including a prediction game in which players compete
+against the model on real cards.
 
 ## Contents
 
@@ -171,7 +171,7 @@ are a test set kept locked. Log loss is the main metric (0.693 for a coin flip).
 |---|---|---|---|
 | **Win model** (deployed) | **62.2%** | **0.652** | **0.661** |
 | Win model without form, Glicko and schedule (v1) | 61.1% | 0.654 | 0.657 |
-| Gradient boosting, same features | | 0.659 | |
+| Gradient boosting, tuned (§5.4) | 60.6% | 0.655 | |
 | Elo | 55.5% | 0.685 | 0.578 |
 | Betting market (2,284 fights with odds) | 66.2% | 0.614 | 0.722 |
 
@@ -227,6 +227,20 @@ record and experience, a finishing chain and separate striking and wrestling cha
 | Finishing features less regularised (3×) | 0.6514 | −0.0001 (−0.0006, +0.0005) |
 | Tree-augmented naive Bayes, 8 inputs | 0.6608 | −0.0094 (−0.0166, −0.0026) |
 | Naive Bayes, all inputs | 1.1789 | −0.527 (−0.588, −0.468) |
+| Gradient boosting (depth-1 trees) | 0.6552 | −0.0040 (−0.0085, +0.0006) |
+| Random forest | 0.6563 | −0.0051 (−0.0100, +0.0001) |
+| Single decision tree (depth 6) | 0.6698 | −0.0185 (−0.0275, −0.0098) |
+
+**5.4 Tree models.** A single decision tree, a random forest and gradient boosting (histogram
+boosting, the LightGBM algorithm) were tuned on the same folds (63 settings), on the A − B
+differences and, for the forest and boosting, on both fighters' own values side by side, which is
+what would let a tree find matchups by itself. Every fight is trained on from both corners and
+the two predictions averaged, so the symmetry holds. None beat the logistic regression. The best
+boosting uses depth-1 trees, which cannot combine features at all: an additive model, only
+slightly bent per feature. Deeper trees, which can find interactions, did worse, as did giving
+the trees both fighters' raw values. Both model families rely on the same few features (age,
+pre-UFC record, reach, rating uncertainty). With about 6,000 training fights there are no
+reliable interactions to find. Code: [`trees_experiment.py`](src/ufc_embedded/trees_experiment.py).
 
 ## 6. Limitations and future work
 
@@ -248,6 +262,7 @@ uv run python -m ufc_embedded.export             # style map + MMA math JSON
 uv run python -m ufc_embedded.train              # train and evaluate (§4), logged to W&B
 uv run python -m ufc_embedded.recency            # experiment 5.1
 uv run python -m ufc_embedded.matchups_experiment  # experiments 5.2 and 5.3
+uv run python -m ufc_embedded.trees_experiment  # experiment 5.4
 uv run pytest                                    # Python tests
 
 cd web && npm install

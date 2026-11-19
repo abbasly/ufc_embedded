@@ -1,0 +1,64 @@
+max_depth,min_samples_leaf,log_loss,variant,max_features,learning_rate,max_iter
+2,50,0.68023,decision tree (differences),,,
+2,150,0.68023,decision tree (differences),,,
+2,400,0.68023,decision tree (differences),,,
+3,50,0.67647,decision tree (differences),,,
+3,150,0.67647,decision tree (differences),,,
+3,400,0.67647,decision tree (differences),,,
+4,50,0.67422,decision tree (differences),,,
+4,150,0.67415,decision tree (differences),,,
+4,400,0.67195,decision tree (differences),,,
+6,50,0.6724,decision tree (differences),,,
+6,150,0.67236,decision tree (differences),,,
+6,400,0.66976,decision tree (differences),,,
+8,50,0.67822,decision tree (differences),,,
+8,150,0.67377,decision tree (differences),,,
+8,400,0.66976,decision tree (differences),,,
+6,20,0.66068,random forest (differences),sqrt,,
+6,20,0.65875,random forest (differences),0.3,,
+6,60,0.66119,random forest (differences),sqrt,,
+6,60,0.65899,random forest (differences),0.3,,
+10,20,0.65735,random forest (differences),sqrt,,
+10,20,0.65652,random forest (differences),0.3,,
+10,60,0.65885,random forest (differences),sqrt,,
+10,60,0.65744,random forest (differences),0.3,,
+None,20,0.65747,random forest (differences),sqrt,,
+None,20,0.65632,random forest (differences),0.3,,
+None,60,0.65863,random forest (differences),sqrt,,
+None,60,0.65756,random forest (differences),0.3,,
+6,20,0.66516,random forest (both fighters' values),sqrt,,
+6,20,0.66316,random forest (both fighters' values),0.3,,
+6,60,0.66595,random forest (both fighters' values),sqrt,,
+6,60,0.66338,random forest (both fighters' values),0.3,,
+10,20,0.65967,random forest (both fighters' values),sqrt,,
+10,20,0.65804,random forest (both fighters' values),0.3,,
+10,60,0.662,random forest (both fighters' values),sqrt,,
+10,60,0.65968,random forest (both fighters' values),0.3,,
+None,20,0.65872,random forest (both fighters' values),sqrt,,
+None,20,0.65711,random forest (both fighters' values),0.3,,
+None,60,0.66181,random forest (both fighters' values),sqrt,,
+None,60,0.65947,random forest (both fighters' values),0.3,,
+1,50,0.67082,gradient boosting (differences),,0.01,300
+1,50,0.65967,gradient boosting (differences),,0.01,1000
+2,50,0.66372,gradient boosting (differences),,0.01,300
+2,50,0.65621,gradient boosting (differences),,0.01,1000
+3,50,0.66095,gradient boosting (differences),,0.01,300
+3,50,0.66033,gradient boosting (differences),,0.01,1000
+1,50,0.66039,gradient boosting (differences),,0.03,300
+1,50,0.65517,gradient boosting (differences),,0.03,1000
+2,50,0.65625,gradient boosting (differences),,0.03,300
+2,50,0.65896,gradient boosting (differences),,0.03,1000
+3,50,0.65965,gradient boosting (differences),,0.03,300
+3,50,0.6658,gradient boosting (differences),,0.03,1000
+1,50,0.67863,gradient boosting (both fighters' values),,0.01,300
+1,50,0.66565,gradient boosting (both fighters' values),,0.01,1000
+2,50,0.6693,gradient boosting (both fighters' values),,0.01,300
+2,50,0.65894,gradient boosting (both fighters' values),,0.01,1000
+3,50,0.66413,gradient boosting (both fighters' values),,0.01,300
+3,50,0.65826,gradient boosting (both fighters' values),,0.01,1000
+1,50,0.66666,gradient boosting (both fighters' values),,0.03,300
+1,50,0.65708,gradient boosting (both fighters' values),,0.03,1000
+2,50,0.65944,gradient boosting (both fighters' values),,0.03,300
+2,50,0.65977,gradient boosting (both fighters' values),,0.03,1000
+3,50,0.6576,gradient boosting (both fighters' values),,0.03,300
+3,50,0.66298,gradient boosting (both fighters' values),,0.03,1000
