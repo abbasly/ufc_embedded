@@ -26,8 +26,8 @@ Because the embedding is linear, styles can be added and subtracted ("fighter ma
 that nothing from after a fight leaks into its prediction. On rolling yearly validation
 (2019–23) it reaches 62.2% accuracy and a log loss of 0.652, against 66.2% and 0.614 for the
 betting market, which has information the statistics lack. Experiments with recency weighting,
-expert matchup features, Bayesian network classifiers and tree ensembles did not improve on
-it. Both models run in a public website, including a prediction game in which players compete
+expert matchup features, Bayesian network classifiers, tree ensembles and non-linear terms did
+not improve on it. Both models run in a public website, including a prediction game in which players compete
 against the model on real cards.
 
 ## Contents
@@ -230,6 +230,9 @@ record and experience, a finishing chain and separate striking and wrestling cha
 | Gradient boosting (depth-1 trees) | 0.6552 | −0.0040 (−0.0085, +0.0006) |
 | Random forest | 0.6563 | −0.0051 (−0.0100, +0.0001) |
 | Single decision tree (depth 6) | 0.6698 | −0.0185 (−0.0275, −0.0098) |
+| + spline curves per feature | 0.6525 | −0.0014 (−0.0050, +0.0020) |
+| + signed squares and cubes | 0.6554 | −0.0040 (−0.0072, −0.0009) |
+| + gap × level interactions | 0.6568 | −0.0052 (−0.0091, −0.0013) |
 
 **5.4 Tree models.** A single decision tree, a random forest and gradient boosting (histogram
 boosting, the LightGBM algorithm) were tuned on the same folds (63 settings), on the A − B
@@ -241,6 +244,18 @@ slightly bent per feature. Deeper trees, which can find interactions, did worse,
 the trees both fighters' raw values. Both model families rely on the same few features (age,
 pre-UFC record, reach, rating uncertainty). With about 6,000 training fights there are no
 reliable interactions to find. Code: [`trees_experiment.py`](src/ufc_embedded/trees_experiment.py).
+
+**5.5 Powers, curves and interactions.** A generalised logistic regression adds non-linear terms
+that keep the symmetry (only odd functions of the differences d = A − B are allowed, since
+swapping the corners turns d into −d): signed squares d·|d|, cubes d³, mirrored cubic splines
+(a free-form curve per feature, as in a generalised additive model), and "gap × level"
+interactions d_i · (a_j + b_j) among the ten strongest features. Every variant did worse than
+the linear model, and the more terms, the worse (324 inputs: 0.6552). The learned curves are
+close to straight lines; the few real shapes (fewer strikes absorbed stops helping beyond a
+point; large age gaps count more than in proportion) are too small to pay for the extra
+weights. Code: [`polynomial_experiment.py`](src/ufc_embedded/polynomial_experiment.py).
+
+![Learned curves per feature against the deployed straight lines](docs/experiments/polynomial-curves.png)
 
 ## 6. Limitations and future work
 
@@ -263,6 +278,7 @@ uv run python -m ufc_embedded.train              # train and evaluate (§4), log
 uv run python -m ufc_embedded.recency            # experiment 5.1
 uv run python -m ufc_embedded.matchups_experiment  # experiments 5.2 and 5.3
 uv run python -m ufc_embedded.trees_experiment  # experiment 5.4
+uv run python -m ufc_embedded.polynomial_experiment  # experiment 5.5
 uv run pytest                                    # Python tests
 
 cd web && npm install
