@@ -109,18 +109,59 @@ flowchart LR
 
 ## 3. Style embedding
 
-- **14 statistics** per fighter (output, defence, takedowns, control, where strikes land…),
-  shrunk toward the average for small samples, log-transformed and standardised.
-- **Learned metric:** each career is split in two halves; $W$ solves
-  $\Sigma_\text{signal} w = \lambda\, \Sigma_\text{noise} w$ (LDA, every fighter a class), so
-  distance is measured in units of fight-to-fight noise.
-- **Styles:** k-means, k = 5. Silhouette ≈ 0.12 for every k: styles are a continuum.
+**Statistics.** Each fighter $f$ gets 14 career statistics (output, defence, takedowns, control,
+where strikes land…), each a ratio of totals over their fights, shrunk toward the population
+rate $r_0$ by a pseudo-count $k$ (e.g. 5 takedown attempts):
+
+$$\hat r_f = \frac{\text{num}_f + k\, r_0}{\text{den}_f + k},$$
+
+so 1 takedown in 1 attempt reads as about average, 50 in 50 stays high. Skewed rates get
+$\log(1+x)$; all 14 are standardised into $x_f \in \mathbb{R}^{14}$.
+
+**Learned metric (LDA).** Plain Euclidean distance on $x$ treats all 14 statistics as equally
+reliable and independent; they are neither. Split each fighter's fights into two halves (alternating
+fights, and four random splits), giving profiles $x_f^{(1)}, x_f^{(2)}$. Then
+
+$$\Sigma_\text{noise} = \operatorname{Cov}_f\!\left(\frac{x_f^{(1)} - x_f^{(2)}}{\sqrt 2}\right),
+\qquad \Sigma_\text{signal} = \operatorname{Cov}_f\big(x_f\big),$$
+
+how much a fighter's own numbers wobble (the $\sqrt 2$ because a difference of two noisy halves
+has twice the variance), and how much fighters differ from each other. The best directions
+maximise signal over noise,
+
+$$\max_w \frac{w^\top \Sigma_\text{signal}\, w}{w^\top \Sigma_\text{noise}\, w}
+\;\Longrightarrow\; \Sigma_\text{signal}\, w = \lambda\, \Sigma_\text{noise}\, w,$$
+
+a generalised eigenproblem: linear discriminant analysis with every fighter as a class. All 14
+eigenvectors form $W$, scaled so that $W^\top \Sigma_\text{noise} W = I$, and the embedding is
+$z_f = x_f W$. Since then $W W^\top = \Sigma_\text{noise}^{-1}$,
+
+$$\lVert z_a - z_b \rVert^2 = (x_a - x_b)^\top\, \Sigma_\text{noise}^{-1}\, (x_a - x_b):$$
+
+the Mahalanobis distance in units of fight-to-fight noise. Statistics that wobble within a
+fighter count less, and correlated ones (takedowns and control time) are not counted twice.
+Each $\lambda$ is the signal-to-noise ratio of its direction.
+
+**Evaluation.** Find each fighter's held-out half among everyone's other halves (517 fighters),
+with $W$ learned without the fighters being tested (5-fold).
 
 | Find the held-out half career | Top 1 | Top 10 | Median rank |
 |---|---|---|---|
 | UFCStats career averages | 3.9% | 17.8% | 70 |
 | 14 statistics | 10.1% | 28.2% | 38 |
 | **14 statistics, learned metric** | **15.1%** | **36.8%** | **22** |
+
+**Fighter math.** A style is the mean of its fighters, $\mu_s$. A sum is computed on the
+statistics and answered with the nearest real fighter in the embedding, the terms excluded:
+
+$$v = x_\text{Topuria} - \mu_\text{volume boxers} + \mu_\text{wrestlers},
+\qquad \text{answer} = \arg\min_{f} \lVert (x_f - v)\, W \rVert.$$
+
+This only means something because $x \mapsto xW$ is linear. Similarity scores are
+$100\,(1 - d / d_\text{median})$, clipped to 0–100.
+
+**Styles.** k-means ($k = 5$) on $z$. The silhouette is ≈ 0.12 for every $k$: styles are a
+continuum, and $k = 5$ was chosen for readability.
 
 ## 4. Fight prediction
 
