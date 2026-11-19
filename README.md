@@ -160,7 +160,7 @@ $$v = x_\text{Topuria} - \mu_\text{volume boxers} + \mu_\text{wrestlers},
 This only means something because $x \mapsto xW$ is linear. Similarity scores are
 $100\,(1 - d / d_\text{median})$, clipped to 0–100.
 
-**Styles.** k-means ($k = 5$) on $z$. The silhouette is ≈ 0.12 for every $k$: styles are a
+**Styles.** k-means ($k = 5$) on $z$. The silhouette is low for every $k$ (≈ 0.08 at $k = 5$, 0.14 at best): styles are a
 continuum, and $k = 5$ was chosen for readability.
 
 ## 4. Fight prediction
