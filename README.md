@@ -122,8 +122,8 @@ $\log(1+x)$; all 14 are standardised into $x_f \in \mathbb{R}^{14}$.
 reliable and independent; they are neither. Split each fighter's fights into two halves (alternating
 fights, and four random splits), giving profiles $x_f^{(1)}, x_f^{(2)}$. Then
 
-$$\Sigma_\text{noise} = \operatorname{Cov}_f\!\left(\frac{x_f^{(1)} - x_f^{(2)}}{\sqrt 2}\right),
-\qquad \Sigma_\text{signal} = \operatorname{Cov}_f\big(x_f\big),$$
+$$\Sigma_\text{noise} = \mathrm{Cov}_f\!\left(\frac{x_f^{(1)} - x_f^{(2)}}{\sqrt 2}\right),
+\qquad \Sigma_\text{signal} = \mathrm{Cov}_f\big(x_f\big),$$
 
 how much a fighter's own numbers wobble (the $\sqrt 2$ because a difference of two noisy halves
 has twice the variance), and how much fighters differ from each other. The best directions
