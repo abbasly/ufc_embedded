@@ -1,17 +1,18 @@
-<h1><img src="web/public/favicon.svg" width="40" align="absmiddle" alt=""> UFC Embedded</h1>
+<h1 align="center"><img src="web/public/favicon.svg" width="40" align="absmiddle" alt=""> UFC Embedded</h1>
 
-Learning how fighters fight, and who wins, from three decades of UFC fights.
+<p align="center">Learning how fighters fight, and who wins, from three decades of UFC fights.</p>
 
-[![Live site](https://img.shields.io/badge/Live-ufc.anarli.com-c92a2a?style=for-the-badge)](https://ufc.anarli.com)
-[![Technical details](https://img.shields.io/badge/Docs-technical_details-2f3137?style=for-the-badge)](docs/TECHNICAL.md)
-[![Fighter Lab](https://img.shields.io/badge/Try-Fighter_Lab-2f3137?style=for-the-badge)](https://ufc.anarli.com/fighter-lab)
-[![Pick'em](https://img.shields.io/badge/Play-Pick%27em-2f3137?style=for-the-badge)](https://ufc.anarli.com/pickem)
+<p align="center">
+  <a href="https://ufc.anarli.com"><img src="docs/buttons/live.svg" alt="Live: ufc.anarli.com" height="30"></a>&nbsp;
+  <a href="docs/TECHNICAL.md"><img src="docs/buttons/docs.svg" alt="Docs: technical details" height="30"></a>&nbsp;
+  <a href="https://ufc.anarli.com/fighter-lab"><img src="docs/buttons/fighter-lab.svg" alt="Try Fighter Lab" height="30"></a>&nbsp;
+  <a href="https://ufc.anarli.com/pickem"><img src="docs/buttons/pickem.svg" alt="Play Pick'em" height="30"></a>
+</p>
 
-[![CI](https://github.com/abbasly/ufc_embedded/actions/workflows/ci.yml/badge.svg)](https://github.com/abbasly/ufc_embedded/actions/workflows/ci.yml)
-[![Data refresh](https://github.com/abbasly/ufc_embedded/actions/workflows/data-refresh.yml/badge.svg)](https://github.com/abbasly/ufc_embedded/actions/workflows/data-refresh.yml)
-![Python 3.11+](https://img.shields.io/badge/Python-3.11+-3776ab?logo=python&logoColor=white)
-![React + TypeScript](https://img.shields.io/badge/React-TypeScript-3178c6?logo=typescript&logoColor=white)
-![Supabase](https://img.shields.io/badge/Supabase-Postgres-3ecf8e?logo=supabase&logoColor=white)
+<p align="center">
+  <a href="https://github.com/abbasly/ufc_embedded/actions/workflows/ci.yml"><img src="https://github.com/abbasly/ufc_embedded/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/abbasly/ufc_embedded/actions/workflows/data-refresh.yml"><img src="https://github.com/abbasly/ufc_embedded/actions/workflows/data-refresh.yml/badge.svg" alt="Data refresh"></a>
+</p>
 
 ## Abstract
 

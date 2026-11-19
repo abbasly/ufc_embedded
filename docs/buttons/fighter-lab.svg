@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="181" height="30" viewBox="0 0 181 30">
+  <clipPath id="c"><rect width="181" height="30" rx="15.0"/></clipPath>
+  <g clip-path="url(#c)">
+    <rect width="55" height="30" fill="#555a63"/>
+    <rect x="55" width="126" height="30" fill="#2f3137"/>
+  </g>
+  <g fill="#ffffff" text-anchor="middle" font-family="Verdana, 'DejaVu Sans', sans-serif" font-size="11" font-weight="700" letter-spacing="1.2">
+    <text x="28.1" y="15.0" dy=".36em">TRY</text>
+    <text x="118.6" y="15.0" dy=".36em">FIGHTER LAB</text>
+  </g>
+</svg>
