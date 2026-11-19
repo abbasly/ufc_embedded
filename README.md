@@ -16,19 +16,17 @@
 
 ## Abstract
 
-UFC Embedded learns from every UFC fight since 1994 (8,819 decisive fights, round-by-round
-statistics from UFCStats). It has two models. First, a **style embedding** of ~700 active
-fighters: a linear metric, learned with linear discriminant analysis (every fighter a class), in
-which a fighter's own fights lie close together. It finds a fighter's held-out half career in the
-top 10 for 36.8% of fighters (from 517 candidates), against 17.8% for UFCStats' career averages.
-Because the embedding is linear, styles can be added and subtracted ("fighter math"). Second, a
-**win-probability model**: a logistic regression on point-in-time feature differences, built so
-that nothing from after a fight leaks into its prediction. On rolling yearly validation
-(2019–23) it reaches 62.2% accuracy and a log loss of 0.652, against 66.2% and 0.614 for the
-betting market, which has information the statistics lack. Experiments with recency weighting,
-expert matchup features, Bayesian network classifiers, tree ensembles and non-linear terms did
-not improve on it. Both models run in a public website, including a prediction game in which players compete
-against the model on real cards.
+Two models learned from every UFC fight since 1994 (8,819 decisive fights, UFCStats):
+
+- a **style embedding** of ~700 active fighters, a metric learned with LDA, which finds a
+  fighter's held-out half career in the top 10 for 36.8% of fighters (17.8% for UFCStats'
+  averages), and is linear, so styles can be added and subtracted ("fighter math");
+- a **win model**, a leak-free logistic regression: 62.2% accuracy and 0.652 log loss on rolling
+  2019–23 validation, against 66.2% and 0.614 for the betting market.
+
+Five experiments (recency weighting, expert matchups, Bayesian networks, tree ensembles,
+non-linear terms) did not beat the linear model. Both models run in a public website with a
+prediction game against the model.
 
 ## Contents
 
@@ -37,17 +35,14 @@ against the model on real cards.
 3. [Style embedding](#3-style-embedding)
 4. [Fight prediction](#4-fight-prediction)
 5. [Experiments](#5-experiments)
-6. [Limitations and future work](#6-limitations-and-future-work)
+6. [Limitations](#6-limitations)
 7. [Reproducing](#7-reproducing)
 
 ## 1. System architecture
 
-A Python pipeline turns public datasets into versioned JSON. It runs by itself twice a week
-(after each card, and before the next) and refuses to publish if data checks or tests fail. The
-website is a static React app that downloads the JSON at build time and evaluates the models in
-the browser, so no model server is needed. The one live part is Pick'em, the prediction game:
-Supabase (Postgres with row-level security) holds accounts, picks and scores, and a sync job
-reads cards and results from Wikipedia every 5 minutes on fight nights.
+A Python pipeline rebuilds the data and models twice a week and publishes versioned JSON; the
+static web app evaluates the models in the browser. Pick'em runs on Supabase, synced from
+Wikipedia every 5 minutes on fight nights.
 
 ```mermaid
 flowchart LR
@@ -96,199 +91,107 @@ flowchart LR
 | [Elo Ladder](https://ufc.anarli.com/ladder) | Ratings next to official ranks, the year's biggest movers | Elo over every UFC fight |
 | [MMA Math](https://ufc.anarli.com/mma-math) | A chain of wins from any fighter to any other | Win graph, breadth-first search |
 
+| Page | What it does | Method |
+|---|---|---|
+| [Fighter Lab](https://ufc.anarli.com/fighter-lab) | Fighter math, ~700 fighters in 3D, most similar fighters | Style embedding (§3) |
+| [Fight Predictor](https://ufc.anarli.com/predictor) | Win chance and method of victory | Win and method models (§4) |
+| [Pick'em](https://ufc.anarli.com/pickem) | Pick every fight on the next card, against friends and the model | Supabase |
+| [Elo Ladder](https://ufc.anarli.com/ladder) | Ratings next to official ranks | Elo |
+| [MMA Math](https://ufc.anarli.com/mma-math) | A chain of wins from any fighter to any other | Win graph, BFS |
+
 ## 2. Data
 
-- **Fights:** every UFC fight from UFCStats via public Kaggle datasets: per-fight and per-round
-  totals for both fighters (significant strikes by target and position, takedowns, control time,
-  knockdowns, submission attempts), plus results, method, and fighter height, reach, age and stance.
-- **Benchmark:** consensus bookmaker odds with the margin removed, for 2,284 of the 2,457
-  validation fights.
-- **Context:** official rankings, fighter photos under free licences from Wikipedia, and
-  upcoming cards from Wikipedia.
-
-Two traps in the raw data matter for prediction. UFCStats' career statistics and records are as
-of *today*, so using them for past fights would leak the results; every feature is therefore
-rebuilt from per-fight statistics using only fights on earlier dates, and a test checks that
-changing a later fight changes no earlier feature. The raw data also always lists the winner
-first, so the two corners are randomly swapped.
+- **Fights:** UFCStats via public Kaggle datasets, per fight and per round.
+- **Benchmark:** consensus bookmaker odds, margin removed (2,284 of 2,457 validation fights).
+- **No leakage:** UFCStats' career stats are as of today, so every feature is rebuilt from
+  earlier fights only (tested). The winner is always listed first, so corners are swapped at
+  random.
 
 ## 3. Style embedding
 
-**Statistics.** Each fighter is described by 14 career statistics: output, strikes absorbed,
-accuracy, defence, knockdowns, takedowns, takedown accuracy and defence, control time,
-submission attempts, and the share of strikes to the body and legs and from the clinch and the
-ground. Each is a ratio of totals over the career, shrunk toward the population rate by a
-pseudo-count (for example 5 takedown attempts), so a 1-for-1 takedown record reads as about
-average. Skewed rates are log-transformed and all 14 are standardised.
+- **14 statistics** per fighter (output, defence, takedowns, control, where strikes land…),
+  shrunk toward the average for small samples, log-transformed and standardised.
+- **Learned metric:** each career is split in two halves; $W$ solves
+  $\Sigma_\text{signal} w = \lambda\, \Sigma_\text{noise} w$ (LDA, every fighter a class), so
+  distance is measured in units of fight-to-fight noise.
+- **Styles:** k-means, k = 5. Silhouette ≈ 0.12 for every k: styles are a continuum.
 
-**Learned metric.** Euclidean distance on these 14 numbers treats every statistic as equally
-reliable and independent; they are neither. Each fighter's fights are split into two halves
-(alternating, and four random splits). The difference between halves estimates within-fighter
-noise $\Sigma_\text{noise}$; the spread of whole careers estimates the signal $\Sigma_\text{signal}$.
-The embedding $z = xW$ solves the generalised eigenproblem
-$\Sigma_\text{signal} w = \lambda\, \Sigma_\text{noise} w$ (linear discriminant analysis with every
-fighter as a class), so that distances are measured in units of fight-to-fight noise. Statistics
-that vary within a fighter count less, and correlated ones (takedowns and control time) are not
-counted twice.
-
-**Evaluation.** A profile from half of a fighter's fights is used to find the other half among all
-fighters, with the metric learned on other fighters (5-fold).
-
-| Embedding | Top 1 | Top 10 | Median rank | Last 3 fights: top 10 |
-|---|---|---|---|---|
-| UFCStats career averages (8) | 3.9% | 17.8% | 70 | |
-| 14 statistics | 10.1% | 28.2% | 38 | |
-| 14 statistics, stability-weighted | 10.8% | 32.9% | 27 | 23.7% |
-| **14 statistics, learned metric** | **15.1%** | **36.8%** | **22** | **25.7%** |
-
-**Styles and fighter math.** k-means (k = 5) on the embedding gives the five styles shown on the
-site. The silhouette score is about 0.12 for every k: styles form a continuum rather than
-separate clusters, and k = 5 was chosen for readability. Because the embedding is linear, a sum
-such as "Topuria − Volume boxers + Dominant wrestlers" (a style being the mean of its fighters)
-is computed on the statistics and answered with the nearest real fighter.
+| Find the held-out half career | Top 1 | Top 10 | Median rank |
+|---|---|---|---|
+| UFCStats career averages | 3.9% | 17.8% | 70 |
+| 14 statistics | 10.1% | 28.2% | 38 |
+| **14 statistics, learned metric** | **15.1%** | **36.8%** | **22** |
 
 ## 4. Fight prediction
 
-**Features.** For each fighter, 46 features from earlier fights only: experience and record
-(including the pre-UFC record), age with an age curve, reach, shrunk per-minute rates for
-striking, grappling and knockdowns, recent form (exponentially weighted and last-3 margins over
-opponents), a Glicko rating with its uncertainty, strength of schedule and distance from career
-peak.
-
-**Win model.** An L2-regularised logistic regression on the differences between the two fighters,
-
-$$P(A \text{ beats } B) = \sigma\big(w^\top (x_A - x_B)\big),$$
-
-without an intercept, so $P(A \text{ beats } B) = 1 - P(B \text{ beats } A)$ exactly. **Method
-model:** a multinomial logistic regression for KO/TKO, submission or decision given the winner
-(log loss 0.990 against 1.041 for the base rates).
-
-**Evaluation.** Splits are by time only. Models are compared on rolling validation, each year
-2019–23 predicted by a model trained on all earlier years (2,457 fights); fights from 2024 on
-are a test set kept locked. Log loss is the main metric (0.693 for a coin flip).
+- **Features:** 46 per fighter, from earlier fights only: record, age, reach, shrunk striking and
+  grappling rates, recent form, Glicko rating and uncertainty, strength of schedule.
+- **Win model:** $P(A \text{ beats } B) = \sigma\big(w^\top (x_A - x_B)\big)$, L2, no intercept,
+  so $P(A) = 1 - P(B)$ exactly.
+- **Method model:** multinomial logistic regression for KO / submission / decision.
+- **Evaluation:** time splits only; each year 2019–23 predicted from earlier years; 2024+ locked.
 
 | Rolling 2019–23 | Accuracy | Log loss ↓ | AUC |
 |---|---|---|---|
-| **Win model** (deployed) | **62.2%** | **0.652** | **0.661** |
-| Win model without form, Glicko and schedule (v1) | 61.1% | 0.654 | 0.657 |
-| Gradient boosting, tuned (§5.4) | 60.6% | 0.655 | |
+| **Win model** | **62.2%** | **0.652** | **0.661** |
 | Elo | 55.5% | 0.685 | 0.578 |
-| Betting market (2,284 fights with odds) | 66.2% | 0.614 | 0.722 |
+| Betting market | 66.2% | 0.614 | 0.722 |
 
 ![Calibration, ROC and accuracy against coverage](docs/model-comparison.png)
 
-The gap to the market is information the statistics do not contain: injuries, short-notice
-replacements, weight cuts, training camps, and newcomers' careers before the UFC.
-
 ## 5. Experiments
 
-All experiments use the rolling validation of §4, tune regularisation per variant, and report the
-gain over the deployed model with a 95% paired bootstrap interval over fights. None used the
-locked test set.
+Same rolling validation, tuned per variant, 95% bootstrap intervals; the test set stays locked.
+Figures are in [docs/experiments](docs/experiments), every run is logged to W&B.
 
-**5.1 Does the sport change over time?** It does. Since the late 1990s, output has roughly
-doubled (from ~4 to ~8.5 significant strikes thrown per minute), and ground and clinch striking
-have fallen from about 40% and 20% of significant strikes to about 6% each. The weight the model
-gives each feature also moves: fit on 4-year windows, reach mattered far more in 2005–08 than it
-does now. Yet weighting recent fights more (half-lives of 2–16 years) or training on recent
-years only did not improve the model (best: 0.6507 against 0.6513, interval
-[−0.0015, 0.0028]). Both fighters in a fight come from the same era, so shifts across the
-sport largely cancel in the differences. Code: [`recency.py`](src/ufc_embedded/recency.py).
-
-![How the sport changed](docs/experiments/recency-style_drift.png)
-
-**5.2 Expert matchup features.** The deployed model compares each fighter's own numbers and so
-cannot express matchups. Added features (each $f(A,B) - f(B,A)$, keeping the symmetry): wrestling
-against takedown defence, power against how often the opponent is dropped or finished,
-submissions against time spent held down, and a "stays standing" probability from both
-fighters' takedown threat, multiplied by the striking and power differences. *Striking if it
-stays standing* is among the strongest features on its own, and *wrestling against takedown
-defence* gets real weight, but the full model already captured the same information: 0.6511,
-interval [−0.0010, 0.0013], with slightly better calibration. Giving finishing features (gets
-finished, knocked down, KO power) less regularisation did not help either. Code:
-[`matchups_experiment.py`](src/ufc_embedded/matchups_experiment.py).
-
-**5.3 Bayesian network classifiers.** Gaussian naive Bayes treats the features as independent
-given the winner; many are near-duplicates, so it counts the same evidence repeatedly and is
-badly overconfident (log loss 1.18 on all inputs). Tree-augmented naive Bayes, which learns a
-dependency tree between the features (Chow–Liu on conditional mutual information), recovers
-much of this (0.72), and with 8 weakly correlated inputs reaches 0.661, still behind the
-logistic regression. The learned tree recovers sensible groups unaided: body measurements,
-record and experience, a finishing chain and separate striking and wrestling chains.
-
-![The learned dependency tree](docs/experiments/matchups-tan-dag.png)
-
-| Rolling 2019–23 | Log loss ↓ | Gain over deployed (95% interval) |
+| Experiment | Best log loss ↓ | vs deployed (95% interval) |
 |---|---|---|
-| Deployed win model | 0.6513 | |
-| Recent fights weighted more (half-life 4 years) | 0.6507 | +0.0007 (−0.0015, +0.0028) |
-| Last 3 years only | 0.6539 | −0.0025 (−0.0073, +0.0020) |
-| + matchup and "stays standing" features | 0.6511 | +0.0002 (−0.0010, +0.0013) |
-| Finishing features less regularised (3×) | 0.6514 | −0.0001 (−0.0006, +0.0005) |
-| Tree-augmented naive Bayes, 8 inputs | 0.6608 | −0.0094 (−0.0166, −0.0026) |
-| Naive Bayes, all inputs | 1.1789 | −0.527 (−0.588, −0.468) |
-| Gradient boosting (depth-1 trees) | 0.6552 | −0.0040 (−0.0085, +0.0006) |
-| Random forest | 0.6563 | −0.0051 (−0.0100, +0.0001) |
-| Single decision tree (depth 6) | 0.6698 | −0.0185 (−0.0275, −0.0098) |
-| + spline curves per feature | 0.6525 | −0.0014 (−0.0050, +0.0020) |
-| + signed squares and cubes | 0.6554 | −0.0040 (−0.0072, −0.0009) |
-| + gap × level interactions | 0.6568 | −0.0052 (−0.0091, −0.0013) |
+| Deployed linear model | 0.6513 | |
+| **5.1** Recent fights weighted more | 0.6507 | +0.0007 (−0.0015, +0.0028) |
+| **5.2** Expert matchup features | 0.6511 | +0.0002 (−0.0010, +0.0013) |
+| **5.3** Tree-augmented naive Bayes | 0.6608 | −0.0094 (−0.0166, −0.0026) |
+| **5.4** Gradient boosting | 0.6552 | −0.0040 (−0.0085, +0.0006) |
+| **5.4** Random forest | 0.6563 | −0.0051 (−0.0100, +0.0001) |
+| **5.5** Spline curves per feature | 0.6525 | −0.0014 (−0.0050, +0.0020) |
 
-**5.4 Tree models.** A single decision tree, a random forest and gradient boosting (histogram
-boosting, the LightGBM algorithm) were tuned on the same folds (63 settings), on the A − B
-differences and, for the forest and boosting, on both fighters' own values side by side, which is
-what would let a tree find matchups by itself. Every fight is trained on from both corners and
-the two predictions averaged, so the symmetry holds. None beat the logistic regression. The best
-boosting uses depth-1 trees, which cannot combine features at all: an additive model, only
-slightly bent per feature. Deeper trees, which can find interactions, did worse, as did giving
-the trees both fighters' raw values. Both model families rely on the same few features (age,
-pre-UFC record, reach, rating uncertainty). With about 6,000 training fights there are no
-reliable interactions to find. Code: [`trees_experiment.py`](src/ufc_embedded/trees_experiment.py).
+- **5.1 Time.** The sport changed (output doubled, clinch and ground striking fell to a quarter),
+  but both fighters come from the same era, so it cancels in the differences.
+  [Code](src/ufc_embedded/recency.py) · [plot](docs/experiments/recency-style_drift.png)
+- **5.2 Matchups.** Wrestling vs takedown defence, power vs chin, "striking if it stays
+  standing": predictive alone, already captured by the linear model.
+  [Code](src/ufc_embedded/matchups_experiment.py)
+- **5.3 Bayesian networks.** Naive Bayes double-counts correlated features (log loss 1.18); a
+  learned dependency tree fixes much of it, not enough.
+  [Code](src/ufc_embedded/matchups_experiment.py) · [learned DAG](docs/experiments/matchups-tan-dag.png)
+- **5.4 Trees.** The best boosting uses depth-1 trees (no interactions); deeper trees do worse.
+  [Code](src/ufc_embedded/trees_experiment.py)
+- **5.5 Non-linear terms.** Squares, cubes, splines and interactions all lose; the learned
+  curves are nearly straight. [Code](src/ufc_embedded/polynomial_experiment.py)
 
-**5.5 Powers, curves and interactions.** A generalised logistic regression adds non-linear terms
-that keep the symmetry (only odd functions of the differences d = A − B are allowed, since
-swapping the corners turns d into −d): signed squares d·|d|, cubes d³, mirrored cubic splines
-(a free-form curve per feature, as in a generalised additive model), and "gap × level"
-interactions d_i · (a_j + b_j) among the ten strongest features. Every variant did worse than
-the linear model, and the more terms, the worse (324 inputs: 0.6552). The learned curves are
-close to straight lines; the few real shapes (fewer strikes absorbed stops helping beyond a
-point; large age gaps count more than in proportion) are too small to pay for the extra
-weights. Code: [`polynomial_experiment.py`](src/ufc_embedded/polynomial_experiment.py).
+**Conclusion:** with ~6,000 training fights the signal is additive and linear. The gap to the
+market is information the statistics lack (injuries, camps, short notice, pre-UFC careers).
 
-![Learned curves per feature against the deployed straight lines](docs/experiments/polynomial-curves.png)
+## 6. Limitations
 
-## 6. Limitations and future work
-
-- About 9,000 fights limit what any model can learn; with this little signal per fight, simple
-  linear models beat flexible ones.
-- UFCStats records where a strike lands, not which strike: a calf kick and any other leg kick look
-  the same.
-- Fighters with few UFC fights are mostly their prior; newcomers' earlier careers are missing.
-- Gym and training camp are not modelled: the available sources list a fighter's teams without
-  dates, which would leak information into past fights.
+- UFCStats records where a strike lands, not which strike (a calf kick is just a leg kick).
+- Newcomers' pre-UFC careers are missing; fighters with few UFC fights are mostly their prior.
+- Gym and camp aren't modelled: sources list teams without dates, which would leak.
 
 ## 7. Reproducing
 
 ```bash
-uv sync                                          # Python dependencies
-scripts/download-data.sh                         # public datasets into data/raw
-uv run python -m ufc_embedded.style_map          # style embedding evaluation (§3)
-uv run python -m ufc_embedded.export             # style map + MMA math JSON
-uv run python -m ufc_embedded.train              # train and evaluate (§4), logged to W&B
-uv run python -m ufc_embedded.recency            # experiment 5.1
-uv run python -m ufc_embedded.matchups_experiment  # experiments 5.2 and 5.3
-uv run python -m ufc_embedded.trees_experiment  # experiment 5.4
-uv run python -m ufc_embedded.polynomial_experiment  # experiment 5.5
-uv run pytest                                    # Python tests
+uv sync && scripts/download-data.sh               # dependencies and public datasets
+uv run python -m ufc_embedded.style_map            # §3
+uv run python -m ufc_embedded.train                # §4 (W&B)
+uv run python -m ufc_embedded.recency              # §5.1; also matchups_experiment,
+                                                   # trees_experiment, polynomial_experiment
+uv run pytest
 
-cd web && npm install
-node scripts/fetch-data.mjs                      # or the live site's data
-npm run dev                                      # http://localhost:5173
-VITE_ACCOUNTS=demo npm run dev                   # Pick'em on an in-browser demo backend
-npm test
+cd web && npm install && node scripts/fetch-data.mjs
+npm run dev                                        # http://localhost:5173
+VITE_ACCOUNTS=demo npm run dev                     # Pick'em with a demo backend
 ```
 
-Database setup and security tests: [supabase/README.md](supabase/README.md). Data refresh and
-deployment: [docs/TECHNICAL.md](docs/TECHNICAL.md#data).
+More: [docs/TECHNICAL.md](docs/TECHNICAL.md) · database: [supabase/README.md](supabase/README.md)
 
 Unofficial fan project, not affiliated with the UFC.
