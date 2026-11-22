@@ -62,6 +62,29 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
           BASE_PATH: ${{ vars.SITE_DOMAIN && '/' || format('/{0}/', github.event.repository.name) }}
           VITE_SITE_URL: ${{ vars.SITE_DOMAIN && format('https://{0}', vars.SITE_DOMAIN) || format('https://{0}.github.io/{1}', github.repository_owner, github.event.repository.name) }}
+      # Keep the code files of the deploys of the last 14 days next to the new ones. A browser or
+      # GitHub's CDN may serve a page cached a few minutes before a deploy, which asks for the old
+      # deploy's files; Pages only serves the newest build, so without them that page stays
+      # empty. File names carry a content hash, so old and new never clash.
+      - if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+        uses: actions/cache/restore@v4
+        with:
+          path: web/.old-assets
+          key: old-assets-${{ github.run_id }}
+          restore-keys: old-assets-
+      - if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+        name: Keep older deploys' code files
+        run: |
+          mkdir -p .old-assets
+          find .old-assets -type f -mtime +14 -delete
+          cp -n .old-assets/* dist/assets/ 2>/dev/null || true
+          cp -n dist/assets/* .old-assets/
+          echo "dist/assets: $(ls dist/assets | wc -l) files ($(ls .old-assets | wc -l) kept)"
+      - if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+        uses: actions/cache/save@v4
+        with:
+          path: web/.old-assets
+          key: old-assets-${{ github.run_id }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web/dist
