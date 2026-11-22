@@ -27,6 +27,7 @@ import { StarterToast } from "../profile/StarterToast";
 import { useClaimGuestPicks, useGuestPicks } from "./guestPicks";
 import { Leagues, ModelTag, playerPath } from "./Leagues";
 import { boutPoints, isUnderdog, marketChance, METHOD_LABEL, MODEL_PLAYER, places, POINTS, pointsFor, scores } from "./scoring";
+import { cardDuel } from "./market";
 import {
   EVERYONE,
   FRIENDS,
@@ -285,6 +286,7 @@ export default function PickemPage() {
           />
 
           {card.scoredAt && results.data && <Results rows={results.data} me={profile?.displayName} />}
+          {!open && <ModelVsMarket bouts={bouts} done={!!card.scoredAt} />}
           {!open && !card.scoredAt && (
             <div className="pickem-notice">
               {live
@@ -452,6 +454,20 @@ function Ring() {
         d="M10 24C5 12 34 3 62 3.5 88 4 99 13 97 24 95 35 62 39 36 38 13 37 1 29 7 17 11 9 22 6 31 5"
       />
     </svg>
+  );
+}
+
+/** Our model against the bookmakers' favourites on this card's decided fights (winners). */
+function ModelVsMarket({ bouts, done }: { bouts: PickemBout[]; done: boolean }) {
+  const d = cardDuel(bouts);
+  if (!d.fights) return null;
+  return (
+    <Text size="sm" c="dimmed" className="pickem-duel">
+      {done ? "Winners on this card" : "Winners so far"}: <Text span fw={700} c={d.model > d.market ? "green.4" : undefined} inherit>the model {d.model}/{d.fights}</Text>
+      {" · "}
+      <Text span fw={700} c={d.market > d.model ? "green.4" : undefined} inherit>the market {d.market}/{d.fights}</Text>
+      {d.disagreed > 0 && <> · they split on {d.disagreed}</>}
+    </Text>
   );
 }
 

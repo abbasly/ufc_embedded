@@ -17,6 +17,7 @@ import { badges, bestCall, decided, headToHead } from "./record";
 import { History, Stats } from "./PlayerStats";
 import { starterBadges, useStarterBadges } from "./starter";
 import { usePlayerRecord } from "./usePlayerRecord";
+import { MarketChart } from "./MarketChart";
 
 interface Props {
   userId: string;
@@ -70,13 +71,16 @@ export function PlayerRecord({ userId, displayName, avatar, isMe, children, afte
   );
 
   return (
-    // The numbers across the top, the cards they've called under them; then how they play on the
-    // left (points over time, highlights, past cards) and who they play with on the right.
+    // The numbers across the top (for the model, its record against the market first), the cards
+    // they've called under them; then how they play on the left (points over time, highlights,
+    // past cards) and who they play with on the right.
     <Stack gap="lg">
+      {/* The model doesn't collect cards: its page leads with how it does against the market. */}
+      {isModel && history.isSuccess && !picksHidden && <MarketChart history={picks} />}
       <Stats scores={scores.data} displayName={displayName} />
       {share}
-      {history.isSuccess && !picksHidden && <CardCollection history={picks} isMe={isMe} displayName={displayName} />}
-      <PulledCards userId={userId} isMe={isMe} displayName={displayName} />
+      {!isModel && history.isSuccess && !picksHidden && <CardCollection history={picks} isMe={isMe} displayName={displayName} />}
+      {!isModel && <PulledCards userId={userId} isMe={isMe} displayName={displayName} />}
       <Grid gap="lg">
         <Grid.Col span={{ base: 12, md: 7.5 }}>
           <Stack gap="lg">
