@@ -98,6 +98,11 @@ export default function StyleMapPage() {
     return { terms, result, matches, view };
   }, [data, mathTerms, dims, sameDivision, replays]);
 
+  const selected = data?.fighters.find((f) => f.id === selectedId) ?? null;
+  // Worked out from the embedding (data/styleMap.ts); kept stable so the camera doesn't refly.
+  // Above the early returns: hooks must run on every render, also while the data is loading.
+  const neighbours = useMemo(() => (data ? similarTo(data, selected, scope) : []), [data, selected, scope]);
+
   if (isPending) return <PageLoader />;
   if (error) return <Alert color="red" title="Could not load Fighter Lab">{error.message}</Alert>;
 
@@ -118,9 +123,6 @@ export default function StyleMapPage() {
   };
   const shownLayout: LayoutId = mathOpen ? "axes" : layout; // the arrows only add up on Style axes
 
-  const selected = data.fighters.find((f) => f.id === selectedId) ?? null;
-  // Worked out from the embedding (data/styleMap.ts); kept stable so the camera doesn't refly.
-  const neighbours = useMemo(() => similarTo(data, selected, scope), [data, selected, scope]);
   const showSimilar = similarView && selected !== null;
   const present = new Set(data.fighters.map((f) => f.weight_class));
   const isShown = (f: Fighter) =>
