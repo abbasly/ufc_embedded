@@ -1,6 +1,7 @@
 import {
   ActionIcon,
   Alert,
+  Anchor,
   Box,
   Button,
   Center,
@@ -18,9 +19,11 @@ import {
 } from "@mantine/core";
 import { useMediaQuery, useViewportSize } from "@mantine/hooks";
 import { type ReactNode, Suspense, useMemo, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import { lazyPage } from "../../app/lazyPage";
+import { accountsEnabled } from "../../backend";
+import { MODEL_PLAYER } from "../pickem/scoring";
 import { useMmaMath, usePredictor, useStyleMap } from "../../data/client";
 import type { MmaMathData, PredictorData, PredictorFighter } from "../../data/types";
 import { FighterTradingCard } from "./FighterTradingCard";
@@ -180,6 +183,14 @@ export default function PredictorPage() {
                   // Comes in once the outcome has played out (keyed, so it replays per matchup).
                   <Center key={`share-${a.id}-${b.id}`} className="share-after" style={{ "--share-delay": `${SHARE_AFTER_MS}ms` } as React.CSSProperties}>
                     <SharePrediction data={data} a={a} b={b} event={bookedOn(cards, a.id, b.id)} />
+                  </Center>
+                )}
+                {matchup && accountsEnabled && (
+                  // The model plays Pick'em with these predictions: its page has its picks and record.
+                  <Center key={`model-${a.id}-${b.id}`} className="share-after" style={{ "--share-delay": `${SHARE_AFTER_MS}ms` } as React.CSSProperties}>
+                    <Anchor component={Link} to={`/u/${MODEL_PLAYER}`} size="xs" c="dimmed">
+                      The model plays Pick'em too: see its picks and record →
+                    </Anchor>
                   </Center>
                 )}
               </Stack>

@@ -463,7 +463,7 @@ function ModelVsMarket({ bouts, done }: { bouts: PickemBout[]; done: boolean }) 
   if (!d.fights) return null;
   return (
     <Text size="sm" c="dimmed" className="pickem-duel">
-      {done ? "Winners on this card" : "Winners so far"}: <Text span fw={700} c={d.model > d.market ? "green.4" : undefined} inherit>the model {d.model}/{d.fights}</Text>
+      {done ? "Winners on this card" : "Winners so far"}: <Text span fw={700} c={d.model > d.market ? "green.4" : undefined} inherit renderRoot={(props) => <Link {...props} to={playerPath(MODEL_PLAYER)} />} style={{ textDecoration: "underline dotted", textUnderlineOffset: 3 }}>the model {d.model}/{d.fights}</Text>
       {" · "}
       <Text span fw={700} c={d.market > d.model ? "green.4" : undefined} inherit>the market {d.market}/{d.fights}</Text>
       {d.disagreed > 0 && <> · they split on {d.disagreed}</>}
