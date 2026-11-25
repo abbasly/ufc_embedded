@@ -68,7 +68,9 @@ export const place = (math: StyleMath, v: number[], dims: Dims): Vec3 => axesPla
 export function chain(data: StyleMapData & { math: StyleMath }, terms: Term[], dims: Dims): Vec3[] | null {
   const vectors = terms.map((t) => termVector(data, t.ref));
   if (!vectors.length || vectors.some((v) => !v)) return null;
-  const points: Vec3[] = [place(data.math, vectors[0]!, dims)];
+  // The first term with its sign too: reordering the terms (or taking one away) can put a
+  // taken-away term first, and the arrows must still end where the sum is.
+  const points: Vec3[] = [place(data.math, vectors[0]!.map((v) => terms[0]!.sign * v), dims)];
   for (let k = 1; k < terms.length; k++) {
     const step = linear(data.math, vectors[k]!, dims);
     const last = points[k - 1]!;

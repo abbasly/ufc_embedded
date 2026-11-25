@@ -80,7 +80,7 @@ export default function StyleMapPage() {
     const view: MathView = {
       key: `${formatTerms(terms)}|${dims}|${sameDivision}|${replays}`,
       points,
-      terms: terms.map((t) => {
+      terms: terms.map((t, k) => {
         const f = isStyleRef(t.ref) ? undefined : data.fighters.find((x) => x.id === t.ref);
         const name = termName(data, t.ref);
         return {
@@ -90,7 +90,8 @@ export default function StyleMapPage() {
           style: !f,
           color: f ? colorOfGroup(groupOf(f, data, "style"), "style") : colorOfGroup(name, "style"),
           image: f?.image?.url ?? null,
-          at: f ? positionOf(f, "axes", dims) : place(data.math, termVector(data, t.ref)!, dims),
+          // A taken-away first term starts the arrows at minus itself: its label goes there.
+          at: k === 0 && t.sign < 0 ? points[0]! : f ? positionOf(f, "axes", dims) : place(data.math, termVector(data, t.ref)!, dims),
         };
       }),
       matches: matches.map((m) => ({ ...m, at: positionOf(m.fighter, "axes", dims) })),

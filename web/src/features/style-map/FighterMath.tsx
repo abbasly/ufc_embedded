@@ -62,7 +62,7 @@ export function MathBar({ data, terms, onTerms, best, onOpenFighter, onClose, an
       <div className="math-equation">
         {terms.map((t, i) => (
           <div key={i} className="math-term-wrap">
-            {i > 0 && (
+            {(i > 0 || t.sign < 0) && (
               <UnstyledButton
                 className="math-sign"
                 data-sign={t.sign > 0 ? "plus" : "minus"}
@@ -83,8 +83,8 @@ export function MathBar({ data, terms, onTerms, best, onOpenFighter, onClose, an
               value={t.ref || null}
               onChange={(v) => set(i, { ref: v ?? "" })}
               leftSection={icon(t.ref)}
-              rightSection={i >= 2 ? <CloseButton size="sm" onClick={() => onTerms(terms.filter((_, k) => k !== i))} aria-label={`Remove term ${i + 1}`} /> : undefined}
-              rightSectionPointerEvents={i >= 2 ? "auto" : "none"}
+              rightSection={terms.length > 1 ? <CloseButton size="sm" onClick={() => onTerms(terms.filter((_, k) => k !== i))} aria-label={`Remove term ${i + 1}`} /> : undefined}
+              rightSectionPointerEvents={terms.length > 1 ? "auto" : "none"}
               renderOption={({ option }) => (
                 <Group gap={8} wrap="nowrap">
                   {icon(option.value)}
