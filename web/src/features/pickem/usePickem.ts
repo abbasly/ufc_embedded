@@ -80,6 +80,28 @@ export function useMyPicks(eventId: string | undefined) {
   });
 }
 
+/** Every player's points on every finished card, for the race chart. */
+export function useRaceScores(enabled = true) {
+  const { backend } = useAuth();
+  return useQuery({
+    queryKey: ["pickem", "race"],
+    queryFn: () => backend!.pickem.raceScores(),
+    enabled: !!backend && enabled,
+    staleTime: 5 * 60_000,
+  });
+}
+
+/** Every fought pick this visitor may see (theirs, friends', league-mates', the model's). */
+export function useVisiblePicks(enabled = true) {
+  const { backend, user } = useAuth();
+  return useQuery({
+    queryKey: ["pickem", "visible-picks", user?.id],
+    queryFn: () => backend!.pickem.visiblePicks(),
+    enabled: !!backend && enabled,
+    staleTime: 5 * 60_000,
+  });
+}
+
 export function useLeaderboard() {
   const { backend } = useAuth();
   return useQuery({

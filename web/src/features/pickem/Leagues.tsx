@@ -12,7 +12,8 @@ import type { LeaderboardRow } from "../../backend";
 import { useFriends, useFriendsStandings } from "../friends/useFriends";
 import { LeagueChampion, reigning, useLeagueChampions } from "./LeagueChampion";
 import { MODEL_PLAYER, places } from "./scoring";
-import { EVERYONE, FRIENDS, useLeaderboard, useLeagueActions, useLeagueCard, useLeagues, useStandings } from "./usePickem";
+import { RaceChart } from "./RaceChart";
+import { EVERYONE, FRIENDS, useLeaderboard, useLeagueActions, useLeagueCard, useLeagues, useRaceScores, useStandings } from "./usePickem";
 import { LogoLoader } from "../../components/LogoLoader";
 
 const TOP = 10; // rows shown before "Show all"
@@ -76,8 +77,12 @@ export function Leagues({ selected, setSelected }: Props) {
   const showFriends = selected === FRIENDS && hasFriends;
   const everyone = useLeaderboard();
   const standings = useStandings(league?.id ?? null);
-  // A league shows its latest card first (the overall board already has everyone's totals).
-  const [leagueView, setLeagueView] = useState<"card" | "all">("card");
+  // A league shows its latest card first (the overall board already has everyone's totals);
+  // every board can also show the race over the cards.
+  const [leagueView, setLeagueView] = useState<"card" | "all" | "race">("card");
+  const [boardView, setBoardView] = useState<"all" | "race">("all");
+  const racing = league ? leagueView === "race" : boardView === "race";
+  const raceScores = useRaceScores(racing);
   const card = useLeagueCard(league?.id ?? null);
   const lastCard = league && leagueView === "card" ? card.data : null;
   const friendsBoard = useFriendsStandings(showFriends);
@@ -120,18 +125,44 @@ export function Leagues({ selected, setSelected }: Props) {
         )}
 
         {league && <LeagueChampion league={league} rows={champions.data ?? []} me={profile?.displayName} />}
-        {league && card.data && (
+        {league ? (
           <SegmentedControl
             size="xs"
-            value={leagueView}
-            onChange={(v) => setLeagueView(v as "card" | "all")}
+            value={leagueView === "card" && !card.data ? "all" : leagueView}
+            onChange={(v) => setLeagueView(v as "card" | "all" | "race")}
             data={[
-              { value: "card", label: "Last card" },
+              ...(card.data ? [{ value: "card", label: "Last card" }] : []),
               { value: "all", label: "All cards" },
+              { value: "race", label: "Race" },
+            ]}
+          />
+        ) : (
+          <SegmentedControl
+            size="xs"
+            value={boardView}
+            onChange={(v) => setBoardView(v as "all" | "race")}
+            data={[
+              { value: "all", label: "Total" },
+              { value: "race", label: "Race" },
             ]}
           />
         )}
-        {lastCard ? (
+        {racing ? (
+          raceScores.data && (!league || standings.data) && (!showFriends || friendsBoard.data) ? (
+            <RaceChart
+              scores={raceScores.data}
+              players={league ? standings.data!.map((r) => r.displayName) : showFriends ? friendsBoard.data!.map((r) => r.displayName) : undefined}
+              me={profile?.displayName}
+              withModel={!league && !showFriends}
+            />
+          ) : raceScores.error ? (
+            <Text size="sm" c="red.3">
+              Couldn't load the race: {raceScores.error.message}
+            </Text>
+          ) : (
+            <LogoLoader size={30} />
+          )
+        ) : lastCard ? (
           <>
             {/* Whose points these are: the card's name, when, and whether it's over. */}
             <Group justify="space-between" wrap="nowrap" gap="xs" className="pickem-card-head">

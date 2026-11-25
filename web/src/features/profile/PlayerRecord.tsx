@@ -2,7 +2,7 @@
 // record, points over time, and past cards with their picks. Used on your own profile (with a
 // share button) and on anyone's player page.
 
-import { Grid, Group, Stack } from "@mantine/core";
+import { Grid, Group, Paper, Stack, Text } from "@mantine/core";
 
 import { usePredictor } from "../../data/client";
 import { MODEL_PLAYER, placeOf } from "../pickem/scoring";
@@ -17,6 +17,9 @@ import { starterBadges, useStarterBadges } from "./starter";
 import { usePlayerRecord } from "./usePlayerRecord";
 import { MarketChart } from "./MarketChart";
 import { ProfileCards } from "../collection/ProfileCards";
+import { useAuth } from "../../auth/AuthProvider";
+import { useVisiblePicks } from "../pickem/usePickem";
+import { RiskChart } from "./RiskChart";
 
 interface Props {
   userId: string;
@@ -32,6 +35,9 @@ interface Props {
 export function PlayerRecord({ userId, displayName, avatar, isMe, children, after }: Props) {
   const { scores, history, closest, modelScores } = usePlayerRecord(userId);
   const isModel = displayName === MODEL_PLAYER;
+  const { user, profile } = useAuth();
+  // How players pick: only signed in (signed out, only the model's picks are visible).
+  const visible = useVisiblePicks(!!user);
   const vsModel = modelScores && scores.data ? headToHead(scores.data, modelScores) : null;
   const picks = history.data ?? [];
   const list = badges(picks, vsModel);
@@ -86,6 +92,14 @@ export function PlayerRecord({ userId, displayName, avatar, isMe, children, afte
               <>
                 <Highlights history={picks} vsModel={vsModel} isModel={isModel} whose={isMe ? "you" : "they"} picksHidden={picksHidden} />
                 <PointsChart scores={scores.data} />
+                {user && visible.data && (
+                  <Paper p="md" radius="md" className="pickem-board">
+                    <Text size="xs" c="dimmed" fw={700} mb={6}>
+                      {isMe ? "How you pick" : "How they pick"}
+                    </Text>
+                    <RiskChart picks={visible.data} owner={displayName} me={profile?.displayName} />
+                  </Paper>
+                )}
               </>
             )}
             <History scores={scores.data} loading={scores.isPending} own={isMe} history={picks} />
