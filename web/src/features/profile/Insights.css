@@ -214,7 +214,7 @@
   background: var(--closest);
 }
 
-/* The four numbers at the top, each with its own colour. */
+/* The four numbers at the top. */
 /* The scoreboard: one pane, four cells split by rules (two by two on phones). */
 .scoreboard {
   display: grid;
@@ -239,7 +239,9 @@
     border-top: 1px solid var(--line);
   }
 }
-.stat-tile[data-stat="points"] { --stat: #f5c542; }
+/* Colour has one job each: plain numbers are white, green means right (the hit rate, points
+   gained), red is you, gold is kept for champions, Legendaries and titles. */
+.stat-tile[data-stat="points"] { --stat: #e9ecef; }
 .stat-tile[data-stat="right"] { --stat: #69db7c; }
 .stat-tile[data-stat="cards"] { --stat: #e9ecef; }
 .stat-tile[data-stat="rank"] { --stat: #e9ecef; }
@@ -262,8 +264,7 @@
 .stat-bars > div {
   width: 6px;
   border-radius: 2px 2px 0 0;
-  background: var(--stat);
-  opacity: 0.75;
+  background: #868e96;
 }
 /* The hit rate as a ring. */
 .stat-ring-track {

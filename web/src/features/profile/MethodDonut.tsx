@@ -8,8 +8,10 @@ import { useEffect, useRef, useState } from "react";
 import type { Method } from "../../backend";
 import { METHOD_LABEL } from "../pickem/scoring";
 
-// Validated as a set on the dark panels (distinct for colour-blind readers too).
-export const METHOD_COLOR: Record<Method, string> = { "KO/TKO": "#e8590c", SUB: "#0ca678", DEC: "#7950f2" };
+// What each way of winning looks like: a knockout red, a submission black, a decision grey. The
+// panels are nearly black, so the black slice (and its legend swatch) gets a thin grey edge.
+export const METHOD_COLOR: Record<Method, string> = { "KO/TKO": "#e03131", SUB: "#050506", DEC: "#868e96" };
+const EDGE = "#6b6f78"; // around the black slice
 
 const R = 42; // ring radius (viewBox 100 x 100)
 const STROKE = 13;
@@ -44,6 +46,24 @@ export function MethodDonut({ methods }: { methods: { method: Method; right: num
     <Group ref={ref} gap="md" wrap="wrap" align="center" justify="center">
       <svg viewBox="0 0 100 100" width={112} height={112} role="img" aria-label={`Method calls: ${right} of ${total} right`} style={{ flexShrink: 0, transform: "rotate(-90deg)" }}>
         <circle cx="50" cy="50" r={R} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={STROKE} />
+        {/* The black slice's edge: a slightly wider grey ring under it. */}
+        {slices
+          .filter((s) => s.method === "SUB")
+          .map((s) => (
+            <circle
+              key="edge"
+              cx="50"
+              cy="50"
+              r={R}
+              fill="none"
+              stroke={EDGE}
+              strokeWidth={STROKE + 2.4}
+              strokeDasharray={`${seen ? s.length + 1.2 : 0} ${C}`}
+              strokeDashoffset={-s.offset + 0.6}
+              className="method-slice"
+              style={{ transitionDelay: `${s.delay}ms` }}
+            />
+          ))}
         {slices.map((s) => (
           <Tooltip key={s.method} label={`${METHOD_LABEL[s.method]}: called ${s.total}, right ${s.right} (${pct(s.right, s.total)})`} withArrow>
             <circle
@@ -73,7 +93,7 @@ export function MethodDonut({ methods }: { methods: { method: Method; right: num
         {called.map((m) => (
           <Group key={m.method} gap={8} wrap="nowrap" justify="space-between">
             <Group gap={6} wrap="nowrap" style={{ minWidth: 0 }}>
-              <span className="method-swatch" style={{ background: METHOD_COLOR[m.method] }} />
+              <span className="method-swatch" style={{ background: METHOD_COLOR[m.method], boxShadow: m.method === "SUB" ? `inset 0 0 0 1px ${EDGE}` : undefined }} />
               <Text size="sm" truncate>
                 {METHOD_LABEL[m.method]}
               </Text>

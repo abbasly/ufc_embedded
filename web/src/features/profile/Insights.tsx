@@ -66,7 +66,7 @@ export function Highlights({ history, vsModel, isModel, whose, picksHidden }: { 
         {picksHidden ? hidden : call ? (
           <>
             <Text fz={22} fw={800} lh={1.2}>
-              <Text span c="yellow.4" fw={800} inherit>{call.fighter}</Text> <Text span c="green.4" fw={800} inherit>+{call.points}</Text>
+              {call.fighter} <Text span c="green.4" fw={800} inherit>+{call.points}</Text>
             </Text>
             {/* Where the points came from, from the scoring rules themselves: a line each. */}
             <div className="best-call-parts">
