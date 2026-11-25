@@ -8,9 +8,9 @@ import { useEffect, useRef, useState } from "react";
 import type { Method } from "../../backend";
 import { METHOD_LABEL } from "../pickem/scoring";
 
-// What each way of winning looks like: a knockout red, a submission black, a decision grey. The
+// What each way of winning looks like: a knockout red, a submission black, a decision white. The
 // panels are nearly black, so the black slice (and its legend swatch) gets a thin grey edge.
-export const METHOD_COLOR: Record<Method, string> = { "KO/TKO": "#e03131", SUB: "#050506", DEC: "#868e96" };
+export const METHOD_COLOR: Record<Method, string> = { "KO/TKO": "#e03131", SUB: "#050506", DEC: "#e9ecef" };
 const EDGE = "#6b6f78"; // around the black slice
 
 const R = 42; // ring radius (viewBox 100 x 100)

@@ -242,7 +242,7 @@
 /* Colour has one job each: plain numbers are white, green means right (the hit rate, points
    gained), red is you, gold is kept for champions, Legendaries and titles. */
 .stat-tile[data-stat="points"] { --stat: #e9ecef; }
-.stat-tile[data-stat="right"] { --stat: #69db7c; }
+.stat-tile[data-stat="right"] { --stat: #e9ecef; }
 .stat-tile[data-stat="cards"] { --stat: #e9ecef; }
 .stat-tile[data-stat="rank"] { --stat: #e9ecef; }
 .stat-value {
