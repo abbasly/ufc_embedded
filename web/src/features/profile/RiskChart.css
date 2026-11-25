@@ -11,13 +11,19 @@
   stroke: rgba(255, 255, 255, 0.05);
 }
 .risk-tick {
-  font-size: 10.5px;
-  fill: var(--mantine-color-dimmed);
+  font-size: 11px;
+  fill: #a4a8b0;
   font-variant-numeric: tabular-nums;
 }
 .risk-axis {
-  font-size: 11px;
-  fill: var(--mantine-color-dimmed);
+  font-size: 12px;
+  fill: #c3c6cc;
+}
+/* The two ends of the axis carry the meaning: say them clearly. */
+.risk-axis-end {
+  font-size: 12.5px;
+  font-weight: 700;
+  fill: var(--mantine-color-text);
 }
 .risk-avg {
   stroke: rgba(255, 255, 255, 0.22);

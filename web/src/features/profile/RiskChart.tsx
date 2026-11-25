@@ -100,13 +100,13 @@ export function RiskChart({ picks, owner, me }: { picks: VisiblePick[]; owner: s
               <text x={px(avgX) + 4} y={M.top + 10} className="risk-avg-label">
                 average
               </text>
-              <text x={M.left} y={H - 6} className="risk-axis">
+              <text x={M.left} y={H - 6} className="risk-axis risk-axis-end">
                 ← safer
               </text>
               <text x={M.left + plotW / 2} y={H - 6} textAnchor="middle" className="risk-axis">
                 {plotW < 380 ? "underdog picks" : "picks on the bookies' underdog"}
               </text>
-              <text x={M.left + plotW} y={H - 6} textAnchor="end" className="risk-axis">
+              <text x={M.left + plotW} y={H - 6} textAnchor="end" className="risk-axis risk-axis-end">
                 bolder →
               </text>
               <text transform={`translate(11 ${M.top + plotH / 2}) rotate(-90)`} textAnchor="middle" className="risk-axis">
