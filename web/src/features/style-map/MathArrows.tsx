@@ -12,9 +12,10 @@ import type { Line2, LineSegmentsGeometry } from "three-stdlib";
 import type { Fighter } from "../../data/types";
 import type { Vec3 } from "./mathModel";
 
-export const PLUS = "#69db7c";
-export const MINUS = "#ff8787";
-const SUM = "#ffd43b";
+// Black, white and red, like the rest of the site: adding is white, taking away is red.
+export const PLUS = "#e9ecef";
+export const MINUS = "#ff6b6b";
+const SUM = "#ffffff";
 
 const START = 0.35; // seconds before the first arrow
 const STEP = 0.85; // seconds per arrow, start to start
@@ -94,7 +95,7 @@ function TermChip({ term, first, delay }: { term: MathTermView; first: boolean; 
   return (
     // Fighters' labels sit above their point, styles' below, so a fighter and a style that are
     // close together (Topuria and the volume boxers' average) don't cover each other.
-    <div style={{ ...chip, borderColor: term.color, animationDelay: `${delay}s`, transform: term.style ? "translate(-50%, 45%)" : chip.transform }}>
+    <div style={{ ...chip, borderLeftColor: term.color, animationDelay: `${delay}s`, transform: term.style ? "translate(-50%, 45%)" : chip.transform }}>
       {!first && <span style={{ color: term.sign > 0 ? PLUS : MINUS, fontWeight: 800 }}>{term.sign > 0 ? "+" : "−"}</span>}
       {term.image && <img src={term.image} alt="" style={chipPhoto} />}
       <span>{term.name}</span>
@@ -105,15 +106,14 @@ function TermChip({ term, first, delay }: { term: MathTermView; first: boolean; 
 
 const easeInOut = (t: number) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
 const UP = new Vector3(0, 1, 0);
-const HEAD = 0.4; // arrowhead length
-const WIDTH = 0.17; // half the arrowhead's width
+const HEAD = 0.36; // arrowhead length
+const WIDTH = 0.13; // half the arrowhead's width
 
 /** One term's arrow, growing from where the sum so far is to where it goes next. Its head is a
  * flat triangle turned to face the camera, so it reads like an arrow drawn on paper from any
  * angle. */
 function Arrow({ from, to, color, delay }: { from: Vec3; to: Vec3; color: string; delay: number }) {
   const line = useRef<Line2>(null);
-  const glow = useRef<Line2>(null);
   const head = useRef<Mesh>(null);
   const t = useRef(delay > 0 ? -delay / GROW : 1);
   const { dir, length } = useMemo(() => {
@@ -138,7 +138,7 @@ function Arrow({ from, to, color, delay }: { from: Vec3; to: Vec3; color: string
     const base = tip.clone().addScaledVector(dir, -len);
     if (t.current < 1 || k === 1) {
       // The line stops at the head's base, so the head makes the point.
-      for (const l of [line.current, glow.current]) (l?.geometry as LineSegmentsGeometry | undefined)?.setPositions([...from, base.x, base.y, base.z]);
+      (line.current?.geometry as LineSegmentsGeometry | undefined)?.setPositions([...from, base.x, base.y, base.z]);
     }
     // Across the arrow and facing the camera: the head turns as the map does.
     side.copy(camera.position).sub(tip).cross(dir);
@@ -156,13 +156,12 @@ function Arrow({ from, to, color, delay }: { from: Vec3; to: Vec3; color: string
   const end = grown ? new Vector3(...to).addScaledVector(dir, -HEAD * size) : new Vector3(...from);
   return (
     <>
-      {/* A soft glow under the line, a dot where it starts, then the line and its head. */}
-      <Line ref={glow} points={[from, [end.x, end.y, end.z]]} color={color} lineWidth={14} transparent opacity={0.18} depthTest={false} renderOrder={1} />
+      {/* A small mark where it starts, then a thin line and its head: drawn, not glowing. */}
       <mesh position={from} renderOrder={3} raycast={() => null}>
-        <sphereGeometry args={[0.075, 16, 16]} />
+        <sphereGeometry args={[0.06, 12, 12]} />
         <meshBasicMaterial color={color} depthTest={false} transparent />
       </mesh>
-      <Line ref={line} points={[from, [end.x, end.y, end.z]]} color={color} lineWidth={5} depthTest={false} renderOrder={2} />
+      <Line ref={line} points={[from, [end.x, end.y, end.z]]} color={color} lineWidth={4} depthTest={false} renderOrder={2} />
       <mesh ref={head} geometry={triangle} visible={grown} renderOrder={3} raycast={() => null} frustumCulled={false}>
         <meshBasicMaterial color={color} side={DoubleSide} depthTest={false} transparent />
       </mesh>
@@ -170,7 +169,8 @@ function Arrow({ from, to, color, delay }: { from: Vec3; to: Vec3; color: string
   );
 }
 
-/** Where the sum lands: a gold point with a ring pulsing out of it, once the arrows are done. */
+/** Where the sum lands: a white point with a ring pulsing out of it, once the arrows are done
+ * (still, for reduced motion). */
 function SumRing({ position, delay }: { position: Vec3; delay: number }) {
   const ring = useRef<Mesh>(null);
   const dot = useRef<Mesh>(null);
@@ -185,18 +185,18 @@ function SumRing({ position, delay }: { position: Vec3; delay: number }) {
     ring.current.visible = shown;
     if (!shown || reduce) return;
     const k = (since % 1.6) / 1.6;
-    ring.current.scale.setScalar(1 + k * 2.4);
-    (ring.current.material as { opacity: number }).opacity = 0.8 * (1 - k);
+    ring.current.scale.setScalar(1 + k * 2.2);
+    (ring.current.material as { opacity: number }).opacity = 0.7 * (1 - k);
   });
   return (
     <group position={position}>
       <mesh ref={dot} visible={false} renderOrder={4} raycast={() => null}>
-        <sphereGeometry args={[0.13, 20, 20]} />
+        <sphereGeometry args={[0.09, 20, 20]} />
         <meshBasicMaterial color={SUM} depthTest={false} transparent />
       </mesh>
       <Billboard>
         <mesh ref={ring} visible={false} raycast={() => null}>
-          <ringGeometry args={[0.2, 0.25, 48]} />
+          <ringGeometry args={[0.17, 0.21, 48]} />
           <meshBasicMaterial color={SUM} transparent opacity={reduce ? 0.6 : 0} depthWrite={false} depthTest={false} />
         </mesh>
       </Billboard>
@@ -214,47 +214,48 @@ function ToMatch({ from, to, delay }: { from: Vec3; to: Vec3; delay: number }) {
     const k = Math.max(0, t.current);
     (line.current.geometry as LineSegmentsGeometry).setPositions([...from, ...from.map((v, i) => v + (to[i]! - v) * k)]);
   });
-  return <Line ref={line} points={[from, t.current >= 1 ? to : from]} color={SUM} lineWidth={1.5} transparent opacity={0.8} depthTest={false} renderOrder={2} />;
+  return <Line ref={line} points={[from, t.current >= 1 ? to : from]} color={SUM} lineWidth={1.5} transparent opacity={0.75} depthTest={false} renderOrder={2} />;
 }
 
 const chip = {
   display: "flex",
   alignItems: "center",
-  gap: 5,
+  gap: 6,
   transform: "translate(-50%, -135%)",
-  background: "rgba(16,16,18,0.88)",
-  border: "1px solid",
-  borderRadius: 999,
-  padding: "1px 8px 1px 2px",
+  background: "#18191c",
+  border: "1px solid #2f3137",
+  borderLeft: "3px solid",
+  borderRadius: 3,
+  padding: "2px 7px 2px 3px",
   color: "#e9ecef",
   fontSize: 11.5,
   whiteSpace: "nowrap",
   animation: "nb-in 0.4s ease-out backwards",
 } as const;
-const chipPhoto = { width: 20, height: 20, borderRadius: "50%", objectFit: "cover", objectPosition: "top" } as const;
+const chipPhoto = { width: 18, height: 18, borderRadius: 2, objectFit: "cover", objectPosition: "top" } as const;
 const arrowLabel = {
   display: "block",
-  padding: "0 6px",
-  borderRadius: 6,
-  background: "rgba(16,16,18,0.75)",
   fontSize: 12,
-  fontWeight: 800,
+  fontWeight: 700,
+  letterSpacing: 0.1,
   whiteSpace: "nowrap",
+  // Readable over the map without a box: a tight dark outline round the letters.
+  textShadow: "0 0 2px #121315, 0 0 2px #121315, 0 0 3px #121315",
   animation: "nb-in 0.4s ease-out backwards",
 } as const;
 const answer = {
   display: "flex",
   alignItems: "center",
-  gap: 6,
+  gap: 7,
   transform: "translate(-50%, 35%)",
-  background: "color-mix(in srgb, #ffd43b 16%, rgb(16,16,18) 84%)",
-  border: "1px solid #ffd43b",
-  boxShadow: "0 0 16px rgba(255, 212, 59, 0.35)",
-  borderRadius: 999,
-  padding: "2px 10px 2px 2px",
+  background: "#18191c",
+  border: "1px solid #3d4047",
+  borderLeft: "3px solid #e03131",
+  borderRadius: 3,
+  padding: "3px 9px 3px 3px",
   color: "#fff",
   fontSize: 13,
   whiteSpace: "nowrap",
   animation: "nb-in 0.5s ease-out backwards",
 } as const;
-const answerPhoto = { width: 26, height: 26, borderRadius: "50%", objectFit: "cover", objectPosition: "top" } as const;
+const answerPhoto = { width: 24, height: 24, borderRadius: 2, objectFit: "cover", objectPosition: "top" } as const;

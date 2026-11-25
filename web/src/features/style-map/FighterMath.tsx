@@ -179,7 +179,7 @@ export function MathDetails({ data, terms, result, matches, sameDivision, onSame
         <>
           <UnstyledButton className="math-answer" onClick={() => onOpenFighter(best.fighter.id)} title={`Open ${best.fighter.name} on the map`}>
             <Group wrap="nowrap" gap="sm">
-              <Text fz={30} fw={800} c="yellow.4" lh={1}>
+              <Text fz={30} fw={800} lh={1}>
                 =
               </Text>
               <Avatar src={best.fighter.image?.url} size={54} radius="xl">
@@ -194,7 +194,7 @@ export function MathDetails({ data, terms, result, matches, sameDivision, onSame
                 </Text>
               </div>
               <div style={{ marginLeft: "auto", textAlign: "right" }}>
-                <Text fw={800} fz="xl" c="yellow.4" lh={1} style={{ fontVariantNumeric: "tabular-nums" }}>
+                <Text fw={800} fz="xl" lh={1} style={{ fontVariantNumeric: "tabular-nums" }}>
                   {best.similarity}
                 </Text>
                 <Text size="10px" c="dimmed">
