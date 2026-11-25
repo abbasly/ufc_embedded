@@ -95,8 +95,8 @@
   transition: r 120ms ease;
 }
 
-/* The names at the end of the lines: they come in once, as the lines arrive (an animation, so
-   the delay is only ever the first time), and hovering dims or lights them at once. */
+/* The names at the end of the lines: a short fade in when the chart appears (an animation, so
+   it only ever runs once), and hovering dims or lights them at once. */
 .race-name {
   position: absolute;
   display: flex;
@@ -109,7 +109,7 @@
 }
 .race-name[data-seen] {
   opacity: 1;
-  animation: race-name-in 250ms ease 550ms backwards;
+  animation: race-name-in 200ms ease backwards;
 }
 .race-name[data-seen][data-dim] {
   opacity: 0.3;
