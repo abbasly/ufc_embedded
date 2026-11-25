@@ -9,8 +9,6 @@ import { MODEL_PLAYER, placeOf } from "../pickem/scoring";
 import { useLeaderboard } from "../pickem/usePickem";
 import { profileImage } from "../share/profileImage";
 import { ShareButton } from "../share/ShareButton";
-import { CardCollection } from "../collection/Collection";
-import { PulledCards } from "../collection/Packs";
 import { Badges, ClosestPredictors, Highlights, PointsChart } from "./Insights";
 import { LeagueTitles } from "./LeagueTitles";
 import { badges, bestCall, decided, headToHead } from "./record";
@@ -18,6 +16,7 @@ import { History, Stats } from "./PlayerStats";
 import { starterBadges, useStarterBadges } from "./starter";
 import { usePlayerRecord } from "./usePlayerRecord";
 import { MarketChart } from "./MarketChart";
+import { ProfileCards } from "../collection/ProfileCards";
 
 interface Props {
   userId: string;
@@ -79,15 +78,14 @@ export function PlayerRecord({ userId, displayName, avatar, isMe, children, afte
       {isModel && history.isSuccess && !picksHidden && <MarketChart history={picks} />}
       <Stats scores={scores.data} displayName={displayName} />
       {share}
-      {!isModel && history.isSuccess && !picksHidden && <CardCollection history={picks} isMe={isMe} displayName={displayName} />}
-      {!isModel && <PulledCards userId={userId} isMe={isMe} displayName={displayName} />}
+      {!isModel && history.isSuccess && !picksHidden && <ProfileCards history={picks} userId={userId} isMe={isMe} displayName={displayName} />}
       <Grid gap="lg">
         <Grid.Col span={{ base: 12, md: 7.5 }}>
           <Stack gap="lg">
             {!!scores.data?.length && (
               <>
-                <PointsChart scores={scores.data} />
                 <Highlights history={picks} vsModel={vsModel} isModel={isModel} whose={isMe ? "you" : "they"} picksHidden={picksHidden} />
+                <PointsChart scores={scores.data} />
               </>
             )}
             <History scores={scores.data} loading={scores.isPending} own={isMe} history={picks} />

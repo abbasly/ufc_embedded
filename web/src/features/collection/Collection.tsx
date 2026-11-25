@@ -3,7 +3,7 @@
 
 import "./Collection.css";
 
-import { Group, Modal, Paper, Stack, Text, Title } from "@mantine/core";
+import { Group, Modal, Stack, Text, Title } from "@mantine/core";
 import { useMemo, useRef, useState } from "react";
 
 import type { PastPick } from "../../backend";
@@ -59,9 +59,9 @@ export function CardCollection({ history, isMe, displayName }: { history: PastPi
   const shiny = cards.filter((c) => c.shiny).length;
 
   return (
-    <Paper p="md" radius="md" className="pickem-board">
+    <div className="profile-cards-col">
       <Group justify="space-between" align="baseline" mb="sm" gap="xs">
-        <Title order={4}>Called it</Title>
+        <Title order={5}>Called it</Title>
         {cards.length > 0 && (
           <Text size="sm" c="dimmed" style={{ fontVariantNumeric: "tabular-nums" }}>
             {cards.length} {cards.length === 1 ? "card" : "cards"}
@@ -88,10 +88,12 @@ export function CardCollection({ history, isMe, displayName }: { history: PastPi
         </Group>
       ) : (
         <CardStacks
+          // Called cards are mostly good fighters: only Legendaries stay on show.
+          pileUp={["epic", "rare", "common"]}
           cards={cards.map((c) => ({
             key: c.fighter,
             rarity: rarityOf(byId.get(c.fighter)),
-            shiny: c.shiny,
+            // Shiny cards stay foil but pile up with the rest, so the collection stays compact.
             label: `${c.name}${c.shiny ? ", shiny" : ""}`,
             card: <FighterTradingCard id={c.fighter} foil={c.shiny} still fallback={<DebutCard card={c} />} />,
             extra: c.times > 1 ? <span className="collection-times">×{c.times}</span> : undefined,
@@ -112,7 +114,7 @@ export function CardCollection({ history, isMe, displayName }: { history: PastPi
       >
         {open && <CardCloseUp card={open} isMe={isMe} displayName={displayName} />}
       </Modal>
-    </Paper>
+    </div>
   );
 }
 

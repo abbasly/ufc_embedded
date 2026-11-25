@@ -408,3 +408,29 @@
 .badge-more:hover {
   color: var(--mantine-color-white);
 }
+
+/* Method calls donut (MethodDonut.tsx). */
+.method-slice {
+  transition: stroke-dasharray 900ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.method-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.method-donut-big {
+  font-size: 17px;
+  font-weight: 800;
+  fill: var(--mantine-color-text);
+  font-variant-numeric: tabular-nums;
+}
+.method-donut-small {
+  font-size: 9px;
+  fill: var(--mantine-color-dimmed);
+}
+@media (prefers-reduced-motion: reduce) {
+  .method-slice {
+    transition: none;
+  }
+}

@@ -557,3 +557,35 @@
   .card-pile-under,
   .card-pile-count { transition: none; }
 }
+
+/* A player's cards (ProfileCards.tsx): called and pulled side by side, one above the other on
+   phones. */
+.profile-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mantine-spacing-lg);
+  margin-top: var(--mantine-spacing-md);
+}
+.profile-cards-col {
+  flex: 1 1 340px;
+  min-width: 0;
+}
+.profile-cards-col + .profile-cards-col {
+  border-left: 1px solid var(--line);
+  padding-left: var(--mantine-spacing-lg);
+}
+@media (max-width: 48em) {
+  .profile-cards-col + .profile-cards-col {
+    border-left: 0;
+    padding-left: 0;
+    border-top: 1px solid var(--line);
+    padding-top: var(--mantine-spacing-md);
+  }
+}
+.profile-cards-chevron {
+  display: inline-block;
+  transition: transform 200ms ease;
+}
+.profile-cards-chevron[data-open] {
+  transform: rotate(180deg);
+}

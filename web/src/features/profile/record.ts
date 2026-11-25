@@ -25,11 +25,13 @@ export interface BestCall {
   points: number;
 }
 
-/** Their boldest right call: the winner the bookies rated lowest. */
+/** Their best right call: the one that scored the most (winner, method, underdog), and among
+ * those the winner the bookies rated lowest. */
 export function bestCall(history: PastPick[]): BestCall | null {
   const right = decided(history).filter((p) => isRight(p) && chanceOf(p) !== null);
   if (!right.length) return null;
-  const best = right.reduce((a, b) => (chanceOf(b)! < chanceOf(a)! ? b : a));
+  const better = (a: PastPick, b: PastPick) => pointsOf(b) > pointsOf(a) || (pointsOf(b) === pointsOf(a) && chanceOf(b)! < chanceOf(a)!);
+  const best = right.reduce((a, b) => (better(a, b) ? b : a));
   return { pick: best, fighter: surnameOf(best, best.pick.winner), chance: chanceOf(best)!, points: pointsOf(best) };
 }
 

@@ -3,7 +3,7 @@
 
 import "./Insights.css";
 
-import { Group, Paper, SimpleGrid, Stack, Text, Title, Tooltip, UnstyledButton } from "@mantine/core";
+import { Group, Paper, SimpleGrid, Text, Title, Tooltip, UnstyledButton } from "@mantine/core";
 import { useState } from "react";
 
 import { Link } from "react-router-dom";
@@ -11,7 +11,8 @@ import { Link } from "react-router-dom";
 import { PlayerAvatar } from "../../auth/PlayerAvatar";
 import type { ClosestPredictor, EventScore, PastPick } from "../../backend";
 import { ModelTag, playerPath } from "../pickem/Leagues";
-import { METHOD_LABEL, MODEL_PLAYER } from "../pickem/scoring";
+import { MODEL_PLAYER } from "../pickem/scoring";
+import { MethodDonut } from "./MethodDonut";
 import { type Badge, bestCall, type HeadToHead, methodRecord, pointsOverTime } from "./record";
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
@@ -79,21 +80,7 @@ export function Highlights({ history, vsModel, isModel, whose, picksHidden }: { 
       </Panel>
       <Panel label="Method calls">
         {picksHidden ? hidden : methods.length ? (
-          <Stack gap={8}>
-            {methods.map((m) => (
-              <div key={m.method} className="method-row" data-method={m.method}>
-                <Group justify="space-between" wrap="nowrap">
-                  <Text size="sm">{METHOD_LABEL[m.method]}</Text>
-                  <Text size="sm" fw={700} style={{ fontVariantNumeric: "tabular-nums" }}>
-                    {m.right}/{m.total}
-                  </Text>
-                </Group>
-                <div className="method-bar">
-                  <div style={{ width: `${(100 * m.right) / m.total}%` }} />
-                </div>
-              </div>
-            ))}
-          </Stack>
+          <MethodDonut methods={methods} />
         ) : (
           <Text size="sm" c="dimmed">
             No method calls yet: pick how a fighter wins for +5.
