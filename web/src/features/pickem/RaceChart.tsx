@@ -60,12 +60,8 @@ export function RaceChart({ scores, players, me, withModel }: Props) {
     return () => io.disconnect();
   }, [seen, el]);
 
-  if (shown.cards.length < 2)
-    return (
-      <Text size="sm" c="dimmed">
-        The race starts once two cards are done: see who climbs and who drops, card by card.
-      </Text>
-    );
+  // Nothing to race over yet: the board shows on its own.
+  if (shown.cards.length < 2) return null;
 
   const n = shown.cards.length;
   const outside = shown.lines.some((l) => l.steps.some((s) => s.position > TOP));
