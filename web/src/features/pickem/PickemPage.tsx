@@ -28,24 +28,7 @@ import { useClaimGuestPicks, useGuestPicks } from "./guestPicks";
 import { Leagues, ModelTag, playerPath } from "./Leagues";
 import { boutPoints, isUnderdog, marketChance, METHOD_LABEL, MODEL_PLAYER, places, POINTS, pointsFor, scores } from "./scoring";
 import { cardDuel } from "./market";
-import {
-  EVERYONE,
-  FRIENDS,
-  PICK_MUTATION,
-  useCard,
-  useEventLeaderboard,
-  useEvents,
-  useLeagueChoice,
-  useLeagueMembers,
-  useLeagues,
-  useMatesPicks,
-  useMatesWhoPicked,
-  useMyPicks,
-  usePick,
-  usePickSaves,
-  usePickSplit,
-  type SaveState,
-} from "./usePickem";
+import { EVERYONE, FRIENDS, PICK_MUTATION, type SaveState, useCard, useEventLeaderboard, useEvents, useLeagueChoice, useLeagueMembers, useLeagues, useMatesPicks, useMatesWhoPicked, useMyPicks, usePick, usePickSaves, usePickSplit, useRaceScores } from "./usePickem";
 
 /** The current time, ticking every ``ms``: for the lock countdown. */
 function useNow(ms: number) {
@@ -128,6 +111,9 @@ export default function PickemPage() {
   const { data: predictor } = usePredictor();
   const [params, setParams] = useSearchParams();
   const events = useEvents();
+  // The leaderboard's race: asked for now, alongside the card, rather than once the card is in
+  // (each request to the database takes about a second; one after the other they add up).
+  useRaceScores();
   const eventId = params.get("event") ?? defaultEvent(events.data ?? [])?.id;
   const event = useCard(eventId);
   const picks = useMyPicks(eventId);
