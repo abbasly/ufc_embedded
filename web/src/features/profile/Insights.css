@@ -239,10 +239,9 @@
     border-top: 1px solid var(--line);
   }
 }
-/* Colour has one job each: plain numbers are white, green means right (the hit rate, points
-   gained), red is you, gold is kept for champions, Legendaries and titles. */
+/* Plain numbers are white; green means right (the hit rate, points gained). */
 .stat-tile[data-stat="points"] { --stat: #e9ecef; }
-.stat-tile[data-stat="right"] { --stat: #e9ecef; }
+.stat-tile[data-stat="right"] { --stat: #69db7c; }
 .stat-tile[data-stat="cards"] { --stat: #e9ecef; }
 .stat-tile[data-stat="rank"] { --stat: #e9ecef; }
 .stat-value {
@@ -285,23 +284,6 @@
   font-weight: 700;
   fill: var(--mantine-color-text);
   font-variant-numeric: tabular-nums;
-}
-/* A dot per card played. */
-.stat-dots {
-  display: grid;
-  grid-template-columns: repeat(6, 7px);
-  gap: 4px;
-  flex-shrink: 0;
-}
-.stat-dots > span {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-  transition: background 150ms ease;
-}
-.stat-dots > span[data-on] {
-  background: var(--stat);
 }
 /* Where they stand on the overall board: last on the left, first on the right. */
 .stat-track {

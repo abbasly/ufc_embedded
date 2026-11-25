@@ -15,7 +15,7 @@ import { useCountUp } from "../predictor/useCountUp";
 const day = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
 /** Points, right picks, cards played and overall rank: one compact row, each number with a small
- * picture of itself (points per card, the hit rate as a ring, a dot per card, where they stand),
+ * picture of itself (points per card, the hit rate as a ring, where they stand),
  * counting up once the numbers are in. */
 export function Stats({ scores, displayName }: { scores: EventScore[] | undefined; displayName: string }) {
   const board = useLeaderboard();
@@ -75,16 +75,9 @@ export function Stats({ scores, displayName }: { scores: EventScore[] | undefine
         <Text size="xs" c="dimmed" fw={600}>
           Cards played
         </Text>
-        <Group gap={12} wrap="nowrap" align="center" justify="space-between">
-          <Text fz={{ base: 26, sm: 30 }} fw={850} className="stat-value">
-            {Math.round(rows.length * t)}
-          </Text>
-          <div className="stat-dots" aria-hidden>
-            {rows.slice(0, 12).map((r, i) => (
-              <span key={r.eventId} data-on={t > (i + 0.5) / Math.min(12, rows.length) || undefined} />
-            ))}
-          </div>
-        </Group>
+        <Text fz={{ base: 26, sm: 30 }} fw={850} className="stat-value">
+          {Math.round(rows.length * t)}
+        </Text>
       </div>
 
       <div className="stat-tile" data-stat="rank">
