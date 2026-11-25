@@ -67,7 +67,9 @@ export function PlayerRecord({ userId, displayName, avatar, isMe, children, afte
             picked: rows.reduce((n, r) => n + r.picked, 0),
             cards: rows.length,
             vsModel: vsModel && vsModel.wins + vsModel.losses + vsModel.draws > 0 ? `${vsModel.wins}–${vsModel.losses}` : null,
-            bestCall: call ? `${call.fighter} at ${Math.round(call.chance * 100)}% (+${call.points})` : null,
+            bestCall: call
+              ? `${call.fighter}${call.pick.pick.method && call.pick.pick.method === call.pick.bout.method ? ` by ${call.pick.pick.method === "KO/TKO" ? "KO" : call.pick.pick.method === "SUB" ? "submission" : "decision"}` : ""} at ${Math.round(call.chance * 100)}% (+${call.points})`
+              : null,
             badges: list.filter((b) => b.earned).map((b) => b.name),
           });
         }}

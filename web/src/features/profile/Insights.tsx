@@ -11,7 +11,7 @@ import { Link } from "react-router-dom";
 import { PlayerAvatar } from "../../auth/PlayerAvatar";
 import type { ClosestPredictor, EventScore, PastPick } from "../../backend";
 import { ModelTag, playerPath } from "../pickem/Leagues";
-import { MODEL_PLAYER } from "../pickem/scoring";
+import { METHOD_LABEL, MODEL_PLAYER, POINTS, pointsFor } from "../pickem/scoring";
 import { MethodDonut } from "./MethodDonut";
 import { type Badge, bestCall, type HeadToHead, methodRecord, pointsOverTime } from "./record";
 
@@ -68,8 +68,24 @@ export function Highlights({ history, vsModel, isModel, whose, picksHidden }: { 
             <Text fz={22} fw={800} lh={1.2}>
               <Text span c="yellow.4" fw={800} inherit>{call.fighter}</Text> <Text span c="green.4" fw={800} inherit>+{call.points}</Text>
             </Text>
-            <Text size="sm" c="dimmed">
-              at {pct(call.chance)} with the bookies · {call.pick.eventName.split(":")[0]}
+            {/* Where the points came from, from the scoring rules themselves: a line each. */}
+            <div className="best-call-parts">
+              {pointsFor(call.pick.bout, call.pick.pick).map((why) => (
+                <Text key={why} size="sm" c="dimmed">
+                  <b className="best-call-pts">+{why === "winner" ? POINTS.winner : why === "method" ? POINTS.method : why === "underdog" ? POINTS.underdog : POINTS.prelim}</b>{" "}
+                  {why === "winner"
+                    ? "right winner"
+                    : why === "method"
+                      ? `${METHOD_LABEL[call.pick.pick.method!]} called`
+                      : why === "underdog"
+                        ? `underdog at ${pct(call.chance)}`
+                        : "prelim winner"}
+                </Text>
+              ))}
+            </div>
+            <Text size="xs" c="dimmed">
+              {call.pick.eventName.split(":")[0]}
+              {!call.pick.pick.method || call.pick.pick.method === call.pick.bout.method ? "" : ` · called ${METHOD_LABEL[call.pick.pick.method]}, won by ${METHOD_LABEL[call.pick.bout.method!]}`}
             </Text>
           </>
         ) : (
