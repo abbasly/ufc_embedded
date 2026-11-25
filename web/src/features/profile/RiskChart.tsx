@@ -131,9 +131,6 @@ export function RiskChart({ picks, owner, me }: { picks: VisiblePick[]; owner: s
           </>
         )}
       </div>
-      <Text size="xs" c="dimmed" mt={4}>
-        Everyone whose picks you can see (you, friends, league-mates, the model), with {MIN_PICKS}+ decided picks that had odds. Hover a face for the numbers.
-      </Text>
     </div>
   );
 }
