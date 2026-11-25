@@ -8,7 +8,6 @@ import { useState } from "react";
 import type { StyleMapData, StyleMath } from "../../data/types";
 import { changes, isStyleRef, MAX_TERMS, type Match, PRESETS, presetTerms, styleRef, type Term } from "./mathModel";
 import { MINUS, PLUS } from "./MathArrows";
-import { colorOfGroup } from "./model";
 
 type MathData = StyleMapData & { math: StyleMath };
 
@@ -40,12 +39,10 @@ export function MathBar({ data, terms, onTerms, best, onOpenFighter, onClose, an
       },
     ];
   };
+  // A fighter's photo in front of their name; a style needs no mark, its name says it.
   const icon = (ref: string) => {
-    if (!ref) return null;
-    const f = byId.get(ref);
-    if (f) return <Avatar src={f.image?.url} size={26} radius="xl">{f.name[0]}</Avatar>;
-    const name = data.clusters.find((c) => styleRef(c.id) === ref)?.name ?? "";
-    return <span style={{ color: colorOfGroup(name, "style"), fontSize: 16 }}>◆</span>;
+    const f = ref ? byId.get(ref) : undefined;
+    return f ? <Avatar src={f.image?.url} size={26} radius="xl">{f.name[0]}</Avatar> : null;
   };
 
   return (
