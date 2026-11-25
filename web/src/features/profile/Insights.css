@@ -214,15 +214,16 @@
   background: var(--closest);
 }
 
-/* The four numbers at the top, each with its own colour. */
+/* The four numbers at the top. */
 /* The scoreboard: one pane, four cells split by rules (two by two on phones). */
 .scoreboard {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
 }
 .stat-tile {
-  padding: 16px 20px;
+  padding: 12px 16px;
   border-left: 1px solid var(--line);
+  min-width: 0;
 }
 .stat-tile:first-child {
   border-left: 0;
@@ -238,13 +239,69 @@
     border-top: 1px solid var(--line);
   }
 }
-.stat-tile[data-stat="points"] { --stat: #f5c542; }
+/* Plain numbers are white; green means right (the hit rate, points gained). */
+.stat-tile[data-stat="points"] { --stat: #e9ecef; }
 .stat-tile[data-stat="right"] { --stat: #69db7c; }
 .stat-tile[data-stat="cards"] { --stat: #e9ecef; }
 .stat-tile[data-stat="rank"] { --stat: #e9ecef; }
 .stat-value {
   color: var(--stat);
   font-variant-numeric: tabular-nums;
+}
+.stat-value {
+  line-height: 1.15;
+}
+
+/* Points per card: small bars, oldest first. */
+.stat-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 30px;
+  flex-shrink: 0;
+}
+.stat-bars > div {
+  width: 6px;
+  border-radius: 2px 2px 0 0;
+  background: #868e96;
+}
+/* The hit rate as a ring. */
+.stat-ring-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 4;
+}
+.stat-ring-fill {
+  fill: none;
+  stroke: var(--stat);
+  stroke-width: 4;
+  stroke-linecap: round;
+  transform: rotate(-90deg);
+  transform-origin: center;
+}
+.stat-ring-text {
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--mantine-color-text);
+  font-variant-numeric: tabular-nums;
+}
+/* Where they stand on the overall board: last on the left, first on the right. */
+.stat-track {
+  position: relative;
+  height: 4px;
+  margin-top: 8px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.stat-track-marker {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--stat);
+  box-shadow: 0 0 0 2px var(--surface);
+  transform: translate(-50%, -50%);
 }
 
 /* Past cards: a row opens to its picks. */
@@ -407,4 +464,41 @@
 }
 .badge-more:hover {
   color: var(--mantine-color-white);
+}
+
+/* Method calls donut (MethodDonut.tsx). */
+.method-slice {
+  transition: stroke-dasharray 900ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.method-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.method-donut-big {
+  font-size: 17px;
+  font-weight: 800;
+  fill: var(--mantine-color-text);
+  font-variant-numeric: tabular-nums;
+}
+.method-donut-small {
+  font-size: 9px;
+  fill: var(--mantine-color-dimmed);
+}
+@media (prefers-reduced-motion: reduce) {
+  .method-slice {
+    transition: none;
+  }
+}
+
+/* Best call: where its points came from, a line each. */
+.best-call-parts {
+  margin: 4px 0 2px;
+}
+.best-call-pts {
+  display: inline-block;
+  min-width: 2.2em;
+  color: #8ce99a;
+  font-variant-numeric: tabular-nums;
 }

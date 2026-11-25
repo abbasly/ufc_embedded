@@ -1,0 +1,185 @@
+/* The daily fighter (DailyPage.tsx): flat panes, white and grey, red for close. */
+
+.daily-rounds {
+  border-bottom: 1px solid var(--line);
+}
+.daily-round {
+  padding: 8px 14px 9px 0;
+  margin-right: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--mantine-color-dimmed);
+  box-shadow: inset 0 -2px 0 transparent;
+}
+.daily-round[data-on] {
+  color: var(--mantine-color-text);
+  box-shadow: inset 0 -2px 0 #e03131;
+}
+.daily-round-done {
+  color: var(--mantine-color-text);
+}
+
+.daily-link {
+  font-size: 13px;
+  color: var(--mantine-color-dimmed);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(255, 255, 255, 0.25);
+}
+.daily-link:hover:not(:disabled) {
+  color: var(--mantine-color-text);
+}
+.daily-link:disabled {
+  text-decoration: none;
+  opacity: 0.5;
+  cursor: default;
+}
+.daily-hint {
+  font-size: 13px;
+  padding: 3px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  background: var(--surface);
+}
+
+/* The guesses: closest first, one hairline row each, a thin bar for how close. */
+.daily-guesses {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--line);
+}
+.daily-guess {
+  --heat: #5c5f66;
+  display: grid;
+  grid-template-columns: 48px 26px minmax(0, 1fr) 118px minmax(64px, 22%);
+  align-items: center;
+  gap: 10px;
+  padding: 7px 4px;
+  border-bottom: 1px solid var(--line);
+  animation: daily-in 220ms ease-out backwards;
+}
+.daily-guess[data-heat="warm"] {
+  --heat: #e9ecef;
+}
+.daily-guess[data-heat="hot"],
+.daily-guess[data-heat="found"] {
+  --heat: #e03131;
+}
+.daily-guess {
+  width: 100%;
+  cursor: pointer;
+}
+.daily-guess:hover,
+.daily-guess[data-open] {
+  background: var(--surface);
+}
+.daily-guess-card {
+  padding: 12px 0 14px 62px;
+  border-bottom: 1px solid var(--line);
+  animation: daily-in 200ms ease-out backwards;
+}
+.daily-guess-card-inner {
+  width: 180px;
+}
+.daily-guess[data-latest] {
+  background: var(--surface);
+  box-shadow: inset 2px 0 0 var(--mantine-color-text);
+}
+.daily-place {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.daily-guess[data-heat="hot"] .daily-place,
+.daily-guess[data-heat="found"] .daily-place {
+  color: #ff6b6b;
+}
+.daily-name {
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.daily-weight {
+  font-size: 13px;
+  color: var(--mantine-color-dimmed);
+  white-space: nowrap;
+}
+.daily-weight[data-dir="same"] {
+  color: var(--mantine-color-text);
+  font-weight: 600;
+}
+.daily-bar {
+  height: 4px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+.daily-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--heat);
+  animation: daily-bar 500ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  transform-origin: left;
+}
+.daily-rule {
+  height: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* Found (or given up): the card and the result. */
+.daily-reveal {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-left: 3px solid #e03131;
+  border-radius: 5px;
+  background: var(--surface);
+  animation: daily-in 300ms ease-out backwards;
+}
+.daily-reveal-card {
+  width: 150px;
+  flex: none;
+}
+.daily-reveal-text {
+  min-width: 0;
+}
+@media (max-width: 30em) {
+  .daily-reveal {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .daily-guess {
+    grid-template-columns: 42px 24px minmax(0, 1fr) 20px 48px;
+    gap: 8px;
+  }
+  .daily-weight {
+    text-align: center;
+  }
+  .daily-weight-label {
+    display: none;
+  }
+}
+
+@keyframes daily-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+@keyframes daily-bar {
+  from {
+    transform: scaleX(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .daily-guess,
+  .daily-reveal,
+  .daily-bar > span {
+    animation: none;
+  }
+}

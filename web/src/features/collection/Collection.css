@@ -217,63 +217,7 @@
   line-height: 1.2;
 }
 
-/* ---- League champions and titles -------------------------------------------------------- */
-/* The league's champion: a solid plate with a gold edge, like the answer in fighter math. */
-.champion-strip {
-  padding: 12px 14px;
-  border-radius: 5px;
-  border: 1px solid var(--line-strong);
-  border-left: 3px solid #f4c430;
-  background: var(--surface-raised);
-}
-.champion-faces .mantine-Avatar-root {
-  box-shadow: 0 0 0 2px #f4c430, 0 0 0 4px var(--surface-raised);
-}
-.champion-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: #f4c430;
-}
-.champion-won {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  flex: none;
-  font-variant-numeric: tabular-nums;
-}
-.champion-won span {
-  font-size: 22px;
-  font-weight: 850;
-  line-height: 1.05;
-}
-.champion-won small {
-  font-size: 11px;
-  color: var(--mantine-color-dimmed);
-}
-.champion-titles {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 6px 14px;
-  margin-top: 4px;
-  padding-top: 8px;
-  border-top: 1px solid var(--line);
-  font-size: 13px;
-}
-.champion-titles-head {
-  color: var(--mantine-color-dimmed);
-}
-.champion-tally b {
-  margin-left: 2px;
-  color: #f4c430;
-  font-variant-numeric: tabular-nums;
-}
-.champion-crown {
-  width: 20px;
-  height: 15px;
-  flex: none;
-  fill: #f4c430;
-}
+/* ---- League titles (the profile's trophy) ----------------------------------------------- */
 .titles-trophy {
   width: 46px;
   height: 46px;
@@ -556,4 +500,36 @@
   .card-pile-top,
   .card-pile-under,
   .card-pile-count { transition: none; }
+}
+
+/* A player's cards (ProfileCards.tsx): called and pulled side by side, one above the other on
+   phones. */
+.profile-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mantine-spacing-lg);
+  margin-top: var(--mantine-spacing-md);
+}
+.profile-cards-col {
+  flex: 1 1 340px;
+  min-width: 0;
+}
+.profile-cards-col + .profile-cards-col {
+  border-left: 1px solid var(--line);
+  padding-left: var(--mantine-spacing-lg);
+}
+@media (max-width: 48em) {
+  .profile-cards-col + .profile-cards-col {
+    border-left: 0;
+    padding-left: 0;
+    border-top: 1px solid var(--line);
+    padding-top: var(--mantine-spacing-md);
+  }
+}
+.profile-cards-chevron {
+  display: inline-block;
+  transition: transform 200ms ease;
+}
+.profile-cards-chevron[data-open] {
+  transform: rotate(180deg);
 }

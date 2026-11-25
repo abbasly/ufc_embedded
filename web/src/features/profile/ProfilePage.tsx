@@ -73,6 +73,7 @@ function Identity() {
   const client = useQueryClient();
   const { data: predictor } = usePredictor();
   const [editing, setEditing] = useState(false);
+  const [picking, setPicking] = useState(false);
   const [name, setName] = useState(profile?.displayName ?? "");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -108,10 +109,10 @@ function Identity() {
   };
 
   return (
-    <Paper p="lg" radius="md" className="pickem-board">
-      <Group gap="lg" wrap="wrap" align="center">
-        <PlayerAvatar name={profile.displayName} avatar={profile.avatar} size={88} />
-        <Stack gap={6} style={{ flex: 1, minWidth: 220 }}>
+    <Paper px="lg" py="md" radius="md" className="pickem-board">
+      <Group gap="md" wrap="wrap" align="center">
+        <PlayerAvatar name={profile.displayName} avatar={profile.avatar} size={64} />
+        <Stack gap={4} style={{ flex: 1, minWidth: 220 }}>
           {editing ? (
             <form
               onSubmit={(e) => {
@@ -131,18 +132,25 @@ function Identity() {
               </Group>
             </form>
           ) : (
-            <Group gap="xs" align="baseline">
-              <Title order={2} lh={1.1}>
+            <Group gap="xs" align="baseline" wrap="wrap">
+              <Title order={3} lh={1.1}>
                 {profile.displayName}
               </Title>
-              <Anchor component="button" size="sm" c="dimmed" onClick={() => (setName(profile.displayName), setEditing(true))}>
+              <Anchor component="button" size="xs" c="dimmed" onClick={() => (setName(profile.displayName), setEditing(true))}>
                 Change name
+              </Anchor>
+              <Text span size="xs" c="dimmed">
+                ·
+              </Text>
+              <Anchor component="button" size="xs" c="dimmed" onClick={() => setPicking(!picking)}>
+                {picking ? "Done" : "Change picture"}
               </Anchor>
             </Group>
           )}
           <Text size="xs" c="dimmed">
             Signed in as {user?.email} (only you see this)
           </Text>
+          {picking && (
           <Group gap="xs" wrap="nowrap" mt={4}>
             <Select
               size="xs"
@@ -169,6 +177,7 @@ function Identity() {
               </Button>
             )}
           </Group>
+          )}
           {error && !editing && (
             <Text size="xs" c="red">
               {error}

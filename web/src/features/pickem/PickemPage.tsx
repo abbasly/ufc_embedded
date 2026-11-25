@@ -27,24 +27,8 @@ import { StarterToast } from "../profile/StarterToast";
 import { useClaimGuestPicks, useGuestPicks } from "./guestPicks";
 import { Leagues, ModelTag, playerPath } from "./Leagues";
 import { boutPoints, isUnderdog, marketChance, METHOD_LABEL, MODEL_PLAYER, places, POINTS, pointsFor, scores } from "./scoring";
-import {
-  EVERYONE,
-  FRIENDS,
-  PICK_MUTATION,
-  useCard,
-  useEventLeaderboard,
-  useEvents,
-  useLeagueChoice,
-  useLeagueMembers,
-  useLeagues,
-  useMatesPicks,
-  useMatesWhoPicked,
-  useMyPicks,
-  usePick,
-  usePickSaves,
-  usePickSplit,
-  type SaveState,
-} from "./usePickem";
+import { cardDuel } from "./market";
+import { EVERYONE, FRIENDS, PICK_MUTATION, type SaveState, useCard, useEventLeaderboard, useEvents, useLeagueChoice, useLeagueMembers, useLeagues, useMatesPicks, useMatesWhoPicked, useMyPicks, usePick, usePickSaves, usePickSplit, useRaceScores } from "./usePickem";
 
 /** The current time, ticking every ``ms``: for the lock countdown. */
 function useNow(ms: number) {
@@ -127,6 +111,9 @@ export default function PickemPage() {
   const { data: predictor } = usePredictor();
   const [params, setParams] = useSearchParams();
   const events = useEvents();
+  // The leaderboard's race: asked for now, alongside the card, rather than once the card is in
+  // (each request to the database takes about a second; one after the other they add up).
+  useRaceScores();
   const eventId = params.get("event") ?? defaultEvent(events.data ?? [])?.id;
   const event = useCard(eventId);
   const picks = useMyPicks(eventId);
@@ -285,6 +272,7 @@ export default function PickemPage() {
           />
 
           {card.scoredAt && results.data && <Results rows={results.data} me={profile?.displayName} />}
+          {!open && <ModelVsMarket bouts={bouts} done={!!card.scoredAt} />}
           {!open && !card.scoredAt && (
             <div className="pickem-notice">
               {live
@@ -452,6 +440,20 @@ function Ring() {
         d="M10 24C5 12 34 3 62 3.5 88 4 99 13 97 24 95 35 62 39 36 38 13 37 1 29 7 17 11 9 22 6 31 5"
       />
     </svg>
+  );
+}
+
+/** Our model against the bookmakers' favourites on this card's decided fights (winners). */
+function ModelVsMarket({ bouts, done }: { bouts: PickemBout[]; done: boolean }) {
+  const d = cardDuel(bouts);
+  if (!d.fights) return null;
+  return (
+    <Text size="sm" c="dimmed" className="pickem-duel">
+      {done ? "Winners on this card" : "Winners so far"}: <Text span fw={700} c={d.model > d.market ? "green.4" : undefined} inherit renderRoot={(props) => <Link {...props} to={playerPath(MODEL_PLAYER)} />} style={{ textDecoration: "underline dotted", textUnderlineOffset: 3 }}>the model {d.model}/{d.fights}</Text>
+      {" · "}
+      <Text span fw={700} c={d.market > d.model ? "green.4" : undefined} inherit>the market {d.market}/{d.fights}</Text>
+      {d.disagreed > 0 && <> · they split on {d.disagreed}</>}
+    </Text>
   );
 }
 

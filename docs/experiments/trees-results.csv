@@ -1,0 +1,7 @@
+variant,settings,seconds,mean_year_log_loss,accuracy,ece,gain,gain_lo,gain_hi
+logistic regression (deployed),C=0.003,0,0.6513,0.6219,0.02052,0.0,0.0,0.0
+decision tree (differences),"max_depth=6, min_samples_leaf=400",9,0.66976,0.58689,0.01696,-0.01854,-0.02751,-0.00981
+random forest (differences),"max_depth=None, min_samples_leaf=20, max_features=0.3",102,0.65632,0.60521,0.00735,-0.00507,-0.00997,0.00012
+random forest (both fighters' values),"max_depth=None, min_samples_leaf=20, max_features=0.3",134,0.65711,0.61213,0.02593,-0.00562,-0.01161,0.00041
+gradient boosting (differences),"learning_rate=0.03, max_depth=1, max_iter=1000, min_samples_leaf=50",46,0.65517,0.60602,0.01199,-0.00401,-0.00847,0.00062
+gradient boosting (both fighters' values),"learning_rate=0.03, max_depth=1, max_iter=1000, min_samples_leaf=50",62,0.65708,0.61823,0.03432,-0.0058,-0.01115,-0.00011

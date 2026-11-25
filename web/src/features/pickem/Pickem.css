@@ -9,8 +9,8 @@
   --rule-strong: rgba(255, 255, 255, 0.2);
   --spot: #ff6b6b; /* the printed red */
   --spot-wash: rgba(255, 107, 107, 0.09);
-  --pen: #8fa8ff; /* ink */
-  --pen-wash: rgba(143, 168, 255, 0.12);
+  --pen: #ff6b6b; /* your ink: the ring round your pick, your ticks, your row (red = you) */
+  --pen-wash: rgba(255, 107, 107, 0.1);
   --good: #69db7c;
   --bad: #ff6b6b;
   --paper-raised: #23252a;
@@ -498,7 +498,7 @@ a.pickem-row {
 a.pickem-row:hover {
   background: var(--paper-hover);
 }
-/* Your own row: a faint blue wash. */
+/* Your own row: a faint wash of your ink. */
 .pickem-row[data-me] {
   background: var(--pen-wash);
 }
@@ -547,15 +547,11 @@ a.pickem-row:hover {
   }
 }
 
-/* The top three: the place stamped in its medal's colour, the row washed in it, a crown on the
-   leader. */
-.pickem-row[data-podium="1"] { --podium: #f5c542; --podium-wash: rgba(245, 197, 66, 0.11); }
-.pickem-row[data-podium="2"] { --podium: #c9d0d9; --podium-wash: rgba(201, 208, 217, 0.08); }
-.pickem-row[data-podium="3"] { --podium: #e0925a; --podium-wash: rgba(224, 146, 90, 0.1); }
-.pickem-row[data-podium] {
-  background: var(--podium-wash);
-  box-shadow: inset 3px 0 0 var(--podium);
-}
+/* The top three: the place, the points and a ring round the picture in the medal's colour; the
+   row itself stays plain. */
+.pickem-row[data-podium="1"] { --podium: #f5c542; }
+.pickem-row[data-podium="2"] { --podium: #c9d0d9; }
+.pickem-row[data-podium="3"] { --podium: #e0925a; }
 .pickem-row[data-podium] .pickem-points {
   color: var(--podium);
 }
@@ -576,23 +572,6 @@ a.pickem-row:hover {
 }
 .pickem-row[data-podium] .pickem-row-avatar {
   box-shadow: 0 0 0 2px var(--podium);
-}
-.pickem-crown {
-  position: absolute;
-  z-index: 1;
-  top: -9px;
-  left: -6px;
-  width: 19px;
-  height: 14px;
-  fill: #e0a91b;
-  stroke: #18191c;
-  stroke-width: 1.2;
-  stroke-linejoin: round;
-  transform: rotate(-18deg);
-}
-/* Your own row on the podium: the medal's wash, your pen points. */
-.pickem-row[data-me][data-podium] {
-  background: linear-gradient(90deg, var(--podium-wash) 55%, var(--pen-wash));
 }
 
 /* Signed out with picks made: the way to keep them stays in reach above the phone's tab bar. */

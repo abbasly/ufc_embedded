@@ -97,6 +97,14 @@ const svg = (children: ReactNode) => (
 );
 
 export const ICONS = {
+  // a target: the daily fighter
+  daily: svg(
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+    </>,
+  ),
   // a scatter of points: the style map
   map: svg(
     <>

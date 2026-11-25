@@ -15,6 +15,18 @@ const toRow = (r: Record<string, unknown>): LeaderboardRow => ({
   events: Number(r.events),
 });
 
+/** Every row of a query, a page at a time (the API returns at most 1000 rows per request). */
+async function allPages<T>(page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>): Promise<T[]> {
+  const size = 1000;
+  const out: T[] = [];
+  for (let from = 0; ; from += size) {
+    const { data, error } = await page(from, from + size - 1);
+    if (error) throw friendly(error as Parameters<typeof friendly>[0]);
+    out.push(...(data ?? []));
+    if (!data || data.length < size) return out;
+  }
+}
+
 const toEvent = (r: Record<string, unknown>): PickemEvent => ({
   id: r.id as string,
   name: r.name as string,
@@ -346,6 +358,43 @@ export function supabaseBackend(url: string, anonKey: string): Backend {
             boutId: p.bout_id as string,
             winner: p.winner as string,
             method: p.method as Method | null,
+          };
+        });
+      },
+      async raceScores() {
+        const rows = await allPages((from, to) =>
+          db
+            .from("scores")
+            .select("points, correct, events!inner(id, name, starts_on, scored_at), profiles!inner(display_name, avatar)")
+            .not("events.scored_at", "is", null)
+            .order("event_id")
+            .order("user_id")
+            .range(from, to),
+        );
+        return rows.map((r) => {
+          const e = r.events as unknown as { id: string; name: string; starts_on: string };
+          const p = r.profiles as unknown as { display_name: string; avatar: string | null };
+          return { eventId: e.id, eventName: e.name, startsOn: e.starts_on, displayName: p.display_name, avatar: p.avatar, points: r.points as number, correct: r.correct as number };
+        });
+      },
+      async visiblePicks() {
+        // Row level security returns exactly the picks this visitor may see.
+        const rows = await allPages((from, to) =>
+          db
+            .from("picks")
+            .select("bout_id, winner, method, profiles!inner(display_name, avatar), bouts!inner(*)")
+            .not("bouts.outcome", "is", null)
+            .order("user_id")
+            .order("bout_id")
+            .range(from, to),
+        );
+        return rows.map((r) => {
+          const p = r.profiles as unknown as { display_name: string; avatar: string | null };
+          return {
+            displayName: p.display_name,
+            avatar: p.avatar,
+            pick: { boutId: r.bout_id as string, winner: r.winner as string, method: r.method as Method | null },
+            bout: toBout(r.bouts as unknown as Record<string, unknown>),
           };
         });
       },

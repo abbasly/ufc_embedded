@@ -7,11 +7,13 @@ import { MantineProvider, createTheme } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { ErrorBoundary } from "react-error-boundary";
 import { BrowserRouter } from "react-router-dom";
 
 import { App } from "./app/App";
 import { AuthProvider } from "./auth/AuthProvider";
 import { reloadForNewCode } from "./app/lazyPage";
+import { RootError } from "./app/RootError";
 import { prefetchFor } from "./data/client";
 // Listen for "this site can be installed" from the first moment (see app/install.tsx).
 import "./app/install";
@@ -42,9 +44,11 @@ createRoot(document.getElementById("root")!).render(
     <MantineProvider theme={theme} defaultColorScheme="dark">
       <QueryClientProvider client={queryClient}>
         <BrowserRouter basename={import.meta.env.BASE_URL}>
-          <AuthProvider>
-            <App />
-          </AuthProvider>
+          <ErrorBoundary FallbackComponent={RootError}>
+            <AuthProvider>
+              <App />
+            </AuthProvider>
+          </ErrorBoundary>
         </BrowserRouter>
       </QueryClientProvider>
     </MantineProvider>

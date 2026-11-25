@@ -60,11 +60,11 @@ export default function PlayerPage() {
 
   return (
     <Stack gap="lg" maw={1100} mx="auto" pt={4}>
-      <Paper p="lg" radius="md" className="pickem-board">
-        <Group gap="lg" wrap="wrap" align="center">
-          <PlayerAvatar name={p.displayName} avatar={p.avatar} size={88} />
-          <Stack gap={4} style={{ flex: 1, minWidth: 200 }}>
-            <Title order={2} lh={1.1}>
+      <Paper px="lg" py="md" radius="md" className="pickem-board">
+        <Group gap="md" wrap="nowrap" align="center">
+          <PlayerAvatar name={p.displayName} avatar={p.avatar} size={64} />
+          <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
+            <Title order={3} lh={1.1}>
               {p.displayName}
               {p.displayName === MODEL_PLAYER && <ModelTag />}
             </Title>
@@ -72,7 +72,7 @@ export default function PlayerPage() {
               {p.displayName === MODEL_PLAYER ? (
                 <>
                   Our prediction model, playing along: it picks the <Anchor component={Link} to="/predictor">predictor's</Anchor> favourite,
-                  and its most likely method, on every fight (the bookies' favourite when a fighter is new to the UFC). Can you beat it?
+                  and its most likely method, on every fight (the bookies' favourite when a fighter is new to the UFC). Can you beat me?
                 </>
               ) : (
                 <>
@@ -81,14 +81,19 @@ export default function PlayerPage() {
                 </>
               )}
             </Text>
+            {/* Right under the name: what you can do with this player. */}
+            {isMe ? (
+              <Group mt={4}>
+                <Button component={Link} to="/me" variant="light" size="xs">
+                  Edit your profile
+                </Button>
+              </Group>
+            ) : p.displayName === MODEL_PLAYER ? null : (
+              <Group mt={4}>
+                <FriendButton userId={p.id} displayName={p.displayName} />
+              </Group>
+            )}
           </Stack>
-          {isMe ? (
-            <Button component={Link} to="/me" variant="light" size="xs">
-              Edit your profile
-            </Button>
-          ) : p.displayName === MODEL_PLAYER ? null : (
-            <FriendButton userId={p.id} displayName={p.displayName} />
-          )}
         </Group>
       </Paper>
       <PlayerRecord userId={p.id} displayName={p.displayName} avatar={p.avatar} isMe={isMe}>

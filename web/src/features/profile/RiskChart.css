@@ -1,0 +1,95 @@
+/* How players pick (RiskChart.tsx): a scatter on a quiet grid. */
+
+.risk-plot {
+  position: relative;
+}
+.risk-plot svg {
+  display: block;
+  overflow: visible;
+}
+.risk-grid {
+  stroke: rgba(255, 255, 255, 0.05);
+}
+.risk-tick {
+  font-size: 11px;
+  fill: #a4a8b0;
+  font-variant-numeric: tabular-nums;
+}
+.risk-axis {
+  font-size: 12px;
+  fill: #c3c6cc;
+}
+/* The two ends of the axis carry the meaning: say them clearly. */
+.risk-axis-end {
+  font-size: 12.5px;
+  font-weight: 700;
+  fill: var(--mantine-color-text);
+}
+.risk-avg {
+  stroke: rgba(255, 255, 255, 0.22);
+  stroke-dasharray: 4 4;
+}
+.risk-avg-label {
+  font-size: 10px;
+  fill: var(--mantine-color-dimmed);
+}
+
+.risk-point {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  outline: none;
+}
+/* Friends and league-mates: small faces that grow, with their name, on hover. */
+.risk-point[data-role="other"] {
+  opacity: 0.8;
+  transition: opacity 120ms ease;
+}
+.risk-point[data-role="other"] .mantine-Avatar-root {
+  transition: transform 140ms ease;
+}
+.risk-point[data-role="other"]:hover,
+.risk-point[data-role="other"]:focus-visible {
+  opacity: 1;
+  z-index: 3;
+}
+.risk-point[data-role="other"]:hover .mantine-Avatar-root,
+.risk-point[data-role="other"]:focus-visible .mantine-Avatar-root {
+  transform: scale(1.6);
+}
+.risk-point[data-role="other"] .risk-label {
+  display: none;
+  left: calc(100% + 12px);
+  font-weight: 600;
+}
+.risk-point[data-role="other"]:hover .risk-label,
+.risk-point[data-role="other"]:focus-visible .risk-label {
+  display: block;
+}
+.risk-point:not([data-role="other"]) .mantine-Avatar-root {
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 3.5px rgba(255, 255, 255, 0.55);
+}
+.risk-point[data-role="me"] .mantine-Avatar-root {
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 3.5px #e03131;
+}
+.risk-point[data-role="owner"] .mantine-Avatar-root {
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 3.5px #fff;
+}
+/* The name beside the highlighted players: positioned off the avatar, so the avatar stays on its point. */
+.risk-label {
+  position: absolute;
+  left: calc(100% + 6px);
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 700;
+}
+.risk-point[data-role="me"] .risk-label {
+  color: #ff8787;
+}

@@ -47,25 +47,58 @@ export function background(ctx: CanvasRenderingContext2D) {
   ctx.fillRect(0, 0, SIZE, SIZE);
 }
 
-/** The logo (an octagon, like the favicon) and the page's name, top left. */
-export function header(ctx: CanvasRenderingContext2D, page: string) {
-  const x = 60;
-  const y = 64;
-  const s = 40;
+/** The site's logo, the cage drawn as a graph (public/logo.svg, made by scripts/logo.py), on a
+ * 64 x 64 grid: the octagon, its chords and its weighted nodes, the red one being "you". */
+const LOGO = {
+  ring: [[55.1, 41.57], [41.57, 55.1], [22.43, 55.1], [8.9, 41.57], [8.9, 22.43], [22.43, 8.9], [41.57, 8.9], [55.1, 22.43]] as const,
+  chords: [[[8.9, 41.57], [55.1, 41.57]], [[8.9, 41.57], [22.43, 8.9]], [[22.43, 8.9], [55.1, 41.57]], [[41.57, 55.1], [22.43, 8.9]]] as const,
+  nodes: [[55.1, 41.57, 4.6], [41.57, 55.1, 2.8], [22.43, 55.1, 3.2], [8.9, 22.43, 2.6], [22.43, 8.9, 3.8], [41.57, 8.9, 3.0], [55.1, 22.43, 2.6]] as const,
+  red: [8.9, 41.57, 6.0] as const,
+};
+
+/** Draws the logo with its top left at (x, y), ``size`` pixels square. */
+export function drawLogo(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
+  const k = size / 64;
   ctx.save();
   ctx.translate(x, y);
-  octagon(ctx, s / 2, s / 2, s / 2);
-  ctx.fillStyle = "#d6262b";
-  ctx.fill();
-  octagon(ctx, s / 2, s / 2, s / 2 - 6);
-  ctx.strokeStyle = "#fff";
-  ctx.lineWidth = 2;
-  ctx.stroke();
+  ctx.scale(k, k);
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "#eceef1";
+  ctx.globalAlpha = 0.85;
+  ctx.lineWidth = 2.6;
   ctx.beginPath();
-  ctx.arc(s / 2, s / 2, 3.5, 0, Math.PI * 2);
-  ctx.fillStyle = "#fff";
+  LOGO.ring.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
+  ctx.closePath();
+  ctx.stroke();
+  ctx.globalAlpha = 0.4;
+  ctx.lineWidth = 1.8;
+  for (const [[ax, ay], [bx, by]] of LOGO.chords) {
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    ctx.lineTo(bx, by);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = "#eceef1";
+  for (const [cx, cy, r] of LOGO.nodes) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = "#e03131";
+  ctx.beginPath();
+  ctx.arc(LOGO.red[0], LOGO.red[1], LOGO.red[2], 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
+}
+
+/** The logo and the page's name, top left. */
+export function header(ctx: CanvasRenderingContext2D, page: string) {
+  const x = 60;
+  const y = 62;
+  const s = 44;
+  drawLogo(ctx, x, y, s);
   ctx.textBaseline = "middle";
   ctx.textAlign = "left";
   ctx.fillStyle = TEXT;
@@ -75,18 +108,6 @@ export function header(ctx: CanvasRenderingContext2D, page: string) {
   ctx.fillStyle = DIM;
   ctx.font = `500 30px ${FONT}`;
   ctx.fillText(`·  ${page}`, x + s + 16 + w + 14, y + s / 2);
-}
-
-function octagon(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
-  ctx.beginPath();
-  for (let i = 0; i < 8; i++) {
-    const a = Math.PI / 8 + (i * Math.PI) / 4;
-    const px = cx + r * Math.cos(a);
-    const py = cy + r * Math.sin(a);
-    if (i === 0) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
-  }
-  ctx.closePath();
 }
 
 /** The call to action and the address, centred together at the bottom. */

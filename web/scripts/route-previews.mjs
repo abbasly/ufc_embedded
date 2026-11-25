@@ -31,6 +31,14 @@ const ROUTES = [
     text: "Every active UFC fighter placed in 3D by fighting style, from 14 stats per fighter. Pick a fighter to see their 5 most similar fighters with a similarity score out of 100.",
   },
   {
+    path: "daily",
+    title: "Daily fighter: guess today's UFC fighter by fighting style | UFC Embedded",
+    description:
+      "A daily UFC guessing game: find the hidden champion or top-3 fighter. Every guess shows how close it is in fighting style. Two new fighters every day.",
+    image: "og.png",
+    text: "Guess today's hidden UFC fighter. Every guess is ranked by how close its fighting style is, from #1 (the fighter) to the furthest fighter on the map.",
+  },
+  {
     path: "predictor",
     title: "UFC fight predictor: who wins and how | UFC Embedded",
     description:

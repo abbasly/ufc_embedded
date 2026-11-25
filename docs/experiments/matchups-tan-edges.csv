@@ -1,0 +1,54 @@
+child,parent,info
+"Wrestling, if it hits the mat",Wrestling vs TD defence,1.5965
+Last 3: takedown edge,Recent takedown edge,1.3855
+Last 3: control edge,Recent control edge,1.3558
+"Power, if it stays standing",Knockdowns / 15 min,1.3524
+Recently finished,Last 3: finished,1.2928
+Last 3: knockdown edge,Recent knockdown edge,1.2673
+Recent striking edge,Last 3: striking edge,1.2648
+Last 3: results,Recent results,1.0508
+Cage time,UFC experience,1.0355
+Gets finished,Recently finished,0.9655
+Glicko rating,UFC win rate,0.6415
+Wrestling vs TD defence,Takedowns / 15 min,0.6305
+Sub attempts / 15 min,Sub attempts vs held down,0.5896
+UFC win rate,Recent results,0.5697
+Rating uncertainty,UFC experience,0.5327
+Age away from 30,Age past 32,0.4738
+Age,Age past 32,0.4274
+Losing streak,Below career peak,0.4175
+Takedowns / 15 min,Control time,0.4013
+Reach,Height,0.2826
+Strike defence,Accuracy vs strike defence,0.2799
+Striking accuracy,Accuracy vs strike defence,0.2778
+Knockdowns vs chin,Knockdowns / 15 min,0.2429
+Recent takedown edge,Recent control edge,0.2387
+Recent results,Below career peak,0.2373
+Recent control edge,Control time,0.237
+Submission wins,Sub attempts / 15 min,0.2289
+Knocked down / 15 min,Knockdowns vs chin,0.2255
+UFC debut,Rating uncertainty,0.222
+Time being controlled,Recent control edge,0.2142
+Knockdowns / 15 min,KO power,0.1926
+Accuracy vs strike defence,"Striking, if it stays standing",0.1673
+Last 3: striking edge,Last 3: knockdown edge,0.1645
+Strikes landed / min,"Striking, if it stays standing",0.1639
+Win streak,Recent results,0.1555
+KO power,KO wins vs gets finished,0.1548
+Recent knockdown edge,Knockdowns vs chin,0.1432
+"Striking, if it stays standing",Recent striking edge,0.1414
+Last 3: finished,Last 3: results,0.1357
+Takedown accuracy,Wrestling vs TD defence,0.1324
+KO wins vs gets finished,Gets finished,0.1292
+Strikes absorbed / min,Strikes landed / min,0.125
+Takedown defence,Wrestling vs TD defence,0.1163
+Below career peak,Rating uncertainty,0.1104
+Control time,Strikes absorbed / min,0.0969
+Pro fights,UFC experience,0.079
+Age past 32,UFC experience,0.0771
+UFC experience,Pro win rate,0.0707
+Time off,UFC debut,0.0665
+Strength of schedule,Glicko rating,0.0488
+Sub attempts vs held down,Control time,0.0454
+Height,Age,0.0089
+Southpaw,Strikes absorbed / min,0.0032

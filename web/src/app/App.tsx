@@ -31,6 +31,7 @@ const ProfilePage = lazyPage(() => import("../features/profile/ProfilePage"));
 const PlayerPage = lazyPage(() => import("../features/profile/PlayerPage"));
 const AdminPage = lazyPage(() => import("../features/admin/AdminPage"));
 const SeoPage = lazyPage(() => import("../features/seo/SeoPage"));
+const DailyPage = lazyPage(() => import("../features/daily/DailyPage"));
 
 // The tabs: across the header on wider screens, a bottom tab bar on phones (with the `short`
 // labels). `fresh` tabs get a tag ("NEW", or `tag`). Fighter Lab first: it's the landing page.
@@ -38,6 +39,7 @@ const SeoPage = lazyPage(() => import("../features/seo/SeoPage"));
 const NAV: NavItem[] = [
   { to: "/fighter-lab", label: "Fighter Lab", short: "Lab", icon: ICONS.map },
   ...(accountsEnabled ? [{ to: "/pickem", label: "Pick'em", short: "Picks", icon: ICONS.picks }] : []),
+  { to: "/daily", label: "Daily", icon: ICONS.daily, fresh: true },
   { to: "/predictor", label: "Predictor", short: "Predict", icon: ICONS.predictor },
   { to: "/mma-math", label: "MMA Math", short: "Math", icon: ICONS.math, fresh: !accountsEnabled },
   { to: "/ladder", label: "Ladder", icon: ICONS.ladder },
@@ -53,6 +55,7 @@ const TITLES: Record<string, string> = {
   "/": "UFC Embedded by Anar Abbasli: UFC fight predictor, style map and Elo rankings",
   "/fighter-lab": "Fighter Lab: fighter math and the UFC style map | UFC Embedded",
   "/predictor": "UFC fight predictor: who wins and how | UFC Embedded",
+  "/daily": "Daily fighter: guess today's UFC fighter by fighting style | UFC Embedded",
   "/ladder": "UFC Elo rankings: every fighter rated since 1994 | UFC Embedded",
   "/mma-math": "MMA math calculator: prove any UFC fighter beats any other | UFC Embedded",
   "/about": "About UFC Embedded: a machine learning project by Anar Abbasli",
@@ -138,6 +141,7 @@ export function App() {
             <Route path="/style-map" element={<ToFighterLab />} />
             <Route path="/mma-math" element={<MmaMathPage />} />
             <Route path="/predictor" element={<PredictorPage />} />
+            <Route path="/daily" element={<DailyPage />} />
             <Route path="/ladder" element={<LadderPage />} />
             {accountsEnabled && <Route path="/pickem" element={<PickemPage />} />}
             {accountsEnabled && <Route path="/me" element={<ProfilePage />} />}

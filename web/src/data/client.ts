@@ -63,7 +63,7 @@ const predictorQuery = {
 };
 
 export const useStyleMap = () => useQuery(styleMapQuery);
-export const useMmaMath = () => useQuery(mmaMathQuery);
+export const useMmaMath = (enabled = true) => useQuery({ ...mmaMathQuery, enabled });
 export const usePredictor = (enabled = true) => useQuery({ ...predictorQuery, enabled });
 
 /**

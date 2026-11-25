@@ -1,6 +1,7 @@
 import {
   ActionIcon,
   Alert,
+  Anchor,
   Box,
   Button,
   Center,
@@ -17,10 +18,12 @@ import {
   Tooltip,
 } from "@mantine/core";
 import { useMediaQuery, useViewportSize } from "@mantine/hooks";
-import { type ReactNode, Suspense, useMemo, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { lazy, type ReactNode, Suspense, useMemo, useRef } from "react";
+import { ErrorBoundary } from "react-error-boundary";
+import { Link, useSearchParams } from "react-router-dom";
 
-import { lazyPage } from "../../app/lazyPage";
+import { accountsEnabled } from "../../backend";
+import { MODEL_PLAYER } from "../pickem/scoring";
 import { useMmaMath, usePredictor, useStyleMap } from "../../data/client";
 import type { MmaMathData, PredictorData, PredictorFighter } from "../../data/types";
 import { FighterTradingCard } from "./FighterTradingCard";
@@ -42,7 +45,7 @@ import { PageLoader } from "../../components/LogoLoader";
 // Loaded only on wide screens, and only once the fight is on screen: the physics engine is the
 // biggest download on the site, and fetching it earlier slowed the predictor data down. The
 // bags fade in when ready.
-const HeavyBag = lazyPage(() => import("../heavy-bag/HeavyBag"));
+const HeavyBag = lazy(() => import("../heavy-bag/HeavyBag"));
 // px kept free on each side of the fight for a bag: narrower on smaller laptop screens.
 const bagStrip = (viewportWidth: number) => (viewportWidth >= 1280 ? 160 : 120);
 
@@ -73,7 +76,9 @@ const TAPE: [string, string, (v: number) => string, "high" | "low" | null][] = [
 
 export default function PredictorPage() {
   const { data, error, isPending } = usePredictor();
-  const mma = useMmaMath().data;
+  // Only for the notes further down: fetched after the predictor's own data, not alongside it
+  // (on a slow connection the two would share the bandwidth and delay the fight).
+  const mma = useMmaMath(!!data).data;
   const [params, setParams] = useSearchParams();
   const fightRef = useRef<HTMLDivElement>(null);
   // The bag needs free space beside the cards; skip it (and its download) on smaller screens.
@@ -156,9 +161,11 @@ export default function PredictorPage() {
         )}
         {/* Punchable heavy bags either side of the fight, in front of it (wide screens only). */}
         {wide && (
-          <Suspense fallback={null}>
-            <HeavyBag eventSource={fightRef} at={[1 - bagAt, bagAt]} />
-          </Suspense>
+          <ErrorBoundary fallback={null}>
+            <Suspense fallback={null}>
+              <HeavyBag eventSource={fightRef} at={[1 - bagAt, bagAt]} />
+            </Suspense>
+          </ErrorBoundary>
         )}
         <Container size={fightWidth ?? "lg"} w="100%" pos="relative" style={{ zIndex: 1 }}>
         <Stack gap="md" className={matchup ? "chapter-leave" : undefined}>
@@ -180,6 +187,14 @@ export default function PredictorPage() {
                   // Comes in once the outcome has played out (keyed, so it replays per matchup).
                   <Center key={`share-${a.id}-${b.id}`} className="share-after" style={{ "--share-delay": `${SHARE_AFTER_MS}ms` } as React.CSSProperties}>
                     <SharePrediction data={data} a={a} b={b} event={bookedOn(cards, a.id, b.id)} />
+                  </Center>
+                )}
+                {matchup && accountsEnabled && (
+                  // The model plays Pick'em with these predictions: its page has its picks and record.
+                  <Center key={`model-${a.id}-${b.id}`} className="share-after" style={{ "--share-delay": `${SHARE_AFTER_MS}ms` } as React.CSSProperties}>
+                    <Anchor component={Link} to={`/u/${MODEL_PLAYER}`} size="xs" c="dimmed">
+                      The model plays Pick'em too: see its picks and record →
+                    </Anchor>
                   </Center>
                 )}
               </Stack>

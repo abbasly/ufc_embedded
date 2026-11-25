@@ -158,6 +158,25 @@ export interface PastPick {
   startsOn: string;
 }
 
+/** One player's points on one finished card (for the race between players over cards). */
+export interface RaceScore {
+  eventId: string;
+  eventName: string;
+  startsOn: string;
+  displayName: string;
+  avatar: string | null;
+  points: number;
+  correct: number;
+}
+
+/** Someone's pick on a fought bout, one you may see (yours, friends', league-mates', the model's). */
+export interface VisiblePick {
+  displayName: string;
+  avatar: string | null;
+  pick: Pick;
+  bout: PickemBout;
+}
+
 export interface VisitDay {
   date: string; // yyyy-mm-dd
   visits: number;
@@ -281,6 +300,11 @@ export interface Backend {
     starterBadges(userId: string): Promise<string[]>;
     /** Who picks most like this player, most alike first, among the picks you may see. */
     closestPredictors(userId: string): Promise<ClosestPredictor[]>;
+    /** Every player's points on every finished card (public, like the leaderboard). */
+    raceScores(): Promise<RaceScore[]>;
+    /** Every pick on a fought bout that you may see: yours, friends', league-mates', the
+     * model's (the database decides; nobody else's). */
+    visiblePicks(): Promise<VisiblePick[]>;
   };
   /** The owner's panel. Everything but ``isAdmin`` is refused unless you're an admin. */
   admin: {

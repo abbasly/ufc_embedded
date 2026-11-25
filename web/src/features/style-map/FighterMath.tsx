@@ -8,7 +8,6 @@ import { useState } from "react";
 import type { StyleMapData, StyleMath } from "../../data/types";
 import { changes, isStyleRef, MAX_TERMS, type Match, PRESETS, presetTerms, styleRef, type Term } from "./mathModel";
 import { MINUS, PLUS } from "./MathArrows";
-import { colorOfGroup } from "./model";
 
 type MathData = StyleMapData & { math: StyleMath };
 
@@ -40,12 +39,10 @@ export function MathBar({ data, terms, onTerms, best, onOpenFighter, onClose, an
       },
     ];
   };
+  // A fighter's photo in front of their name; a style needs no mark, its name says it.
   const icon = (ref: string) => {
-    if (!ref) return null;
-    const f = byId.get(ref);
-    if (f) return <Avatar src={f.image?.url} size={26} radius="xl">{f.name[0]}</Avatar>;
-    const name = data.clusters.find((c) => styleRef(c.id) === ref)?.name ?? "";
-    return <span style={{ color: colorOfGroup(name, "style"), fontSize: 16 }}>◆</span>;
+    const f = ref ? byId.get(ref) : undefined;
+    return f ? <Avatar src={f.image?.url} size={26} radius="xl">{f.name[0]}</Avatar> : null;
   };
 
   return (
@@ -65,7 +62,7 @@ export function MathBar({ data, terms, onTerms, best, onOpenFighter, onClose, an
       <div className="math-equation">
         {terms.map((t, i) => (
           <div key={i} className="math-term-wrap">
-            {i > 0 && (
+            {(i > 0 || t.sign < 0) && (
               <UnstyledButton
                 className="math-sign"
                 data-sign={t.sign > 0 ? "plus" : "minus"}
@@ -86,8 +83,8 @@ export function MathBar({ data, terms, onTerms, best, onOpenFighter, onClose, an
               value={t.ref || null}
               onChange={(v) => set(i, { ref: v ?? "" })}
               leftSection={icon(t.ref)}
-              rightSection={i >= 2 ? <CloseButton size="sm" onClick={() => onTerms(terms.filter((_, k) => k !== i))} aria-label={`Remove term ${i + 1}`} /> : undefined}
-              rightSectionPointerEvents={i >= 2 ? "auto" : "none"}
+              rightSection={terms.length > 1 ? <CloseButton size="sm" onClick={() => onTerms(terms.filter((_, k) => k !== i))} aria-label={`Remove term ${i + 1}`} /> : undefined}
+              rightSectionPointerEvents={terms.length > 1 ? "auto" : "none"}
               renderOption={({ option }) => (
                 <Group gap={8} wrap="nowrap">
                   {icon(option.value)}
@@ -179,7 +176,7 @@ export function MathDetails({ data, terms, result, matches, sameDivision, onSame
         <>
           <UnstyledButton className="math-answer" onClick={() => onOpenFighter(best.fighter.id)} title={`Open ${best.fighter.name} on the map`}>
             <Group wrap="nowrap" gap="sm">
-              <Text fz={30} fw={800} c="yellow.4" lh={1}>
+              <Text fz={30} fw={800} lh={1}>
                 =
               </Text>
               <Avatar src={best.fighter.image?.url} size={54} radius="xl">
@@ -194,7 +191,7 @@ export function MathDetails({ data, terms, result, matches, sameDivision, onSame
                 </Text>
               </div>
               <div style={{ marginLeft: "auto", textAlign: "right" }}>
-                <Text fw={800} fz="xl" c="yellow.4" lh={1} style={{ fontVariantNumeric: "tabular-nums" }}>
+                <Text fw={800} fz="xl" lh={1} style={{ fontVariantNumeric: "tabular-nums" }}>
                   {best.similarity}
                 </Text>
                 <Text size="10px" c="dimmed">

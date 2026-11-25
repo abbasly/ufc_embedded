@@ -1,0 +1,55 @@
+,deployed,+ matchups + standing,finishing 2×
+Age,-0.154,-0.153,-0.1534
+Age past 32,-0.0928,-0.0928,-0.0927
+Age away from 30,-0.0064,-0.0062,-0.0061
+Control time,-0.0428,-0.0581,-0.0426
+Time being controlled,-0.0624,-0.0463,-0.0645
+UFC debut,-0.0869,-0.0868,-0.0852
+Recent control edge,0.0505,0.0499,0.0504
+Recently finished,-0.0275,-0.0291,-0.0366
+Recent knockdown edge,-0.0301,-0.0295,-0.0343
+Recent striking edge,0.0692,0.0608,0.0679
+Recent takedown edge,0.0145,0.0081,0.0144
+Recent results,-0.019,-0.0206,-0.0211
+Gets finished,-0.0049,-0.0075,0.0161
+"Power, if it stays standing",,-0.0063,
+"Striking, if it stays standing",,0.064,
+"Wrestling, if it hits the mat",,0.0549,
+Glicko rating,0.0746,0.07,0.0741
+Rating uncertainty,-0.1489,-0.1483,-0.1439
+Height,-0.0448,-0.0439,-0.0442
+Knockdowns / 15 min,-0.001,-0.0187,-0.0032
+Knocked down / 15 min,-0.0908,-0.0671,-0.1097
+KO power,0.0444,0.0467,0.0589
+Last 3: control edge,0.016,0.0171,0.0166
+Last 3: finished,-0.0328,-0.034,-0.0444
+Last 3: knockdown edge,-0.0215,-0.021,-0.025
+Last 3: striking edge,0.0322,0.0267,0.0315
+Last 3: takedown edge,-0.0145,-0.0188,-0.0143
+Last 3: results,-0.0478,-0.0488,-0.0505
+Time off,-0.0135,-0.0137,-0.0138
+Losing streak,0.0366,0.0351,0.0371
+Knockdowns vs chin,,0.0492,
+KO wins vs gets finished,,-0.0027,
+Accuracy vs strike defence,,0.068,
+Sub attempts vs held down,,0.0323,
+Wrestling vs TD defence,,0.0595,
+Below career peak,0.0127,0.0126,0.0129
+Pro fights,-0.0519,-0.0492,-0.0517
+Pro win rate,0.2323,0.2315,0.2325
+Reach,0.191,0.1909,0.1909
+Strikes absorbed / min,-0.1027,-0.0652,-0.1023
+Strikes landed / min,0.0503,0.0131,0.0503
+Strength of schedule,0.1377,0.1403,0.1382
+Southpaw,0.0551,0.0541,0.0548
+Striking accuracy,0.075,0.0333,0.0743
+Strike defence,0.1057,0.0635,0.106
+Sub attempts / 15 min,0.0127,-0.0067,0.0141
+Submission wins,0.0365,0.0377,0.0403
+Takedowns / 15 min,0.1188,0.0621,0.1194
+Takedown accuracy,-0.0402,-0.0532,-0.0409
+Takedown defence,0.0182,-0.0205,0.0191
+UFC experience,-0.0114,-0.013,-0.0121
+Cage time,0.0065,0.0054,0.0055
+UFC win rate,-0.0372,-0.0436,-0.0377
+Win streak,0.0448,0.0429,0.0437

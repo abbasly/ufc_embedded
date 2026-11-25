@@ -45,7 +45,12 @@ const FLOW: { label: string; hint?: string; core?: boolean; items: FlowItem[] }[
     hint: "open one",
     // Same order as the navigation bar.
     items: [
-      ...(accountsEnabled ? [{ title: "Pick'em", text: "Pick every fight, beat your friends", to: "/pickem" }] : []),
+      ...(accountsEnabled
+        ? [
+            { title: "Pick'em", text: "Pick every fight, beat your friends", to: "/pickem" },
+            { title: "The model's picks", text: "It plays Pick'em on every card", to: "/u/the_model" },
+          ]
+        : []),
       { title: "Fight Predictor", text: "Win chance and how it ends", to: "/predictor" },
       { title: "MMA Math", text: "Anyone beats anyone, in circles", to: "/mma-math" },
       { title: "Fighter Lab", text: "Fighter math, and every fighter in 3D by how they fight", to: "/fighter-lab" },

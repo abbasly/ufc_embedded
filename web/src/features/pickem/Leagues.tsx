@@ -10,9 +10,10 @@ import { useAuth } from "../../auth/AuthProvider";
 import { PlayerAvatar } from "../../auth/PlayerAvatar";
 import type { LeaderboardRow } from "../../backend";
 import { useFriends, useFriendsStandings } from "../friends/useFriends";
-import { LeagueChampion, reigning, useLeagueChampions } from "./LeagueChampion";
+import { reigning, useLeagueChampions } from "./LeagueChampion";
 import { MODEL_PLAYER, places } from "./scoring";
-import { EVERYONE, FRIENDS, useLeaderboard, useLeagueActions, useLeagueCard, useLeagues, useStandings } from "./usePickem";
+import { RaceChart } from "./RaceChart";
+import { EVERYONE, FRIENDS, useLeaderboard, useLeagueActions, useLeagueCard, useLeagues, useRaceScores, useStandings } from "./usePickem";
 import { LogoLoader } from "../../components/LogoLoader";
 
 const TOP = 10; // rows shown before "Show all"
@@ -78,6 +79,8 @@ export function Leagues({ selected, setSelected }: Props) {
   const standings = useStandings(league?.id ?? null);
   // A league shows its latest card first (the overall board already has everyone's totals).
   const [leagueView, setLeagueView] = useState<"card" | "all">("card");
+  // Every board opens with the race between its players over the cards.
+  const raceScores = useRaceScores();
   const card = useLeagueCard(league?.id ?? null);
   const lastCard = league && leagueView === "card" ? card.data : null;
   const friendsBoard = useFriendsStandings(showFriends);
@@ -119,7 +122,14 @@ export function Leagues({ selected, setSelected }: Props) {
           </Text>
         )}
 
-        {league && <LeagueChampion league={league} rows={champions.data ?? []} me={profile?.displayName} />}
+        {raceScores.data && (!league || standings.data) && (!showFriends || friendsBoard.data) && (
+          <RaceChart
+            scores={raceScores.data}
+            players={league ? standings.data!.map((r) => r.displayName) : showFriends ? friendsBoard.data!.map((r) => r.displayName) : undefined}
+            me={profile?.displayName}
+            withModel={!league && !showFriends}
+          />
+        )}
         {league && card.data && (
           <SegmentedControl
             size="xs"
@@ -147,7 +157,7 @@ export function Leagues({ selected, setSelected }: Props) {
                 {lastCard.scored ? "Final" : "● Live"}
               </Badge>
             </Group>
-            <Standings rows={lastCard.rows} loading={false} me={profile?.displayName} inLeague crowned={crowned} crownChampion />
+            <Standings rows={lastCard.rows} loading={false} me={profile?.displayName} inLeague crowned={crowned} />
           </>
         ) : (
           <>
@@ -314,7 +324,7 @@ function BoardTabs({ boards, value, onChange }: { boards: { value: string; label
   );
 }
 
-function Standings({ rows, loading, me, inLeague, crowned, crownChampion }: { rows?: (LeaderboardRow & { played?: boolean })[]; loading: boolean; me?: string; inLeague: boolean; crowned?: Set<string>; crownChampion?: boolean }) {
+function Standings({ rows, loading, me, inLeague, crowned }: { rows?: (LeaderboardRow & { played?: boolean })[]; loading: boolean; me?: string; inLeague: boolean; crowned?: Set<string> }) {
   const [all, setAll] = useState(false);
   if (loading) return <LogoLoader size={30} />;
   if (!rows?.length)
@@ -340,8 +350,8 @@ function Standings({ rows, loading, me, inLeague, crowned, crownChampion }: { ro
         </Text>
       )}
       {shown.map(({ row, i }) => {
-        // Places 1 to 3 (once there are points to be proud of): a medal for the number, a crown for
-        // the leader, and the row lit in the medal's colour.
+        // Places 1 to 3 (once there are points to be proud of): a medal for the number, and the row
+        // lit in the medal's colour.
         const sat = row.played === false;
         const podium = place[i]! > 0 && place[i]! <= 3 && row.points > 0 ? place[i]! : undefined;
         return (
@@ -367,13 +377,6 @@ function Standings({ rows, loading, me, inLeague, crowned, crownChampion }: { ro
               </Text>
             )}
             <span className="pickem-avatar-wrap">
-              {/* The crown: 1st place, or on a league's card the league's champion (the model can
-                  come 1st there, but titles are the members'), so it's always on the Champ. */}
-              {(crownChampion ? !!crowned?.has(row.displayName) : podium === 1) && (
-                <svg className="pickem-crown" viewBox="0 0 24 18" aria-hidden>
-                  <path d="M2.5 16.5h19L23 4l-6.3 4.6L12 1 7.3 8.6 1 4Z" />
-                </svg>
-              )}
               <PlayerAvatar name={row.displayName} avatar={row.avatar} size={34} className="pickem-row-avatar" />
             </span>
             <div style={{ minWidth: 0 }}>

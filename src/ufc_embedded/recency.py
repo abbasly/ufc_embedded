@@ -34,14 +34,8 @@ from sklearn.linear_model import LogisticRegression  # noqa: E402
 from ufc_embedded.data import load_raw  # noqa: E402
 from ufc_embedded.evaluate import CV_YEARS, TEST_START, calibration_table, metrics  # noqa: E402
 from ufc_embedded.style_map import style_appearances  # noqa: E402
-from ufc_embedded.train import (  # noqa: E402
-    LR_CS,
-    PROJECT,
-    build,
-    logistic,
-    lr_inputs,
-    wandb_mode,
-)
+from ufc_embedded.tracking import Tracker  # noqa: E402
+from ufc_embedded.train import LR_CS, build, logistic, lr_inputs  # noqa: E402
 
 HALF_LIVES = [2.0, 3.0, 4.0, 6.0, 8.0, 12.0, 16.0]
 WINDOWS = [3, 5, 8, 12]
@@ -121,9 +115,11 @@ def bootstrap_gain(
     return float(diff.mean()), float(np.percentile(means, 2.5)), float(np.percentile(means, 97.5))
 
 
-def run_variants(m: pd.DataFrame, x: list[str]) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Every variant, C tuned for each. Returns a results table and the out-of-fold
-    predictions (one ``p_<variant>`` column each)."""
+def run_variants(
+    m: pd.DataFrame, x: list[str], tracker: Tracker | None = None
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Every variant, C tuned for each, each result logged live to ``tracker``. Returns a
+    results table and the out-of-fold predictions (one ``p_<variant>`` column each)."""
     variants: list[tuple[str, dict[str, Any]]] = [("all fights equal", {})]
     variants += [(f"half-life {h:g}y", {"half_life": h}) for h in HALF_LIVES]
     variants += [(f"last {w} years", {"window": w}) for w in WINDOWS]
@@ -136,6 +132,8 @@ def run_variants(m: pd.DataFrame, x: list[str]) -> tuple[pd.DataFrame, pd.DataFr
             loss = per_year_loss(oof, "_p")
             if best is None or loss < best[0]:
                 best = (loss, C, oof["_p"].to_numpy())
+            if tracker:
+                tracker.log({f"tuning/{name}/log_loss": loss, f"tuning/{name}/C": C})
         assert best is not None
         oof[f"p_{name}"] = best[2]
         scores = metrics(oof["y"], best[2])
@@ -152,6 +150,9 @@ def run_variants(m: pd.DataFrame, x: list[str]) -> tuple[pd.DataFrame, pd.DataFr
             }
         )
         print(f"  {name:<20} C={best[1]:<6g} log loss {best[0]:.4f}  acc {scores['accuracy']:.3f}")
+        if tracker:
+            tracker.log({f"result/{name}": best[0], "result/accuracy": scores["accuracy"],
+                         "result/variant_index": len(rows) - 1})  # fmt: skip
     oof = oof.drop(columns="_p")
     table = pd.DataFrame(rows)
     y = oof["y"].to_numpy()
@@ -301,6 +302,9 @@ def main() -> None:
     )
     args = parser.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
+    tracker = Tracker("recency-weighting", args.wandb, {
+        "half_lives": HALF_LIVES, "windows": WINDOWS, "cv_years": CV_YEARS, "features": "v2",
+        "drift_window": DRIFT_WINDOW})  # fmt: skip
 
     print("building features...")
     data = build()
@@ -308,7 +312,7 @@ def main() -> None:
     x = lr_inputs("v2")
 
     print("variants (rolling validation 2019-23):")
-    table, oof = run_variants(m, x)
+    table, oof = run_variants(m, x, tracker)
     base_C = float(table.loc[table["variant"] == "all fights equal", "C"].iloc[0])
     drift = feature_drift(m, x, base_C)
     styles = style_drift()
@@ -337,55 +341,16 @@ def main() -> None:
     print(drift.drop(columns="mid").round(3).to_string(index=False))
     print(f"\nplots in {OUT}")
 
-    mode = wandb_mode(args.wandb)
-    if mode == "disabled":
-        return
-    import wandb
-
-    run = wandb.init(
-        project=PROJECT,
-        job_type="experiment",
-        name="recency-weighting",
-        mode=mode,  # type: ignore[arg-type]
-        config={
-            "half_lives": HALF_LIVES,
-            "windows": WINDOWS,
-            "cv_years": CV_YEARS,
-            "features": "v2",
-            "drift_window": DRIFT_WINDOW,
-        },
-    )
-    run.log(
-        {
-            "recency/results": wandb.Table(dataframe=table.round(5)),
-            "recency/feature_drift": wandb.Table(dataframe=drift.round(4)),
-            "recency/style_drift": wandb.Table(dataframe=styles.round(3).reset_index(names="year")),
-            **{f"recency/{k}": wandb.Image(str(p)) for k, p in paths.items()},
-        }
-    )
-    hl = table[table["variant"].str.startswith("half-life")]
-    run.log(
-        {
-            "recency/log_loss_vs_half_life": wandb.plot.line(
-                wandb.Table(dataframe=hl[["half_life", "mean_year_log_loss"]]),
-                "half_life",
-                "mean_year_log_loss",
-                title="Rolling log loss vs half-life (years)",
-            )
-        }
-    )
-    run.summary.update(
-        {
-            "baseline_log_loss": float(table["mean_year_log_loss"].iloc[0]),
-            "best_variant": best["variant"],
-            "best_log_loss": float(best["mean_year_log_loss"]),
-            "best_gain": float(best["gain"]),
-            "best_gain_lo": float(best["gain_lo"]),
-            "best_gain_hi": float(best["gain_hi"]),
-        }
-    )
-    print(f"W&B: {run.url or 'offline run, upload with wandb sync'}")
-    run.finish()
+    tracker.finish(
+        summary={"baseline_log_loss": float(table["mean_year_log_loss"].iloc[0]),
+                 "best_variant": best["variant"],
+                 "best_log_loss": float(best["mean_year_log_loss"]),
+                 "best_gain": float(best["gain"]), "best_gain_lo": float(best["gain_lo"]),
+                 "best_gain_hi": float(best["gain_hi"])},
+        tables={"recency/results": table.round(5), "recency/feature_drift": drift.round(4),
+                "recency/style_drift": styles.round(3).reset_index(names="year")},
+        images={f"recency/{k}": p for k, p in paths.items()},
+    )  # fmt: skip
 
 
 if __name__ == "__main__":

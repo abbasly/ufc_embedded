@@ -17,7 +17,32 @@
          scripts/route-previews.mjs sets it per page. -->
     <link rel="canonical" href="%VITE_SITE_URL%/" />
     <meta name="theme-color" content="#18191c" />
+    <!-- Fighter photos are served by Wikimedia: connect early, so the first photo doesn't wait
+         for a new connection (a second or so on a slow phone). -->
+    <link rel="preconnect" href="https://thumb.wikimedia.org" />
+    <link rel="dns-prefetch" href="https://upload.wikimedia.org" />
     <meta name="author" content="Anar Abbasli" />
+
+    <!-- If one of the site's code files fails to load, reload once. A browser or CDN can keep
+         this page for a few minutes after a deploy, still pointing at the old deploy's files;
+         without this the app never starts and the page stays empty. The same guard as
+         src/app/lazyPage.ts (at most one reload per 30 s), which covers pages loaded later. -->
+    <script>
+      (function () {
+        var KEY = "reloaded-for-new-code";
+        window.addEventListener("error", function (e) {
+          var el = e.target;
+          if (!el || el.tagName !== "SCRIPT" || !/\/assets\//.test(el.src || "")) return;
+          try {
+            if (Date.now() - Number(sessionStorage.getItem(KEY) || 0) < 30000) return;
+            sessionStorage.setItem(KEY, String(Date.now()));
+          } catch (_) {
+            return;
+          }
+          location.reload();
+        }, true);
+      })();
+    </script>
 
     <!-- Link previews (WhatsApp, Slack, LinkedIn, X...). Image URLs must be absolute. -->
     <meta property="og:type" content="website" />

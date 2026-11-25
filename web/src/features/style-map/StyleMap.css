@@ -48,12 +48,13 @@
   padding: 10px 12px;
   border-radius: 5px;
   border: 1px solid var(--line-strong);
-  border-left: 3px solid #ffd43b;
+  border-left: 3px solid #e03131;
   background: var(--surface-raised);
   animation: nb-in 0.5s ease-out;
 }
 .math-answer:hover {
-  border-color: #ffd43b;
+  border-color: #5a5e66;
+  border-left-color: #e03131;
 }
 @media (prefers-reduced-motion: reduce) {
   .math-chip { transition: none; }
@@ -102,8 +103,8 @@
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
 }
-.math-sign[data-sign="plus"] { color: #69db7c; }
-.math-sign[data-sign="minus"] { color: #ff8787; }
+.math-sign[data-sign="plus"] { color: #e9ecef; }
+.math-sign[data-sign="minus"] { color: #ff6b6b; }
 .math-sign:hover { background: var(--surface-raised); }
 /* Another term: a dashed row to fill in. */
 .math-add {
@@ -121,7 +122,7 @@
 }
 .math-eq {
   flex: none;
-  color: #ffd43b;
+  color: var(--mantine-color-white);
   font-size: 30px;
   font-weight: 800;
   line-height: 1;
@@ -135,7 +136,7 @@
   padding: 4px 14px 4px 4px;
   border-radius: 5px;
   border: 1px solid var(--line-strong);
-  border-left: 3px solid #ffd43b;
+  border-left: 3px solid #e03131;
   background: var(--surface-raised);
 }
 @media (prefers-reduced-motion: reduce) {

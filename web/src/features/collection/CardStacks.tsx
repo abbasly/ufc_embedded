@@ -68,8 +68,9 @@ function Slot({ card }: { card: StackCard }) {
   );
 }
 
-/** ``cards`` in the order to show them: the first of each pile is the one on top. */
-export function CardStacks({ cards }: { cards: StackCard[] }) {
+/** ``cards`` in the order to show them: the first of each pile is the one on top. ``pileUp``: the
+ * rarities that gather into a pile (by default Rare and Common; the rest stay on show). */
+export function CardStacks({ cards, pileUp = PILED }: { cards: StackCard[]; pileUp?: Rarity[] }) {
   const [open, setOpen] = useState<Rarity[]>([]);
   const [gathering, setGathering] = useState<Rarity | null>(null);
   const root = useRef<HTMLDivElement>(null);
@@ -128,7 +129,7 @@ export function CardStacks({ cards }: { cards: StackCard[] }) {
     void Promise.allSettled(moves.map((m) => m.finished)).then(shut);
   };
 
-  const piles = PILED.map((rarity) => ({ rarity, cards: cards.filter((c) => c.rarity === rarity && !c.shiny) })).filter((p) => p.cards.length > 1);
+  const piles = pileUp.map((rarity) => ({ rarity, cards: cards.filter((c) => c.rarity === rarity && !c.shiny) })).filter((p) => p.cards.length > 1);
   const piled = new Set(piles.flatMap((p) => p.cards.map((c) => c.key)));
   const loose = cards.filter((c) => !piled.has(c.key));
 
@@ -159,7 +160,7 @@ export function CardStacks({ cards }: { cards: StackCard[] }) {
           );
         })}
       </div>
-      {PILED.filter((r) => open.includes(r)).map((rarity) => {
+      {pileUp.filter((r) => open.includes(r)).map((rarity) => {
         const pile = piles.find((p) => p.rarity === rarity);
         if (!pile) return null;
         return (

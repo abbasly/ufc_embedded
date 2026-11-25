@@ -257,6 +257,29 @@ export function demoBackend(): Backend {
       myScores: async () => (load().signedIn ? demoPastScores(DEMO_USER.id) : []),
       scoresOf: async (id) => demoPastScores(id),
       pickHistory: async (id) => demoPastPicks(id),
+      // The race: the first dozen sample players (the model is sample-2) and you, card by card.
+      raceScores: async () => {
+        const me = load().signedIn ? load().profile : null;
+        const players = [
+          ...SAMPLE_NAMES.slice(0, 12).map((name, i) => ({ id: `sample-${i}`, name, avatar: AVATARS[i % AVATARS.length] ?? null })),
+          ...(me ? [{ id: DEMO_USER.id, name: me.displayName, avatar: me.avatar }] : []),
+        ];
+        return players.flatMap((pl) =>
+          demoPastScores(pl.id).map((e) => ({ eventId: e.eventId, eventName: e.name, startsOn: e.startsOn, displayName: pl.name, avatar: pl.avatar, points: e.points, correct: e.correct })),
+        );
+      },
+      // What a signed-in demo player may see: their own picks, the sample friends and league-mates
+      // (the first eight sample players) and the model's; signed out, only the model's.
+      visiblePicks: async () => {
+        const s = load();
+        const ids = s.signedIn ? [...(s.profile ? [DEMO_USER.id] : []), ...Array.from({ length: 8 }, (_, i) => `sample-${i}`)] : ["sample-2"];
+        return ids.flatMap((id) => {
+          const i = Number(id.replace("sample-", ""));
+          const name = id === DEMO_USER.id ? s.profile!.displayName : SAMPLE_NAMES[i]!;
+          const avatar = id === DEMO_USER.id ? s.profile!.avatar : (AVATARS[i % AVATARS.length] ?? null);
+          return demoPastPicks(id).map((p) => ({ displayName: name, avatar, pick: p.pick, bout: p.bout }));
+        });
+      },
       claimPacks: async () =>
         load().signedIn
           ? DEMO_PACKS.filter((p) => !loadPulls()[p.id])

@@ -3,7 +3,7 @@
 
 import "./Insights.css";
 
-import { Group, Paper, SimpleGrid, Stack, Text, Title, Tooltip, UnstyledButton } from "@mantine/core";
+import { Group, Paper, SimpleGrid, Text, Title, Tooltip, UnstyledButton } from "@mantine/core";
 import { useState } from "react";
 
 import { Link } from "react-router-dom";
@@ -11,7 +11,8 @@ import { Link } from "react-router-dom";
 import { PlayerAvatar } from "../../auth/PlayerAvatar";
 import type { ClosestPredictor, EventScore, PastPick } from "../../backend";
 import { ModelTag, playerPath } from "../pickem/Leagues";
-import { METHOD_LABEL, MODEL_PLAYER } from "../pickem/scoring";
+import { METHOD_LABEL, MODEL_PLAYER, POINTS, pointsFor } from "../pickem/scoring";
+import { MethodDonut } from "./MethodDonut";
 import { type Badge, bestCall, type HeadToHead, methodRecord, pointsOverTime } from "./record";
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
@@ -65,10 +66,26 @@ export function Highlights({ history, vsModel, isModel, whose, picksHidden }: { 
         {picksHidden ? hidden : call ? (
           <>
             <Text fz={22} fw={800} lh={1.2}>
-              <Text span c="yellow.4" fw={800} inherit>{call.fighter}</Text> <Text span c="green.4" fw={800} inherit>+{call.points}</Text>
+              {call.fighter} <Text span c="green.4" fw={800} inherit>+{call.points}</Text>
             </Text>
-            <Text size="sm" c="dimmed">
-              at {pct(call.chance)} with the bookies · {call.pick.eventName.split(":")[0]}
+            {/* Where the points came from, from the scoring rules themselves: a line each. */}
+            <div className="best-call-parts">
+              {pointsFor(call.pick.bout, call.pick.pick).map((why) => (
+                <Text key={why} size="sm" c="dimmed">
+                  <b className="best-call-pts">+{why === "winner" ? POINTS.winner : why === "method" ? POINTS.method : why === "underdog" ? POINTS.underdog : POINTS.prelim}</b>{" "}
+                  {why === "winner"
+                    ? "right winner"
+                    : why === "method"
+                      ? `${METHOD_LABEL[call.pick.pick.method!]} called`
+                      : why === "underdog"
+                        ? `underdog at ${pct(call.chance)}`
+                        : "prelim winner"}
+                </Text>
+              ))}
+            </div>
+            <Text size="xs" c="dimmed">
+              {call.pick.eventName.split(":")[0]}
+              {!call.pick.pick.method || call.pick.pick.method === call.pick.bout.method ? "" : ` · called ${METHOD_LABEL[call.pick.pick.method]}, won by ${METHOD_LABEL[call.pick.bout.method!]}`}
             </Text>
           </>
         ) : (
@@ -79,21 +96,7 @@ export function Highlights({ history, vsModel, isModel, whose, picksHidden }: { 
       </Panel>
       <Panel label="Method calls">
         {picksHidden ? hidden : methods.length ? (
-          <Stack gap={8}>
-            {methods.map((m) => (
-              <div key={m.method} className="method-row" data-method={m.method}>
-                <Group justify="space-between" wrap="nowrap">
-                  <Text size="sm">{METHOD_LABEL[m.method]}</Text>
-                  <Text size="sm" fw={700} style={{ fontVariantNumeric: "tabular-nums" }}>
-                    {m.right}/{m.total}
-                  </Text>
-                </Group>
-                <div className="method-bar">
-                  <div style={{ width: `${(100 * m.right) / m.total}%` }} />
-                </div>
-              </div>
-            ))}
-          </Stack>
+          <MethodDonut methods={methods} />
         ) : (
           <Text size="sm" c="dimmed">
             No method calls yet: pick how a fighter wins for +5.

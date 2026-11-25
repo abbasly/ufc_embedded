@@ -2,21 +2,24 @@
 // record, points over time, and past cards with their picks. Used on your own profile (with a
 // share button) and on anyone's player page.
 
-import { Grid, Group, Stack } from "@mantine/core";
+import { Grid, Group, Paper, Stack, Text } from "@mantine/core";
 
 import { usePredictor } from "../../data/client";
 import { MODEL_PLAYER, placeOf } from "../pickem/scoring";
 import { useLeaderboard } from "../pickem/usePickem";
 import { profileImage } from "../share/profileImage";
 import { ShareButton } from "../share/ShareButton";
-import { CardCollection } from "../collection/Collection";
-import { PulledCards } from "../collection/Packs";
 import { Badges, ClosestPredictors, Highlights, PointsChart } from "./Insights";
 import { LeagueTitles } from "./LeagueTitles";
 import { badges, bestCall, decided, headToHead } from "./record";
 import { History, Stats } from "./PlayerStats";
 import { starterBadges, useStarterBadges } from "./starter";
 import { usePlayerRecord } from "./usePlayerRecord";
+import { MarketChart } from "./MarketChart";
+import { ProfileCards } from "../collection/ProfileCards";
+import { useAuth } from "../../auth/AuthProvider";
+import { useVisiblePicks } from "../pickem/usePickem";
+import { RiskChart } from "./RiskChart";
 
 interface Props {
   userId: string;
@@ -32,6 +35,9 @@ interface Props {
 export function PlayerRecord({ userId, displayName, avatar, isMe, children, after }: Props) {
   const { scores, history, closest, modelScores } = usePlayerRecord(userId);
   const isModel = displayName === MODEL_PLAYER;
+  const { user, profile } = useAuth();
+  // How players pick: only signed in (signed out, only the model's picks are visible).
+  const visible = useVisiblePicks(!!user);
   const vsModel = modelScores && scores.data ? headToHead(scores.data, modelScores) : null;
   const picks = history.data ?? [];
   const list = badges(picks, vsModel);
@@ -61,7 +67,9 @@ export function PlayerRecord({ userId, displayName, avatar, isMe, children, afte
             picked: rows.reduce((n, r) => n + r.picked, 0),
             cards: rows.length,
             vsModel: vsModel && vsModel.wins + vsModel.losses + vsModel.draws > 0 ? `${vsModel.wins}–${vsModel.losses}` : null,
-            bestCall: call ? `${call.fighter} at ${Math.round(call.chance * 100)}% (+${call.points})` : null,
+            bestCall: call
+              ? `${call.fighter}${call.pick.pick.method && call.pick.pick.method === call.pick.bout.method ? ` by ${call.pick.pick.method === "KO/TKO" ? "KO" : call.pick.pick.method === "SUB" ? "submission" : "decision"}` : ""} at ${Math.round(call.chance * 100)}% (+${call.points})`
+              : null,
             badges: list.filter((b) => b.earned).map((b) => b.name),
           });
         }}
@@ -70,20 +78,29 @@ export function PlayerRecord({ userId, displayName, avatar, isMe, children, afte
   );
 
   return (
-    // The numbers across the top, the cards they've called under them; then how they play on the
-    // left (points over time, highlights, past cards) and who they play with on the right.
+    // The numbers across the top (for the model, its record against the market first); then how
+    // they play on the left (highlights, points over time, how they pick, past cards) and who they
+    // play with on the right; their cards at the bottom.
     <Stack gap="lg">
+      {/* The model doesn't collect cards: its page leads with how it does against the market. */}
+      {isModel && history.isSuccess && !picksHidden && <MarketChart history={picks} />}
       <Stats scores={scores.data} displayName={displayName} />
       {share}
-      {history.isSuccess && !picksHidden && <CardCollection history={picks} isMe={isMe} displayName={displayName} />}
-      <PulledCards userId={userId} isMe={isMe} displayName={displayName} />
       <Grid gap="lg">
         <Grid.Col span={{ base: 12, md: 7.5 }}>
           <Stack gap="lg">
             {!!scores.data?.length && (
               <>
-                <PointsChart scores={scores.data} />
                 <Highlights history={picks} vsModel={vsModel} isModel={isModel} whose={isMe ? "you" : "they"} picksHidden={picksHidden} />
+                <PointsChart scores={scores.data} />
+                {user && visible.data && (
+                  <Paper p="md" radius="md" className="pickem-board">
+                    <Text size="xs" c="dimmed" fw={700} mb={6}>
+                      {isMe ? "How you pick" : "How they pick"}
+                    </Text>
+                    <RiskChart picks={visible.data} owner={displayName} me={profile?.displayName} />
+                  </Paper>
+                )}
               </>
             )}
             <History scores={scores.data} loading={scores.isPending} own={isMe} history={picks} />
@@ -98,6 +115,7 @@ export function PlayerRecord({ userId, displayName, avatar, isMe, children, afte
           </Stack>
         </Grid.Col>
       </Grid>
+      {!isModel && history.isSuccess && !picksHidden && <ProfileCards history={picks} userId={userId} isMe={isMe} displayName={displayName} />}
       {after}
     </Stack>
   );

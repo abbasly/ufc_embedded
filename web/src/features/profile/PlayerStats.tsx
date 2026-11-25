@@ -10,10 +10,13 @@ import type { EventScore, PastPick } from "../../backend";
 import { boutPoints, METHOD_LABEL, placeOf } from "../pickem/scoring";
 import { useLeaderboard } from "../pickem/usePickem";
 import { LogoLoader } from "../../components/LogoLoader";
+import { useCountUp } from "../predictor/useCountUp";
 
 const day = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
-/** Points, right picks, cards played and overall rank. */
+/** Points, right picks, cards played and overall rank: one compact row, each number with a small
+ * picture of itself (points per card, the hit rate as a ring, where they stand),
+ * counting up once the numbers are in. */
 export function Stats({ scores, displayName }: { scores: EventScore[] | undefined; displayName: string }) {
   const board = useLeaderboard();
   const rows = scores ?? [];
@@ -21,33 +24,83 @@ export function Stats({ scores, displayName }: { scores: EventScore[] | undefine
   const correct = rows.reduce((n, r) => n + r.correct, 0);
   const picked = rows.reduce((n, r) => n + r.picked, 0);
   const rank = placeOf(board.data ?? [], displayName);
+  const players = board.data?.length ?? 0;
+  const t = useCountUp(`${displayName}-${points}-${picked}-${rank}`, 1100);
+  const perCard = [...rows].sort((a, b) => a.startsOn.localeCompare(b.startsOn)).slice(-10);
+  const maxCard = Math.max(1, ...perCard.map((r) => r.points));
+  const hit = picked ? correct / picked : 0;
 
-  const tiles = [
-    { key: "points", label: "Points", value: String(points) },
-    { key: "right", label: "Right picks", value: picked ? `${correct}/${picked}` : "–", note: picked ? `${Math.round((100 * correct) / picked)}%` : undefined },
-    { key: "cards", label: "Cards played", value: String(rows.length) },
-    { key: "rank", label: "Rank", value: rank ? `#${rank}` : "–", note: rank ? "overall" : undefined },
-  ];
   return (
     // One scoreboard: four cells in a single pane, split by rules.
     <Paper withBorder className="scoreboard">
-      {tiles.map((t) => (
-        <div key={t.key} className="stat-tile" data-stat={t.key}>
-          <Text size="sm" c="dimmed" fw={600}>
-            {t.label}
+      <div className="stat-tile" data-stat="points">
+        <Text size="xs" c="dimmed" fw={600}>
+          Points
+        </Text>
+        <Group gap={12} wrap="nowrap" align="flex-end" justify="space-between">
+          <Text fz={{ base: 26, sm: 30 }} fw={850} className="stat-value">
+            {Math.round(points * t)}
           </Text>
-          <Group gap={6} align="baseline">
-            <Text fz={{ base: 28, sm: 36 }} fw={850} className="stat-value">
-              {t.value}
+          {perCard.length > 1 && (
+            <div className="stat-bars" aria-label="Points per card, oldest first">
+              {perCard.map((r) => (
+                <div key={r.eventId} title={`${r.name.split(":")[0]}: ${r.points} pts`} style={{ height: `${Math.max(6, (100 * r.points) / maxCard) * t}%` }} />
+              ))}
+            </div>
+          )}
+        </Group>
+      </div>
+
+      <div className="stat-tile" data-stat="right">
+        <Text size="xs" c="dimmed" fw={600}>
+          Right picks
+        </Text>
+        <Group gap={12} wrap="nowrap" align="center">
+          {picked > 0 && (
+            <svg viewBox="0 0 44 44" width={40} height={40} className="stat-ring" aria-hidden>
+              <circle cx="22" cy="22" r="18" className="stat-ring-track" />
+              <circle cx="22" cy="22" r="18" className="stat-ring-fill" strokeDasharray={`${2 * Math.PI * 18 * hit * t} ${2 * Math.PI * 18}`} />
+              <text x="22" y="26" textAnchor="middle" className="stat-ring-text">
+                {Math.round(100 * hit * t)}%
+              </text>
+            </svg>
+          )}
+          <Text fz={{ base: 26, sm: 30 }} fw={850} className="stat-value">
+            {picked ? `${Math.round(correct * t)}/${picked}` : "–"}
+          </Text>
+        </Group>
+      </div>
+
+      <div className="stat-tile" data-stat="cards">
+        <Text size="xs" c="dimmed" fw={600}>
+          Cards played
+        </Text>
+        <Text fz={{ base: 26, sm: 30 }} fw={850} className="stat-value">
+          {Math.round(rows.length * t)}
+        </Text>
+      </div>
+
+      <div className="stat-tile" data-stat="rank">
+        <Text size="xs" c="dimmed" fw={600}>
+          Rank
+        </Text>
+        <Group gap={8} wrap="nowrap" align="baseline">
+          <Text fz={{ base: 26, sm: 30 }} fw={850} className="stat-value">
+            {rank ? `#${rank}` : "–"}
+          </Text>
+          {rank && players > 0 && (
+            <Text size="sm" c="dimmed">
+              of {players}
             </Text>
-            {t.note && (
-              <Text size="sm" c="dimmed">
-                {t.note}
-              </Text>
-            )}
-          </Group>
-        </div>
-      ))}
+          )}
+        </Group>
+        {rank && players > 1 && (
+          // Where they stand, last on the left to first on the right; the marker slides into place.
+          <div className="stat-track" aria-label={`#${rank} of ${players}`}>
+            <span className="stat-track-marker" style={{ left: `${((players - rank) / (players - 1)) * 100 * t}%` }} />
+          </div>
+        )}
+      </div>
     </Paper>
   );
 }

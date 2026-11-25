@@ -225,9 +225,9 @@ export function PulledCards({ userId, isMe, displayName }: { userId: string; isM
     .reverse();
 
   return (
-    <Paper p="md" radius="md" className="pickem-board">
+    <div className="profile-cards-col">
       <Group justify="space-between" align="baseline" mb="sm" gap="xs">
-        <Title order={4}>Pack pulls</Title>
+        <Title order={5}>Pack pulls</Title>
         {cards.length > 0 && (
           <Group gap={6}>
             {best.map((r) => (
@@ -265,7 +265,7 @@ export function PulledCards({ userId, isMe, displayName }: { userId: string; isM
       <Modal opened={!!open} onClose={() => setOpen(null)} centered size={380} title={open ? `${rarityLabel(open.rarity)} card` : ""}>
         {open && <PullCloseUp card={open} isMe={isMe} displayName={displayName} />}
       </Modal>
-    </Paper>
+    </div>
   );
 }
 

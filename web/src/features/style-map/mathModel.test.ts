@@ -43,6 +43,20 @@ describe("fighter math", () => {
     }
   });
 
+  it("ends at the same point in any order, a taken-away term first included", () => {
+    const data = tiny();
+    if (!hasMath(data)) throw new Error("no math");
+    const terms: Term[] = [{ sign: 1, ref: "p" }, { sign: -1, ref: "q" }, { sign: 1, ref: "r" }];
+    const orders = [[0, 1, 2], [1, 0, 2], [2, 1, 0], [1, 2, 0]];
+    for (const dims of [2, 3] as const) {
+      const end = place(data.math, combine(data, terms)!, dims);
+      for (const order of orders) {
+        const points = chain(data, order.map((i) => terms[i]!), dims)!;
+        points.at(-1)!.forEach((v, i) => expect(v).toBeCloseTo(end[i]!));
+      }
+    }
+  });
+
   it("finds the closest real fighter, leaving out the terms themselves", () => {
     const data = tiny();
     if (!hasMath(data)) throw new Error("no math");

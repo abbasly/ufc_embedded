@@ -47,6 +47,17 @@ describe("player insights", () => {
     expect(bestCall([])).toBeNull();
   });
 
+  it("prefers the call that scored the most, then the bigger underdog", () => {
+    // Equal points (a favourite with the method, an underdog without): the bigger underdog wins.
+    const favWithMethod = pick({ won: true, market: 0.7 }); // 10 + 5 method = 15
+    const dogNoMethod = pick({ won: true, market: 0.4, called: null }); // 10 + 5 underdog = 15
+    expect(bestCall([favWithMethod, dogNoMethod])?.pick).toBe(dogNoMethod);
+    // More points win over a lower chance.
+    const longShotNoMethod = pick({ won: true, market: 0.45, called: null }); // 15
+    const dogWithMethod = pick({ won: true, market: 0.48 }); // 20
+    expect(bestCall([longShotNoMethod, dogWithMethod])?.pick).toBe(dogWithMethod);
+  });
+
   it("counts a method call right only with the right winner", () => {
     const record = methodRecord([pick({ won: true, called: "SUB", method: "SUB" }), pick({ won: false, called: "SUB", method: "SUB" }), pick({ won: true, called: null })]);
     expect(record.find((r) => r.method === "SUB")).toEqual({ method: "SUB", right: 1, total: 2 });

@@ -12,14 +12,18 @@ function adsense(client: string | undefined): Plugin {
     name: "adsense",
     transformIndexHtml() {
       if (!client) return [];
+      const src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${client}`;
       return [
+        // Site ownership for AdSense, readable without running the script.
+        { tag: "meta", attrs: { name: "google-adsense-account", content: client }, injectTo: "head" },
+        // The script itself (~250 KB with what it loads) once the page is up, so on a slow
+        // connection it doesn't compete with the page's own code, data and photos.
         {
           tag: "script",
-          attrs: {
-            async: true,
-            src: `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${client}`,
-            crossorigin: "anonymous",
-          },
+          children:
+            `addEventListener("load", function () { setTimeout(function () {` +
+            ` var s = document.createElement("script"); s.async = true; s.crossOrigin = "anonymous";` +
+            ` s.src = ${JSON.stringify(src)}; document.head.appendChild(s); }, 1500); });`,
           injectTo: "head",
         },
       ];

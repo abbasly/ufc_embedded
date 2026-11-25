@@ -1,112 +1,48 @@
-# UFC Embedded
+<h1 align="center"><img src="web/public/favicon.svg" width="40" align="absmiddle" alt=""> UFC Embedded</h1>
 
-Three decades of UFC fights, turned into machine learning models you can play with.
+<p align="center">Learning how fighters fight, and who wins, from three decades of UFC fights.</p>
 
-**Live:** https://ufc.anarli.com · **Details:** [docs/TECHNICAL.md](docs/TECHNICAL.md)
+<p align="center">
+  <a href="https://ufc.anarli.com"><img src="docs/buttons/live.svg" alt="Live: ufc.anarli.com" height="30"></a>&nbsp;
+  <a href="docs/TECHNICAL.md"><img src="docs/buttons/docs.svg" alt="Docs: technical details" height="30"></a>&nbsp;
+  <a href="https://ufc.anarli.com/fighter-lab"><img src="docs/buttons/fighter-lab.svg" alt="Try Fighter Lab" height="30"></a>&nbsp;
+  <a href="https://ufc.anarli.com/pickem"><img src="docs/buttons/pickem.svg" alt="Play Pick'em" height="30"></a>
+</p>
 
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <a href="https://ufc.anarli.com/fighter-lab"><img src="docs/screenshots/style-map.png" alt="Style map"></a><br>
-      <sub><b>Fighter Lab</b>: fighter math, and every active fighter in 3D by how they fight</sub>
-    </td>
-    <td width="50%" valign="top">
-      <a href="https://ufc.anarli.com/predictor"><img src="docs/screenshots/predictor.png" alt="Fight predictor"></a><br>
-      <sub><b>Fight Predictor</b>: win chance and how it ends</sub>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <a href="https://ufc.anarli.com"><img src="docs/screenshots/pickem.png" alt="Pick'em"></a><br>
-      <sub><b>Pick'em</b>: pick every fight on the next card, against friends and the model</sub>
-    </td>
-    <td width="50%" valign="top">
-      <a href="https://ufc.anarli.com/?event=2026-11-07-ufc-fight-night"><img src="docs/screenshots/pickem-locked.png" alt="Pick'em results"></a><br>
-      <sub>After the fights: results live, the crowd's split, final standings</sub>
-    </td>
-  </tr>
-</table>
+<p align="center">
+  <a href="https://github.com/abbasly/ufc_embedded/actions/workflows/ci.yml"><img src="https://github.com/abbasly/ufc_embedded/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/abbasly/ufc_embedded/actions/workflows/data-refresh.yml"><img src="https://github.com/abbasly/ufc_embedded/actions/workflows/data-refresh.yml/badge.svg" alt="Data refresh"></a>
+</p>
 
-More: [MMA Math](https://ufc.anarli.com/mma-math) (anyone "beats" anyone through a chain of
-wins), the [Elo Ladder](https://ufc.anarli.com/ladder) and fighter cards that flip to a full
-fighter file.
+## Abstract
+
+Two models learned from every UFC fight since 1994 (8,819 decisive fights, UFCStats):
+
+- a **style embedding** of ~700 active fighters, a metric learned with LDA, which finds a
+  fighter's held-out half career in the top 10 for 36.8% of fighters (17.8% for UFCStats'
+  averages), and is linear, so styles can be added and subtracted ("fighter math");
+- a **win model**, a leak-free logistic regression: 62.2% accuracy and 0.652 log loss on rolling
+  2019–23 validation, against 66.2% and 0.614 for the betting market.
+
+Five experiments (recency weighting, expert matchups, Bayesian networks, tree ensembles,
+non-linear terms) did not beat the linear model. Both models run in a public website with a
+prediction game against the model.
 
 ## Contents
 
-- [Why](#why)
-- [What's inside](#whats-inside)
-- [The models](#the-models)
-- [Architecture](#architecture)
-- [Running it](#running-it)
+1. [System architecture](#1-system-architecture)
+2. [Data](#2-data)
+3. [Style embedding](#3-style-embedding)
+4. [Fight prediction](#4-fight-prediction)
+5. [Experiments](#5-experiments)
+6. [Limitations](#6-limitations)
+7. [Reproducing](#7-reproducing)
 
-## Why
+## 1. System architecture
 
-Fight fans argue about styles, matchups and who would win, mostly on gut feeling. The data to
-do better exists: UFCStats has every fight since 1994, round by round. This project is an
-end-to-end attempt to turn that data into something useful and honest:
-
-- **models that don't cheat:** every prediction uses only what was known before the fight;
-- **an honest benchmark:** the betting market, which the models are measured against and
-  don't beat;
-- **a product people use:** a fast website, and a prediction game where friends play against
-  each other and against the model on real cards.
-
-## What's inside
-
-| Page | What it does | Under the hood |
-|---|---|---|
-| [Fighter Lab](https://ufc.anarli.com/fighter-lab) | Fighter math (A − B + C = ?), ~700 active fighters in 3D, 5 most similar for each | 14 style stats, a learned metric (LDA), t-SNE, k-means |
-| [Fight Predictor](https://ufc.anarli.com/predictor) | Win chance, method, what drives the call | Logistic regression on point-in-time features, Glicko ratings |
-| [Pick'em](https://ufc.anarli.com) | Picks, leagues, live scoring, the model as a player | Supabase (Postgres, row level security), live sync from Wikipedia |
-| [Elo Ladder](https://ufc.anarli.com/ladder) | Ratings next to official ranks | Elo from every UFC fight since 1994 |
-| [MMA Math](https://ufc.anarli.com/mma-math) | Chains and loops of wins, shareable as an image | Win graph, cycle search, BFS in the browser |
-
-## The models
-
-**Fight predictor.** Two models, both deliberately simple: about 9,000 fights is too little for
-deep nets, and gradient boosting did worse on the same features.
-
-- **Who wins:** L2 logistic regression on the difference between the two fighters' features.
-  It has no intercept, so P(A beats B) = 1 − P(B beats A) exactly.
-- **How:** multinomial logistic regression for KO/TKO, submission or decision, given the
-  winner.
-- **Features:** experience, form, finishing rates, age, reach, per-minute striking and
-  grappling rates, recent margins over opponents, a Glicko rating and strength of schedule.
-  All are rebuilt from per-fight stats using only *earlier* fights, so nothing leaks from the
-  future, and a test checks it.
-
-Evaluated on time-based splits, each year 2019–23 predicted by a model trained on all earlier
-years (2,457 fights):
-
-| | Accuracy | Log loss ↓ | AUC |
-|---|---|---|---|
-| **Win model** (deployed) | **62.2%** | **0.652** | **0.661** |
-| Elo | 55.5% | 0.685 | 0.578 |
-| Betting market | 66.2% | 0.614 | 0.722 |
-
-![Model comparison: calibration, ROC, accuracy vs coverage](docs/model-comparison.png)
-
-The model stays behind the market: bookmakers know about injuries, short notice and
-debutants' careers before the UFC, which the stats don't.
-
-**Fighter Lab.** Each fighter becomes a vector of 14 style stats (output, accuracy, where strikes
-land, takedowns, control, submissions...), shrunk toward the average when based on little
-data. How the stats combine is learned with linear discriminant analysis, every fighter a class:
-stats that wobble from fight to fight count less, and overlapping ones aren't counted twice. It's
-all linear, so fighters and styles can be added and subtracted (**fighter math**: "Topuria −
-Volume boxers + Dominant wrestlers = ?"). Tested by splitting every career in two and finding the
-other half: the learned embedding finds it in the top 10 for 36.8% of fighters (scored on
-fighters it didn't learn from), against 32.9% before and 17.8% for UFCStats' own career averages.
-
-All the details (features, evaluation, the style map pipeline, MMA math and Pick'em) are in
-[docs/TECHNICAL.md](docs/TECHNICAL.md).
-
-## Architecture
-
-The Python pipeline runs on its own twice a week and publishes JSON to a GitHub Release; the
-website is a static app that downloads it at build time and serves it from its own domain,
-hosted free on GitHub Pages (beta on Cloudflare). Pick'em is the one live part: Supabase for
-accounts, picks, scores and cards, kept up to date from Wikipedia by a scheduled sync.
+A Python pipeline rebuilds the data and models twice a week and publishes versioned JSON; the
+static web app evaluates the models in the browser. Pick'em runs on Supabase, synced from
+Wikipedia every 5 minutes on fight nights.
 
 ```mermaid
 flowchart LR
@@ -124,54 +60,179 @@ flowchart LR
         mma --> export
     end
 
-    refresh(["Data refresh (GitHub Action)<br/>Mon + Thu; by hand for beta"]) --> raw
+    refresh(["Data refresh (GitHub Action)<br/>Mon + Thu"]) --> raw
     train --> check["check_data.py + tests<br/>refuse a bad refresh"]
     export --> check
-    check --> release[("GitHub Release<br/>data · data-beta<br/>(versioned JSON contracts)")]
+    check --> release[("GitHub Release<br/>(versioned JSON contracts)")]
 
     subgraph web["Web app (web/)"]
         client["data/client.ts + styleMap.ts<br/>fetch; work out neighbours,<br/>percentiles, Style axes"] --> lab["features/style-map<br/>Fighter Lab + fighter math, three.js"]
         client --> mmaui["features/mma-math<br/>chains + loops"]
         client --> predui["features/predictor<br/>cards + predictions"]
-        backend["backend/<br/>Supabase or demo"] --> pickui["features/pickem, collection, profile<br/>picks, leagues, cards, packs"]
+        backend["backend/<br/>Supabase or demo"] --> pickui["features/pickem, collection, profile<br/>picks, leagues, cards"]
     end
 
     release -->|"fetch-data.mjs at build"| client
-    subgraph hosting["Hosting (static files)"]
-        pages(["GitHub Pages<br/>ufc.anarli.com<br/>from master"])
-        beta(["Cloudflare Workers<br/>beta.anarli.com<br/>from beta"])
-    end
-    web --> hosting
-    cron(["cron-job.org + schedule<br/>every 5 min on fight weekends"]) --> sync["pickem_sync.py (GitHub Action)<br/>cards, results, live points,<br/>the model's picks, card rarities"]
+    web --> pages(["GitHub Pages<br/>ufc.anarli.com"])
+    cron(["cron-job.org<br/>every 5 min on fight nights"]) --> sync["pickem_sync.py (GitHub Action)<br/>cards, results, live points,<br/>the model's picks"]
     wiki --> sync
     release -->|"predictor.json"| sync
-    sync --> supa[("Supabase Postgres<br/>accounts, picks, scores,<br/>leagues, cards, packs")]
-    supa --> mail["Edge Functions + Resend<br/>results, friend requests, reminders"]
-    supa <-->|"row level security"| backend
-    supa --> backup(["Weekly encrypted backup<br/>(GitHub Action)"])
-    visits(["ufc-visits Worker<br/>Cloudflare Web Analytics"]) -->|"admin panel"| backend
+    sync --> supa[("Supabase Postgres<br/>accounts, picks, scores, leagues")]
+    supa --> mail["Edge Functions + Resend<br/>results emails"]
+    supa <-->|"row-level security"| backend
+    supa --> backup(["Weekly encrypted backup"])
 ```
 
-## Running it
+| Page | What it does | Method |
+|---|---|---|
+| [Fighter Lab](https://ufc.anarli.com/fighter-lab) | Fighter math (A − B + C = ?), ~700 fighters in 3D, the 5 most similar to each | Style embedding (§3), t-SNE, k-means |
+| [Fight Predictor](https://ufc.anarli.com/predictor) | Win chance, method of victory, what drives the call | Win and method models (§4) |
+| [Pick'em](https://ufc.anarli.com/pickem) | Pick every fight on the next card; leagues, live scoring, the model as a player | Supabase, Wikipedia sync |
+| [Elo Ladder](https://ufc.anarli.com/ladder) | Ratings next to official ranks, the year's biggest movers | Elo over every UFC fight |
+| [MMA Math](https://ufc.anarli.com/mma-math) | A chain of wins from any fighter to any other | Win graph, breadth-first search |
+
+| Page | What it does | Method |
+|---|---|---|
+| [Fighter Lab](https://ufc.anarli.com/fighter-lab) | Fighter math, ~700 fighters in 3D, most similar fighters | Style embedding (§3) |
+| [Fight Predictor](https://ufc.anarli.com/predictor) | Win chance and method of victory | Win and method models (§4) |
+| [Pick'em](https://ufc.anarli.com/pickem) | Pick every fight on the next card, against friends and the model | Supabase |
+| [Elo Ladder](https://ufc.anarli.com/ladder) | Ratings next to official ranks | Elo |
+| [MMA Math](https://ufc.anarli.com/mma-math) | A chain of wins from any fighter to any other | Win graph, BFS |
+
+## 2. Data
+
+- **Fights:** UFCStats via public Kaggle datasets, per fight and per round.
+- **Benchmark:** consensus bookmaker odds, margin removed (2,284 of 2,457 validation fights).
+- **No leakage:** UFCStats' career stats are as of today, so every feature is rebuilt from
+  earlier fights only (tested). The winner is always listed first, so corners are swapped at
+  random.
+
+## 3. Style embedding
+
+**Statistics.** Each fighter $f$ gets 14 career statistics (output, defence, takedowns, control,
+where strikes land…), each a ratio of totals over their fights, shrunk toward the population
+rate $r_0$ by a pseudo-count $k$ (e.g. 5 takedown attempts):
+
+$$\hat r_f = \frac{\text{num}_f + k\, r_0}{\text{den}_f + k},$$
+
+so 1 takedown in 1 attempt reads as about average, 50 in 50 stays high. Skewed rates get
+$\log(1+x)$; all 14 are standardised into $x_f \in \mathbb{R}^{14}$.
+
+**Learned metric (LDA).** Plain Euclidean distance on $x$ treats all 14 statistics as equally
+reliable and independent; they are neither. Split each fighter's fights into two halves (alternating
+fights, and four random splits), giving profiles $x_f^{(1)}, x_f^{(2)}$. Then
+
+$$\Sigma_\text{noise} = \mathrm{Cov}_f\!\left(\frac{x_f^{(1)} - x_f^{(2)}}{\sqrt 2}\right),
+\qquad \Sigma_\text{signal} = \mathrm{Cov}_f\big(x_f\big),$$
+
+how much a fighter's own numbers wobble (the $\sqrt 2$ because a difference of two noisy halves
+has twice the variance), and how much fighters differ from each other. The best directions
+maximise signal over noise,
+
+$$\max_w \frac{w^\top \Sigma_\text{signal}\, w}{w^\top \Sigma_\text{noise}\, w}
+\;\Longrightarrow\; \Sigma_\text{signal}\, w = \lambda\, \Sigma_\text{noise}\, w,$$
+
+a generalised eigenproblem: linear discriminant analysis with every fighter as a class. All 14
+eigenvectors form $W$, scaled so that $W^\top \Sigma_\text{noise} W = I$, and the embedding is
+$z_f = x_f W$. Since then $W W^\top = \Sigma_\text{noise}^{-1}$,
+
+$$\lVert z_a - z_b \rVert^2 = (x_a - x_b)^\top\, \Sigma_\text{noise}^{-1}\, (x_a - x_b):$$
+
+the Mahalanobis distance in units of fight-to-fight noise. Statistics that wobble within a
+fighter count less, and correlated ones (takedowns and control time) are not counted twice.
+Each $\lambda$ is the signal-to-noise ratio of its direction.
+
+**Evaluation.** Find each fighter's held-out half among everyone's other halves (517 fighters),
+with $W$ learned without the fighters being tested (5-fold).
+
+| Find the held-out half career | Top 1 | Top 10 | Median rank |
+|---|---|---|---|
+| UFCStats career averages | 3.9% | 17.8% | 70 |
+| 14 statistics | 10.1% | 28.2% | 38 |
+| **14 statistics, learned metric** | **15.1%** | **36.8%** | **22** |
+
+**Fighter math.** A style is the mean of its fighters, $\mu_s$. A sum is computed on the
+statistics and answered with the nearest real fighter in the embedding, the terms excluded:
+
+$$v = x_\text{Topuria} - \mu_\text{volume boxers} + \mu_\text{wrestlers},
+\qquad \text{answer} = \arg\min_{f} \lVert (x_f - v)\, W \rVert.$$
+
+This only means something because $x \mapsto xW$ is linear. Similarity scores are
+$100\,(1 - d / d_\text{median})$, clipped to 0–100.
+
+**Styles.** k-means ($k = 5$) on $z$. The silhouette is low for every $k$ (≈ 0.08 at $k = 5$, 0.14 at best): styles are a
+continuum, and $k = 5$ was chosen for readability.
+
+## 4. Fight prediction
+
+- **Features:** 46 per fighter, from earlier fights only: record, age, reach, shrunk striking and
+  grappling rates, recent form, Glicko rating and uncertainty, strength of schedule.
+- **Win model:** $P(A \text{ beats } B) = \sigma\big(w^\top (x_A - x_B)\big)$, L2, no intercept,
+  so $P(A) = 1 - P(B)$ exactly.
+- **Method model:** multinomial logistic regression for KO / submission / decision.
+- **Evaluation:** time splits only; each year 2019–23 predicted from earlier years; 2024+ locked.
+
+| Rolling 2019–23 | Accuracy | Log loss ↓ | AUC |
+|---|---|---|---|
+| **Win model** | **62.2%** | **0.652** | **0.661** |
+| Elo | 55.5% | 0.685 | 0.578 |
+| Betting market | 66.2% | 0.614 | 0.722 |
+
+![Calibration, ROC and accuracy against coverage](docs/model-comparison.png)
+
+## 5. Experiments
+
+Same rolling validation, tuned per variant, 95% bootstrap intervals; the test set stays locked.
+Figures are in [docs/experiments](docs/experiments), every run is logged to W&B.
+
+| Experiment | Best log loss ↓ | vs deployed (95% interval) |
+|---|---|---|
+| Deployed linear model | 0.6513 | |
+| **5.1** Recent fights weighted more | 0.6507 | +0.0007 (−0.0015, +0.0028) |
+| **5.2** Expert matchup features | 0.6511 | +0.0002 (−0.0010, +0.0013) |
+| **5.3** Tree-augmented naive Bayes | 0.6608 | −0.0094 (−0.0166, −0.0026) |
+| **5.4** Gradient boosting | 0.6552 | −0.0040 (−0.0085, +0.0006) |
+| **5.4** Random forest | 0.6563 | −0.0051 (−0.0100, +0.0001) |
+| **5.5** Spline curves per feature | 0.6525 | −0.0014 (−0.0050, +0.0020) |
+
+- **5.1 Time.** The sport changed (output doubled, clinch and ground striking fell to a quarter),
+  but both fighters come from the same era, so it cancels in the differences.
+  [Code](src/ufc_embedded/recency.py) · [plot](docs/experiments/recency-style_drift.png)
+- **5.2 Matchups.** Wrestling vs takedown defence, power vs chin, "striking if it stays
+  standing": predictive alone, already captured by the linear model.
+  [Code](src/ufc_embedded/matchups_experiment.py)
+- **5.3 Bayesian networks.** Naive Bayes double-counts correlated features (log loss 1.18); a
+  learned dependency tree fixes much of it, not enough.
+  [Code](src/ufc_embedded/matchups_experiment.py) · [learned DAG](docs/experiments/matchups-tan-dag.png)
+- **5.4 Trees.** The best boosting uses depth-1 trees (no interactions); deeper trees do worse.
+  [Code](src/ufc_embedded/trees_experiment.py)
+- **5.5 Non-linear terms.** Squares, cubes, splines and interactions all lose; the learned
+  curves are nearly straight. [Code](src/ufc_embedded/polynomial_experiment.py)
+
+**Conclusion:** with ~6,000 training fights the signal is additive and linear. The gap to the
+market is information the statistics lack (injuries, camps, short notice, pre-UFC careers).
+
+## 6. Limitations
+
+- UFCStats records where a strike lands, not which strike (a calf kick is just a leg kick).
+- Newcomers' pre-UFC careers are missing; fighters with few UFC fights are mostly their prior.
+- Gym and camp aren't modelled: sources list teams without dates, which would leak.
+
+## 7. Reproducing
 
 ```bash
-uv sync                                  # Python dependencies
-node web/scripts/fetch-data.mjs          # the live site's data into web/public/data (not in git)
-scripts/download-data.sh                 # or build your own: latest public datasets into data/raw
-uv run python -m ufc_embedded.export     # style map + MMA math JSON
-uv run python -m ufc_embedded.train      # train, evaluate (logged to W&B), write predictor.json
-uv run pytest                            # Python tests
+uv sync && scripts/download-data.sh               # dependencies and public datasets
+uv run python -m ufc_embedded.style_map            # §3
+uv run python -m ufc_embedded.train                # §4 (W&B)
+uv run python -m ufc_embedded.recency              # §5.1; also matchups_experiment,
+                                                   # trees_experiment, polynomial_experiment
+uv run pytest
 
-cd web && npm install
-npm run dev                              # http://localhost:5173
-VITE_ACCOUNTS=demo npm run dev           # with Pick'em on an in-browser demo backend
-npm test                                 # web tests
-
-supabase/tests/run.sh                    # database security tests (needs a local Postgres)
-scripts/pickem-sync.sh                   # sync Pick'em cards and results now (needs SUPABASE_DB_URL in .env)
+cd web && npm install && node scripts/fetch-data.mjs
+npm run dev                                        # http://localhost:5173
+VITE_ACCOUNTS=demo npm run dev                     # Pick'em with a demo backend
 ```
 
-The site's data refreshes by itself twice a week, after each card and before the next
-([details](docs/TECHNICAL.md#data)). Database setup is in [supabase/README.md](supabase/README.md).
+More: [docs/TECHNICAL.md](docs/TECHNICAL.md) · database: [supabase/README.md](supabase/README.md)
 
 Unofficial fan project, not affiliated with the UFC.
